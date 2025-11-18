@@ -74,7 +74,7 @@ void DialogManager::Render() {
 }
 
 void DialogManager::ShowMessageBox(const std::string& title, const std::string& message, MessageBoxButtons buttons,
-                                    MessageBoxIcon icon, std::function<void(MessageBoxResult)> callback) {
+                                   MessageBoxIcon icon, std::function<void(MessageBoxResult)> callback) {
     m_impl->messageBox = std::make_unique<MessageBoxState>();
     m_impl->messageBox->title = title;
     m_impl->messageBox->message = message;
@@ -84,8 +84,8 @@ void DialogManager::ShowMessageBox(const std::string& title, const std::string& 
     m_impl->messageBox->open = true;
 }
 
-void DialogManager::ShowInputDialog(const std::string& title, const std::string& prompt, const std::string& defaultValue,
-                                     std::function<void(const std::string&)> callback) {
+void DialogManager::ShowInputDialog(const std::string& title, const std::string& prompt,
+                                    const std::string& defaultValue, std::function<void(const std::string&)> callback) {
     m_impl->inputDialog = std::make_unique<InputDialogState>();
     m_impl->inputDialog->title = title;
     m_impl->inputDialog->prompt = prompt;
@@ -124,7 +124,7 @@ void DialogManager::CloseProgress(int dialogId) {
 }
 
 void DialogManager::ShowListDialog(const std::string& title, const std::vector<std::string>& items,
-                                    std::function<void(int)> callback) {
+                                   std::function<void(int)> callback) {
     m_impl->listDialog = std::make_unique<ListDialogState>();
     m_impl->listDialog->title = title;
     m_impl->listDialog->items = items;
@@ -134,7 +134,7 @@ void DialogManager::ShowListDialog(const std::string& title, const std::vector<s
 }
 
 void DialogManager::ShowConfirmation(const std::string& title, const std::string& message,
-                                      std::function<void(bool)> callback) {
+                                     std::function<void(bool)> callback) {
     ShowMessageBox(title, message, MessageBoxButtons::YesNo, MessageBoxIcon::Question,
                    [callback](MessageBoxResult result) {
                        if (callback) {
@@ -169,7 +169,7 @@ void DialogManager::RenderMessageBox() {
     MessageBoxResult result = MessageBoxResult::None;
 
     if (ImGui::BeginPopupModal(mb->title.c_str(), &mb->open,
-                                ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
+                               ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
         // Icon and message
         const char* iconText = "";
         ImVec4 iconColor = ImVec4(1, 1, 1, 1);
@@ -288,7 +288,8 @@ void DialogManager::RenderInputDialog() {
     std::string result;
     bool submitted = false;
 
-    if (ImGui::BeginPopupModal(id->title.c_str(), &id->open, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
+    if (ImGui::BeginPopupModal(id->title.c_str(), &id->open,
+                               ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
         ImGui::Text("%s", id->prompt.c_str());
         ImGui::Spacing();
 
@@ -343,7 +344,7 @@ void DialogManager::RenderProgressDialogs() {
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
         if (ImGui::BeginPopupModal(popupId.c_str(), nullptr,
-                                    ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
+                                   ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
             if (!pd.message.empty()) {
                 ImGui::Text("%s", pd.message.c_str());
                 ImGui::Spacing();
@@ -374,7 +375,8 @@ void DialogManager::RenderListDialog() {
     int selectedIndex = -1;
     bool confirmed = false;
 
-    if (ImGui::BeginPopupModal(ld->title.c_str(), &ld->open, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
+    if (ImGui::BeginPopupModal(ld->title.c_str(), &ld->open,
+                               ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
         ImGui::BeginChild("ListBox", ImVec2(300, 200), ImGuiChildFlags_Border);
 
         for (size_t i = 0; i < ld->items.size(); ++i) {
@@ -419,4 +421,3 @@ void DialogManager::RenderListDialog() {
 }
 
 } // namespace MetaImGUI
-

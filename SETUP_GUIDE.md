@@ -226,12 +226,22 @@ find src include -name "*.cpp" -o -name "*.h" | xargs clang-format -i
 # Or use VS Code (auto-format on save if configured)
 ```
 
-### Enable Pre-commit Hook
+### Pre-commit Hook
 
+The pre-commit hook is **automatically installed** by `setup_dependencies.sh`. It will:
+- Run `clang-format` on all staged C++ files before each commit
+- Ensure code style consistency
+- Prevent CI formatting failures
+
+If you need to reinstall it manually:
 ```bash
-# Automatically format code before each commit
 cp .pre-commit-hook.sh .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
+```
+
+To skip the hook temporarily (not recommended):
+```bash
+git commit --no-verify
 ```
 
 ## 🛠️ Development Environment

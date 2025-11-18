@@ -7,8 +7,7 @@
 
 namespace MetaImGUI {
 
-Logger::Logger()
-    : m_minLevel(LogLevel::Info), m_consoleOutput(true), m_fileOutput(false) {}
+Logger::Logger() : m_minLevel(LogLevel::Info), m_consoleOutput(true), m_fileOutput(false) {}
 
 Logger::~Logger() {
     Shutdown();
@@ -171,4 +170,3 @@ const char* Logger::LevelToColor(LogLevel level) const {
 }
 
 } // namespace MetaImGUI
-

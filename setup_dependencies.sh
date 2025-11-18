@@ -62,6 +62,18 @@ fi
 # Create build directory
 mkdir -p build
 
+# Install pre-commit hook for automatic code formatting
+echo ""
+echo "📝 Installing pre-commit hook..."
+if [ -f ".pre-commit-hook.sh" ]; then
+    cp .pre-commit-hook.sh .git/hooks/pre-commit
+    chmod +x .git/hooks/pre-commit
+    echo "✅ Pre-commit hook installed (automatic code formatting before commits)"
+else
+    echo "⚠️  Pre-commit hook script not found"
+fi
+
+echo ""
 echo "Dependencies setup complete!"
 echo "To build:"
 echo "  cd build"

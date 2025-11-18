@@ -358,4 +358,3 @@ bool ConfigManager::EnsureConfigDirectoryExists() {
 }
 
 } // namespace MetaImGUI
-

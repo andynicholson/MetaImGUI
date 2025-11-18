@@ -78,4 +78,3 @@ private:
 
 // Convenience macro for translation
 #define TR(key) MetaImGUI::Localization::Instance().Tr(key)
-

@@ -119,11 +119,21 @@ public:
     }
 
     // Simple overloads for no-argument messages
-    void Debug(std::string_view message) { Log(LogLevel::Debug, message); }
-    void Info(std::string_view message) { Log(LogLevel::Info, message); }
-    void Warning(std::string_view message) { Log(LogLevel::Warning, message); }
-    void Error(std::string_view message) { Log(LogLevel::Error, message); }
-    void Fatal(std::string_view message) { Log(LogLevel::Fatal, message); }
+    void Debug(std::string_view message) {
+        Log(LogLevel::Debug, message);
+    }
+    void Info(std::string_view message) {
+        Log(LogLevel::Info, message);
+    }
+    void Warning(std::string_view message) {
+        Log(LogLevel::Warning, message);
+    }
+    void Error(std::string_view message) {
+        Log(LogLevel::Error, message);
+    }
+    void Fatal(std::string_view message) {
+        Log(LogLevel::Fatal, message);
+    }
 
 private:
     Logger();
@@ -186,9 +196,8 @@ private:
 } // namespace MetaImGUI
 
 // Convenience macros
-#define LOG_DEBUG(...)   MetaImGUI::Logger::Instance().Debug(__VA_ARGS__)
-#define LOG_INFO(...)    MetaImGUI::Logger::Instance().Info(__VA_ARGS__)
+#define LOG_DEBUG(...) MetaImGUI::Logger::Instance().Debug(__VA_ARGS__)
+#define LOG_INFO(...) MetaImGUI::Logger::Instance().Info(__VA_ARGS__)
 #define LOG_WARNING(...) MetaImGUI::Logger::Instance().Warning(__VA_ARGS__)
-#define LOG_ERROR(...)   MetaImGUI::Logger::Instance().Error(__VA_ARGS__)
-#define LOG_FATAL(...)   MetaImGUI::Logger::Instance().Fatal(__VA_ARGS__)
-
+#define LOG_ERROR(...) MetaImGUI::Logger::Instance().Error(__VA_ARGS__)
+#define LOG_FATAL(...) MetaImGUI::Logger::Instance().Fatal(__VA_ARGS__)

@@ -22,23 +22,16 @@ enum class MessageBoxButtons {
  * @brief Message box icons/types
  */
 enum class MessageBoxIcon {
-    Info,     ///< Information icon
-    Warning,  ///< Warning icon
-    Error,    ///< Error icon
-    Question  ///< Question icon
+    Info,    ///< Information icon
+    Warning, ///< Warning icon
+    Error,   ///< Error icon
+    Question ///< Question icon
 };
 
 /**
  * @brief Result from message box
  */
-enum class MessageBoxResult {
-    OK,
-    Cancel,
-    Yes,
-    No,
-    Retry,
-    None
-};
+enum class MessageBoxResult { OK, Cancel, Yes, No, Retry, None };
 
 /**
  * @brief Manager for common UI dialogs
@@ -70,8 +63,8 @@ public:
      * @param icon Icon type
      * @param callback Function called with result (async)
      */
-    void ShowMessageBox(const std::string& title, const std::string& message, MessageBoxButtons buttons = MessageBoxButtons::OK,
-                        MessageBoxIcon icon = MessageBoxIcon::Info,
+    void ShowMessageBox(const std::string& title, const std::string& message,
+                        MessageBoxButtons buttons = MessageBoxButtons::OK, MessageBoxIcon icon = MessageBoxIcon::Info,
                         std::function<void(MessageBoxResult)> callback = nullptr);
 
     // Input Dialog
@@ -149,4 +142,3 @@ private:
 };
 
 } // namespace MetaImGUI
-

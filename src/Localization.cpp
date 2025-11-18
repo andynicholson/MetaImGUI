@@ -96,8 +96,7 @@ void Localization::InitializeBuiltInTranslations() {
     // English (default)
     AddTranslation("en", "app.title", "MetaImGUI - ImGui Application Template");
     AddTranslation("en", "app.welcome", "Welcome to MetaImGUI!");
-    AddTranslation("en", "app.description",
-                   "A modern C++20 template for creating ImGui-based desktop applications.");
+    AddTranslation("en", "app.description", "A modern C++20 template for creating ImGui-based desktop applications.");
 
     // Menu
     AddTranslation("en", "menu.file", "File");
@@ -214,4 +213,3 @@ void Localization::InitializeBuiltInTranslations() {
 }
 
 } // namespace MetaImGUI
-
