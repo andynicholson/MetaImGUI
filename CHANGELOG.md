@@ -8,14 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- CONTRIBUTING.md with contribution guidelines
-- CODE_OF_CONDUCT.md (Contributor Covenant v2.1)
-- SECURITY.md with vulnerability reporting process
-- CHANGELOG.md (this file) for tracking changes
 
 ### Changed
-- Improved documentation structure
-- Enhanced project professionalism
 
 ### Deprecated
 
@@ -25,7 +19,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-## [1.0.0] - Initial Release
+## [1.3.0] - 2025-11-19
+
+### Added
+- Exit confirmation dialog now appears when clicking window close button (X)
+- Localization support for About and demo window buttons
+- Window close callback system in WindowManager
+- Translation keys: `button.show_about`, `button.show_demo`, `button.close`
+- CONTRIBUTING.md with contribution guidelines
+- CODE_OF_CONDUCT.md (Contributor Covenant v2.1)
+- SECURITY.md with vulnerability reporting process
+- CHANGELOG.md (this file) for tracking changes
+
+
+### Changed
+- All main window and About dialog buttons now use localization system
+- Exit confirmation dialog now intercepts all exit methods (menu, ESC key, close button)
+- Improved documentation structure
+- Enhanced project professionalism
+
+### Fixed
+- About dialog button and demo window button not translating when language changed
+- Window close button (X) now properly shows confirmation dialog instead of closing immediately
+
+## [1.2.0] - Initial Release
 
 ### Added
 - Initial project template with ImGui v1.92.4 integration
@@ -137,6 +154,5 @@ When upgrading between versions:
 - [Contributing Guide](CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 
-[Unreleased]: https://github.com/andynicholson/MetaImGUI/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/andynicholson/MetaImGUI/releases/tag/v1.0.0
-
+[Unreleased]: https://github.com/andynicholson/MetaImGUI/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/andynicholson/MetaImGUI/compare/v1.2.0...v1.3.0
