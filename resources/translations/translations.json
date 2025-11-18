@@ -20,7 +20,10 @@
     "button.no": "No",
     "button.ok": "OK",
     "button.cancel": "Cancel",
-    "button.retry": "Retry"
+    "button.retry": "Retry",
+    "button.close": "Close",
+    "button.show_about": "Show About Dialog",
+    "button.show_demo": "Show ImGui Demo Window"
   },
   "es": {
     "app.title": "MetaImGUI - Plantilla de Aplicación ImGui",
@@ -43,7 +46,10 @@
     "button.no": "No",
     "button.ok": "Aceptar",
     "button.cancel": "Cancelar",
-    "button.retry": "Reintentar"
+    "button.retry": "Reintentar",
+    "button.close": "Cerrar",
+    "button.show_about": "Mostrar Diálogo Acerca de",
+    "button.show_demo": "Mostrar Ventana Demo de ImGui"
   },
   "fr": {
     "app.title": "MetaImGUI - Modèle d'Application ImGui",
@@ -66,7 +72,10 @@
     "button.no": "Non",
     "button.ok": "OK",
     "button.cancel": "Annuler",
-    "button.retry": "Réessayer"
+    "button.retry": "Réessayer",
+    "button.close": "Fermer",
+    "button.show_about": "Afficher la Boîte À Propos",
+    "button.show_demo": "Afficher la Fenêtre Démo ImGui"
   },
   "de": {
     "app.title": "MetaImGUI - ImGui Anwendungsvorlage",
@@ -89,7 +98,10 @@
     "button.no": "Nein",
     "button.ok": "OK",
     "button.cancel": "Abbrechen",
-    "button.retry": "Wiederholen"
+    "button.retry": "Wiederholen",
+    "button.close": "Schließen",
+    "button.show_about": "Über-Dialog anzeigen",
+    "button.show_demo": "ImGui Demo-Fenster anzeigen"
   }
 }
 

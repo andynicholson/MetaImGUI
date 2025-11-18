@@ -118,6 +118,16 @@ void Localization::InitializeBuiltInTranslations() {
     AddTranslation("en", "dialog.save", "Save");
     AddTranslation("en", "dialog.open", "Open");
 
+    // Buttons
+    AddTranslation("en", "button.yes", "Yes");
+    AddTranslation("en", "button.no", "No");
+    AddTranslation("en", "button.ok", "OK");
+    AddTranslation("en", "button.cancel", "Cancel");
+    AddTranslation("en", "button.retry", "Retry");
+    AddTranslation("en", "button.close", "Close");
+    AddTranslation("en", "button.show_about", "Show About Dialog");
+    AddTranslation("en", "button.show_demo", "Show ImGui Demo Window");
+
     // Status
     AddTranslation("en", "status.ready", "Ready");
     AddTranslation("en", "status.loading", "Loading...");
@@ -148,6 +158,16 @@ void Localization::InitializeBuiltInTranslations() {
     AddTranslation("es", "dialog.save", "Guardar");
     AddTranslation("es", "dialog.open", "Abrir");
 
+    // Buttons
+    AddTranslation("es", "button.yes", "Sí");
+    AddTranslation("es", "button.no", "No");
+    AddTranslation("es", "button.ok", "Aceptar");
+    AddTranslation("es", "button.cancel", "Cancelar");
+    AddTranslation("es", "button.retry", "Reintentar");
+    AddTranslation("es", "button.close", "Cerrar");
+    AddTranslation("es", "button.show_about", "Mostrar Diálogo Acerca de");
+    AddTranslation("es", "button.show_demo", "Mostrar Ventana Demo de ImGui");
+
     AddTranslation("es", "status.ready", "Listo");
     AddTranslation("es", "status.loading", "Cargando...");
     AddTranslation("es", "status.saving", "Guardando...");
@@ -177,6 +197,16 @@ void Localization::InitializeBuiltInTranslations() {
     AddTranslation("fr", "dialog.save", "Enregistrer");
     AddTranslation("fr", "dialog.open", "Ouvrir");
 
+    // Buttons
+    AddTranslation("fr", "button.yes", "Oui");
+    AddTranslation("fr", "button.no", "Non");
+    AddTranslation("fr", "button.ok", "OK");
+    AddTranslation("fr", "button.cancel", "Annuler");
+    AddTranslation("fr", "button.retry", "Réessayer");
+    AddTranslation("fr", "button.close", "Fermer");
+    AddTranslation("fr", "button.show_about", "Afficher la Boîte À Propos");
+    AddTranslation("fr", "button.show_demo", "Afficher la Fenêtre Démo ImGui");
+
     AddTranslation("fr", "status.ready", "Prêt");
     AddTranslation("fr", "status.loading", "Chargement...");
     AddTranslation("fr", "status.saving", "Sauvegarde...");
@@ -205,6 +235,16 @@ void Localization::InitializeBuiltInTranslations() {
     AddTranslation("de", "dialog.close", "Schließen");
     AddTranslation("de", "dialog.save", "Speichern");
     AddTranslation("de", "dialog.open", "Öffnen");
+
+    // Buttons
+    AddTranslation("de", "button.yes", "Ja");
+    AddTranslation("de", "button.no", "Nein");
+    AddTranslation("de", "button.ok", "OK");
+    AddTranslation("de", "button.cancel", "Abbrechen");
+    AddTranslation("de", "button.retry", "Wiederholen");
+    AddTranslation("de", "button.close", "Schließen");
+    AddTranslation("de", "button.show_about", "Über-Dialog anzeigen");
+    AddTranslation("de", "button.show_demo", "ImGui Demo-Fenster anzeigen");
 
     AddTranslation("de", "status.ready", "Bereit");
     AddTranslation("de", "status.loading", "Laden...");

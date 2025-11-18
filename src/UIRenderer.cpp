@@ -97,6 +97,8 @@ void UIRenderer::EndFrame() {
 }
 
 void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::function<void()> onShowDemo) {
+    auto& loc = Localization::Instance();
+
     // Calculate heights
     const float contentHeight = ImGui::GetContentRegionAvail().y - UILayout::STATUS_BAR_HEIGHT;
 
@@ -113,7 +115,7 @@ void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::functi
 
         ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN,
                                    UILayout::TOP_MARGIN + UILayout::LINE_SPACING * 2 + UILayout::BUTTON_SPACING));
-        if (ImGui::Button("Show About Dialog")) {
+        if (ImGui::Button(loc.Tr("button.show_about").c_str())) {
             if (onShowAbout) {
                 onShowAbout();
             }
@@ -121,7 +123,7 @@ void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::functi
 
         ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN,
                                    UILayout::TOP_MARGIN + UILayout::LINE_SPACING * 2 + UILayout::BUTTON_SPACING * 2));
-        if (ImGui::Button("Show ImGui Demo Window")) {
+        if (ImGui::Button(loc.Tr("button.show_demo").c_str())) {
             if (onShowDemo) {
                 onShowDemo();
             }
@@ -280,6 +282,8 @@ void UIRenderer::RenderAboutWindow(bool& showAboutWindow) {
         return;
     }
 
+    auto& loc = Localization::Instance();
+
     ImGui::SetNextWindowSize(ImVec2(UILayout::ABOUT_WINDOW_WIDTH, UILayout::ABOUT_WINDOW_HEIGHT),
                              ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowFocus();
@@ -313,7 +317,7 @@ void UIRenderer::RenderAboutWindow(bool& showAboutWindow) {
         ImGui::TextDisabled("Config: %s", Version::BUILD_CONFIG);
 
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + UILayout::VERTICAL_SPACING_SMALL);
-        if (ImGui::Button("Close")) {
+        if (ImGui::Button(loc.Tr("button.close").c_str())) {
             showAboutWindow = false;
         }
     }
