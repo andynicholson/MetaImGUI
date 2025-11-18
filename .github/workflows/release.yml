@@ -177,6 +177,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ needs.get-version.outputs.tag }}
+        draft: false
         files: |
           MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.tar.gz
           MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.tar.gz.sha256
@@ -314,6 +315,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ needs.get-version.outputs.tag }}
+        draft: false
         files: |
           MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64.zip
           MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64.zip.sha256
@@ -472,6 +474,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ needs.get-version.outputs.tag }}
+        draft: false
         files: |
           MetaImGUI-${{ needs.get-version.outputs.version }}-macos-x64.dmg
           MetaImGUI-${{ needs.get-version.outputs.version }}-macos-x64.dmg.sha256
