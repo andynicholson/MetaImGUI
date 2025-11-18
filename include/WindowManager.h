@@ -102,11 +102,23 @@ public:
      */
     void SetKeyCallback(std::function<void(int, int, int, int)> callback);
 
+    /**
+     * @brief Set window close callback
+     * @param callback Function to call when window close is requested
+     */
+    void SetWindowCloseCallback(std::function<void()> callback);
+
+    /**
+     * @brief Cancel a close request (clears the should close flag)
+     */
+    void CancelClose();
+
 private:
     // GLFW callbacks (static because GLFW is C API)
     static void ErrorCallback(int error, const char* description);
     static void FramebufferSizeCallbackInternal(GLFWwindow* window, int width, int height);
     static void KeyCallbackInternal(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void WindowCloseCallbackInternal(GLFWwindow* window);
 
     GLFWwindow* m_window;
     std::string m_title;
@@ -117,6 +129,7 @@ private:
     // Callbacks
     std::function<void(int, int)> m_framebufferSizeCallback;
     std::function<void(int, int, int, int)> m_keyCallback;
+    std::function<void()> m_windowCloseCallback;
 };
 
 } // namespace MetaImGUI

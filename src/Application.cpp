@@ -68,6 +68,7 @@ bool Application::Initialize() {
         [this](int width, int height) { this->OnFramebufferSizeChanged(width, height); });
     m_windowManager->SetKeyCallback(
         [this](int key, int scancode, int action, int mods) { this->OnKeyPressed(key, scancode, action, mods); });
+    m_windowManager->SetWindowCloseCallback([this]() { this->OnWindowCloseRequested(); });
 
     // Create and initialize UI renderer
     m_uiRenderer = std::make_unique<UIRenderer>();
@@ -214,6 +215,9 @@ void Application::Render() {
         m_dialogManager->ShowConfirmation(title, message, [this](bool confirmed) {
             if (confirmed && m_windowManager) {
                 m_windowManager->RequestClose();
+            } else if (m_windowManager) {
+                // User cancelled - make sure close flag is cleared
+                m_windowManager->CancelClose();
             }
             m_showExitDialog = false;
         });
@@ -232,6 +236,14 @@ void Application::Render() {
 }
 
 // Event Handlers
+
+void Application::OnWindowCloseRequested() {
+    // Intercept window close button - cancel the close and show dialog
+    if (m_windowManager) {
+        m_windowManager->CancelClose();
+    }
+    m_showExitDialog = true;
+}
 
 void Application::OnExitRequested() {
     // Show exit confirmation dialog instead of closing immediately

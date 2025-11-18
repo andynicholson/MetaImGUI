@@ -133,6 +133,19 @@ void WindowManager::SetKeyCallback(std::function<void(int, int, int, int)> callb
     }
 }
 
+void WindowManager::SetWindowCloseCallback(std::function<void()> callback) {
+    m_windowCloseCallback = callback;
+    if (m_window) {
+        glfwSetWindowCloseCallback(m_window, WindowCloseCallbackInternal);
+    }
+}
+
+void WindowManager::CancelClose() {
+    if (m_window) {
+        glfwSetWindowShouldClose(m_window, GLFW_FALSE);
+    }
+}
+
 // Static callbacks
 
 void WindowManager::ErrorCallback(int error, const char* description) {
@@ -150,6 +163,13 @@ void WindowManager::KeyCallbackInternal(GLFWwindow* window, int key, int scancod
     WindowManager* manager = static_cast<WindowManager*>(glfwGetWindowUserPointer(window));
     if (manager && manager->m_keyCallback) {
         manager->m_keyCallback(key, scancode, action, mods);
+    }
+}
+
+void WindowManager::WindowCloseCallbackInternal(GLFWwindow* window) {
+    WindowManager* manager = static_cast<WindowManager*>(glfwGetWindowUserPointer(window));
+    if (manager && manager->m_windowCloseCallback) {
+        manager->m_windowCloseCallback();
     }
 }
 
