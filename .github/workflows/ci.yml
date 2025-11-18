@@ -1,0 +1,198 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+# Cancel in-progress runs when a new workflow with the same ref is triggered
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Explicitly define permissions (principle of least privilege)
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} - ${{ matrix.build_type }}
+    # C++20 support: ubuntu-latest (GCC 11+), macos-latest (Clang 14+), windows-latest (MSVC 2022)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        build_type: [Debug, Release]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Cache ImGui
+      uses: actions/cache@v4
+      with:
+        path: external/imgui
+        key: ${{ runner.os }}-imgui-v1.92.4
+        restore-keys: |
+          ${{ runner.os }}-imgui-v1.92
+          ${{ runner.os }}-imgui-
+
+    - name: Install Linux dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libglfw3-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libcurl4-openssl-dev \
+          xorg-dev
+
+    - name: Install macOS dependencies
+      if: runner.os == 'macOS'
+      run: |
+        brew install cmake glfw llvm
+        LLVM_PATH=$(brew --prefix llvm)
+        SDK_PATH=$(xcrun --show-sdk-path)
+        echo "$LLVM_PATH/bin" >> $GITHUB_PATH
+        echo "CC=$LLVM_PATH/bin/clang" >> $GITHUB_ENV
+        echo "CXX=$LLVM_PATH/bin/clang++" >> $GITHUB_ENV
+        echo "SDKROOT=$SDK_PATH" >> $GITHUB_ENV
+        echo "CPPFLAGS=-isysroot $SDK_PATH" >> $GITHUB_ENV
+        echo "LDFLAGS=-L$LLVM_PATH/lib/c++ -Wl,-rpath,$LLVM_PATH/lib/c++" >> $GITHUB_ENV
+
+    - name: Setup MSVC (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Install Windows dependencies (vcpkg)
+      if: runner.os == 'Windows'
+      run: |
+        vcpkg install glfw3:x64-windows curl:x64-windows
+      shell: bash
+
+    - name: Setup ImGui
+      run: |
+        if [ ! -d "external/imgui" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+        fi
+      shell: bash
+
+    - name: Setup nlohmann/json
+      run: |
+        if [ ! -d "external/json" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+        fi
+      shell: bash
+
+    - name: Configure CMake (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DCMAKE_INSTALL_PREFIX=install
+
+    - name: Configure CMake (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cmake -B build `
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+          -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+          -DCMAKE_INSTALL_PREFIX=install
+      shell: pwsh
+
+    - name: Build
+      run: cmake --build build --config ${{ matrix.build_type }} --parallel
+
+    - name: Run tests
+      if: matrix.build_type == 'Debug'
+      run: ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }}
+
+    - name: Upload build artifacts
+      if: matrix.build_type == 'Release'
+      uses: actions/upload-artifact@v4
+      with:
+        name: MetaImGUI-${{ runner.os }}-${{ matrix.build_type }}
+        path: |
+          build/MetaImGUI*
+          build/Release/MetaImGUI*
+          build/imgui.ini
+        if-no-files-found: ignore
+
+  lint:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          external/imgui
+          external/json
+        key: ${{ runner.os }}-lint-deps-imgui-1.92.4-json-3.11.3
+        restore-keys: |
+          ${{ runner.os }}-lint-deps-
+
+    - name: Install tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-format clang-tidy \
+          libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev libcurl4-openssl-dev xorg-dev
+
+    - name: Setup dependencies
+      run: |
+        # Setup ImGui
+        if [ ! -d "external/imgui" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+          cd ..
+        fi
+
+        # Setup nlohmann/json
+        if [ ! -d "external/json" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+          cd ..
+        fi
+
+    - name: Configure CMake for clang-tidy
+      run: |
+        cmake -B build \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -DCMAKE_BUILD_TYPE=Debug
+
+    - name: Check formatting
+      run: |
+        # Find all C++ source and header files
+        FILES=$(find src include -type f \( -name "*.cpp" -o -name "*.h" \))
+        if [ -n "$FILES" ]; then
+          echo "$FILES" | xargs clang-format --dry-run --Werror
+        else
+          echo "No C++ files found to check"
+        fi
+
+    - name: Run clang-tidy
+      run: |
+        # Run clang-tidy on source files
+        FILES=$(find src -type f -name "*.cpp")
+        if [ -n "$FILES" ]; then
+          echo "$FILES" | xargs clang-tidy -p build
+        else
+          echo "No source files found to analyze"
+        fi
