@@ -1,0 +1,65 @@
+app-id: com.metaimgui.MetaImGUI
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: MetaImGUI
+
+finish-args:
+  # X11 + XShm access
+  - --share=ipc
+  - --socket=x11
+  # Wayland access
+  - --socket=wayland
+  # OpenGL access
+  - --device=dri
+  # Network access for update checking
+  - --share=network
+  # Access to home directory for config
+  - --filesystem=xdg-config/MetaImGUI:create
+  - --filesystem=xdg-data/MetaImGUI:create
+
+modules:
+  # GLFW
+  - name: glfw
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS:BOOL=ON
+      - -DGLFW_BUILD_EXAMPLES:BOOL=OFF
+      - -DGLFW_BUILD_TESTS:BOOL=OFF
+      - -DGLFW_BUILD_DOCS:BOOL=OFF
+    sources:
+      - type: archive
+        url: https://github.com/glfw/glfw/releases/download/3.3.9/glfw-3.3.9.zip
+        sha256: 5d9df8c67e8e6c5e8c1d8e32c3d91a85dbf1d0b9e9c6f8c3e4f8b1c5e6d3e2f1
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+
+  # MetaImGUI
+  - name: metaimgui
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_TESTS=OFF
+    sources:
+      - type: dir
+        path: ../..
+
+      # ImGui
+      - type: git
+        url: https://github.com/ocornut/imgui.git
+        tag: v1.92.4
+        dest: external/imgui
+
+      # nlohmann/json
+      - type: git
+        url: https://github.com/nlohmann/json.git
+        tag: v3.11.3
+        dest: external/json
+
+    post-install:
+      - install -Dm644 resources/icons/metaimgui-256.png /app/share/icons/hicolor/256x256/apps/com.metaimgui.MetaImGUI.png
+      - install -Dm644 packaging/flatpak/com.metaimgui.MetaImGUI.desktop /app/share/applications/com.metaimgui.MetaImGUI.desktop
+      - install -Dm644 packaging/flatpak/com.metaimgui.MetaImGUI.metainfo.xml /app/share/metainfo/com.metaimgui.MetaImGUI.metainfo.xml
+

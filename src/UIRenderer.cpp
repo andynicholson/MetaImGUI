@@ -1,5 +1,6 @@
 #include "UIRenderer.h"
 
+#include "Localization.h"
 #include "ThemeManager.h"
 #include "UpdateChecker.h"
 #include "version.h"
@@ -132,9 +133,11 @@ void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::functi
 void UIRenderer::RenderMenuBar(std::function<void()> onExit, std::function<void()> onToggleDemo,
                                std::function<void()> onCheckUpdates, std::function<void()> onShowAbout,
                                bool showDemoWindow) {
+    auto& loc = Localization::Instance();
+
     if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Exit", "Alt+F4")) {
+        if (ImGui::BeginMenu(loc.Tr("menu.file").c_str())) {
+            if (ImGui::MenuItem(loc.Tr("menu.exit").c_str(), "Alt+F4")) {
                 if (onExit) {
                     onExit();
                 }
@@ -142,8 +145,8 @@ void UIRenderer::RenderMenuBar(std::function<void()> onExit, std::function<void(
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("View")) {
-            if (ImGui::MenuItem("ImGui Demo Window", nullptr, showDemoWindow)) {
+        if (ImGui::BeginMenu(loc.Tr("menu.view").c_str())) {
+            if (ImGui::MenuItem(loc.Tr("menu.demo_window").c_str(), nullptr, showDemoWindow)) {
                 if (onToggleDemo) {
                     onToggleDemo();
                 }
@@ -151,7 +154,7 @@ void UIRenderer::RenderMenuBar(std::function<void()> onExit, std::function<void(
 
             ImGui::Separator();
 
-            if (ImGui::BeginMenu("Theme")) {
+            if (ImGui::BeginMenu(loc.Tr("menu.theme").c_str())) {
                 if (ImGui::MenuItem("Dark", nullptr, ThemeManager::GetCurrent() == ThemeManager::Theme::Dark)) {
                     ThemeManager::Apply(ThemeManager::Theme::Dark);
                 }
@@ -166,17 +169,35 @@ void UIRenderer::RenderMenuBar(std::function<void()> onExit, std::function<void(
                 }
                 ImGui::EndMenu();
             }
+
+            ImGui::Separator();
+
+            if (ImGui::BeginMenu(loc.Tr("menu.language").c_str())) {
+                if (ImGui::MenuItem("English", nullptr, loc.GetCurrentLanguage() == "en")) {
+                    loc.SetLanguage("en");
+                }
+                if (ImGui::MenuItem("Español", nullptr, loc.GetCurrentLanguage() == "es")) {
+                    loc.SetLanguage("es");
+                }
+                if (ImGui::MenuItem("Français", nullptr, loc.GetCurrentLanguage() == "fr")) {
+                    loc.SetLanguage("fr");
+                }
+                if (ImGui::MenuItem("Deutsch", nullptr, loc.GetCurrentLanguage() == "de")) {
+                    loc.SetLanguage("de");
+                }
+                ImGui::EndMenu();
+            }
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Help")) {
-            if (ImGui::MenuItem("Check for Updates...")) {
+        if (ImGui::BeginMenu(loc.Tr("menu.help").c_str())) {
+            if (ImGui::MenuItem(loc.Tr("menu.check_updates").c_str())) {
                 if (onCheckUpdates) {
                     onCheckUpdates();
                 }
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("About", "Ctrl+A")) {
+            if (ImGui::MenuItem(loc.Tr("menu.about").c_str(), "Ctrl+A")) {
                 if (onShowAbout) {
                     onShowAbout();
                 }

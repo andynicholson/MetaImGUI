@@ -1,5 +1,9 @@
 #include "Application.h"
 
+#include "ConfigManager.h"
+#include "DialogManager.h"
+#include "Localization.h"
+#include "Logger.h"
 #include "UIRenderer.h"
 #include "UpdateChecker.h"
 #include "WindowManager.h"
@@ -13,9 +17,10 @@
 namespace MetaImGUI {
 
 Application::Application()
-    : m_windowManager(nullptr), m_uiRenderer(nullptr), m_updateChecker(nullptr), m_initialized(false),
-      m_showAboutWindow(false), m_showDemoWindow(false), m_showUpdateNotification(false),
-      m_updateCheckInProgress(false), m_latestUpdateInfo(nullptr), m_statusMessage("Ready"), m_lastFrameTime(0.0f) {}
+    : m_windowManager(nullptr), m_uiRenderer(nullptr), m_updateChecker(nullptr), m_configManager(nullptr),
+      m_dialogManager(nullptr), m_initialized(false), m_showAboutWindow(false), m_showDemoWindow(false),
+      m_showUpdateNotification(false), m_updateCheckInProgress(false), m_showExitDialog(false),
+      m_latestUpdateInfo(nullptr), m_statusMessage("Ready"), m_lastFrameTime(0.0f) {}
 
 Application::~Application() {
     Shutdown();
@@ -26,14 +31,37 @@ bool Application::Initialize() {
         return true;
     }
 
-    std::cout << "Initializing application subsystems..." << std::endl;
+    // Initialize logger first
+    Logger::Instance().Initialize("logs/metaimgui.log", LogLevel::Info);
+    LOG_INFO("Initializing MetaImGUI v{}", Version::VERSION);
+
+    // Load configuration
+    m_configManager = std::make_unique<ConfigManager>();
+    if (m_configManager->Load()) {
+        LOG_INFO("Configuration loaded successfully");
+    } else {
+        LOG_INFO("Using default configuration");
+    }
+
+    // Load translations and set language from config
+    if (!Localization::Instance().LoadTranslations("resources/translations/translations.json")) {
+        LOG_ERROR("Failed to load translations, using fallback keys");
+    }
+    std::string language = m_configManager->GetString("language").value_or("en");
+    Localization::Instance().SetLanguage(language);
+    LOG_INFO("Language set to: {}", language);
 
     // Create and initialize window manager
-    m_windowManager = std::make_unique<WindowManager>(WINDOW_TITLE, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    auto windowSize = m_configManager->GetWindowSize();
+    int width = windowSize ? windowSize->first : DEFAULT_WIDTH;
+    int height = windowSize ? windowSize->second : DEFAULT_HEIGHT;
+
+    m_windowManager = std::make_unique<WindowManager>(WINDOW_TITLE, width, height);
     if (!m_windowManager->Initialize()) {
-        std::cerr << "Failed to initialize window manager" << std::endl;
+        LOG_ERROR("Failed to initialize window manager");
         return false;
     }
+    LOG_INFO("Window manager initialized");
 
     // Set up window callbacks
     m_windowManager->SetFramebufferSizeCallback(
@@ -44,20 +72,24 @@ bool Application::Initialize() {
     // Create and initialize UI renderer
     m_uiRenderer = std::make_unique<UIRenderer>();
     if (!m_uiRenderer->Initialize(m_windowManager->GetNativeWindow())) {
-        std::cerr << "Failed to initialize UI renderer" << std::endl;
+        LOG_ERROR("Failed to initialize UI renderer");
         return false;
     }
+    LOG_INFO("UI renderer initialized");
+
+    // Initialize dialog manager
+    m_dialogManager = std::make_unique<DialogManager>();
+    LOG_INFO("Dialog manager initialized");
 
     // Initialize update checker
-    // TODO: Replace with your GitHub username and repo name
     m_updateChecker = std::make_unique<UpdateChecker>("andynicholson", "MetaImGUI");
+    LOG_INFO("Update checker initialized");
 
-    // Check for updates asynchronously after a short delay
-    // This is non-blocking and won't slow down startup
+    // Check for updates asynchronously
     CheckForUpdates();
 
     m_initialized = true;
-    std::cout << "Application initialized successfully" << std::endl;
+    LOG_INFO("Application initialized successfully");
     return true;
 }
 
@@ -73,15 +105,36 @@ void Application::Shutdown() {
         return;
     }
 
-    std::cout << "Shutting down application..." << std::endl;
+    LOG_INFO("Shutting down application...");
+
+    // Save configuration before shutdown
+    if (m_configManager && m_windowManager) {
+        // Save window size
+        int width, height;
+        m_windowManager->GetWindowSize(width, height);
+        m_configManager->SetWindowSize(width, height);
+        LOG_INFO("Saving window size: {}x{}", width, height);
+
+        // Save current language
+        m_configManager->SetString("language", Localization::Instance().GetCurrentLanguage());
+
+        if (m_configManager->Save()) {
+            LOG_INFO("Configuration saved successfully");
+        }
+    }
 
     // Shutdown subsystems in reverse order of initialization
     m_updateChecker.reset();
+    m_dialogManager.reset();
     m_uiRenderer.reset();
     m_windowManager.reset();
+    m_configManager.reset();
 
     m_initialized = false;
-    std::cout << "Application shut down successfully" << std::endl;
+    LOG_INFO("Application shut down successfully");
+
+    // Shutdown logger last
+    Logger::Instance().Shutdown();
 }
 
 bool Application::ShouldClose() const {
@@ -152,6 +205,25 @@ void Application::Render() {
         m_uiRenderer->RenderUpdateNotification(m_showUpdateNotification, m_latestUpdateInfo.get());
     }
 
+    // Render exit confirmation dialog
+    if (m_showExitDialog) {
+        auto& loc = Localization::Instance();
+        std::string title = loc.Tr("exit.title");
+        std::string message = loc.Tr("exit.message");
+
+        m_dialogManager->ShowConfirmation(title, message, [this](bool confirmed) {
+            if (confirmed && m_windowManager) {
+                m_windowManager->RequestClose();
+            }
+            m_showExitDialog = false;
+        });
+    }
+
+    // Render dialogs
+    if (m_dialogManager) {
+        m_dialogManager->Render();
+    }
+
     // End ImGui frame and render
     m_uiRenderer->EndFrame();
 
@@ -162,9 +234,8 @@ void Application::Render() {
 // Event Handlers
 
 void Application::OnExitRequested() {
-    if (m_windowManager) {
-        m_windowManager->RequestClose();
-    }
+    // Show exit confirmation dialog instead of closing immediately
+    m_showExitDialog = true;
 }
 
 void Application::OnToggleDemoWindow() {
@@ -227,11 +298,10 @@ void Application::OnUpdateCheckComplete(const UpdateInfo& updateInfo) {
         m_showUpdateNotification = true;
         m_statusMessage = "Update available: v" + updateInfo.latestVersion;
 
-        std::cout << "Update available: v" << updateInfo.latestVersion << " (current: v" << updateInfo.currentVersion
-                  << ")" << std::endl;
+        LOG_INFO("Update available: v{} (current: v{})", updateInfo.latestVersion, updateInfo.currentVersion);
     } else {
         m_statusMessage = "Ready";
-        std::cout << "No updates available (current version: v" << updateInfo.currentVersion << ")" << std::endl;
+        LOG_INFO("No updates available (current version: v{})", updateInfo.currentVersion);
     }
 }
 

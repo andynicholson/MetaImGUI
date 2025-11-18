@@ -104,6 +104,15 @@ void WindowManager::GetFramebufferSize(int& width, int& height) const {
     }
 }
 
+void WindowManager::GetWindowSize(int& width, int& height) const {
+    if (m_window) {
+        glfwGetWindowSize(m_window, &width, &height);
+    } else {
+        width = m_width;
+        height = m_height;
+    }
+}
+
 void WindowManager::RequestClose() {
     if (m_window) {
         glfwSetWindowShouldClose(m_window, GLFW_TRUE);

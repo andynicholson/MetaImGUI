@@ -22,6 +22,10 @@ MetaImGUI is a minimal template that provides the essential structure for buildi
 - 🎨 **ImGui v1.92.4** integration with GLFW and OpenGL 3.3
 - 🏗️ **Clean architecture** with separated concerns
 - 🖼️ **Basic UI structure** with menu bar and about dialog
+- ⚙️ **Settings persistence** - JSON-based configuration management (window size, preferences)
+- 📝 **Logging system** - Thread-safe multi-level logging (console + file output)
+- 💬 **Dialog system** - Reusable dialogs (message boxes, input, progress, lists)
+- 🌍 **Localization** - Multi-language support (English, Spanish, French, German)
 
 ### Infrastructure & Tooling
 - ⚡ **Automated CI/CD** - Cross-platform builds (Linux, Windows, macOS) on every commit
@@ -62,7 +66,11 @@ MetaImGUI/
 │   ├── WindowManager.cpp      # Window management
 │   ├── ThemeManager.cpp       # Theme/styling system
 │   ├── UIRenderer.cpp         # UI rendering logic
-│   └── UpdateChecker.cpp      # Update notification system
+│   ├── UpdateChecker.cpp      # Update notification system
+│   ├── ConfigManager.cpp      # Settings persistence
+│   ├── Logger.cpp             # Logging system
+│   ├── DialogManager.cpp      # Dialog system
+│   └── Localization.cpp       # Localization/translations
 │
 ├── include/                    # Header files
 │   ├── Application.h          # Application header
@@ -70,13 +78,20 @@ MetaImGUI/
 │   ├── ThemeManager.h         # Theme manager header
 │   ├── UIRenderer.h           # UI renderer header
 │   ├── UpdateChecker.h        # Update checker header
+│   ├── ConfigManager.h        # Config manager header
+│   ├── Logger.h               # Logger header
+│   ├── DialogManager.h        # Dialog manager header
+│   ├── Localization.h         # Localization header
 │   └── version.h.in           # Version template
 │
 ├── tests/                      # Test suite (Catch2)
 │   ├── test_main.cpp          # Test runner
 │   ├── test_theme_manager.cpp # Theme tests
 │   ├── test_update_checker.cpp# Update checker tests
-│   └── test_version.cpp       # Version tests
+│   ├── test_version.cpp       # Version tests
+│   ├── test_config_manager.cpp# Config manager tests
+│   ├── test_logger.cpp        # Logger tests
+│   └── test_window_manager.cpp# Window manager tests
 │
 ├── cmake/                      # CMake modules
 │   └── GetGitVersion.cmake    # Git version extraction
@@ -100,6 +115,9 @@ MetaImGUI/
 ├── build.sh/.bat              # Build scripts
 ├── init_template.sh/.ps1      # Project initialization
 ├── resources/                 # Application resources
+│   ├── translations/          # Translation files
+│   │   └── translations.json # Multi-language strings
+│   └── icons/                # Application icons
 ├── external/                  # External dependencies (generated)
 │   ├── imgui/                # ImGui library
 │   ├── json/                 # nlohmann/json
@@ -210,6 +228,10 @@ The template uses a modular architecture:
 - **ThemeManager** - UI theming and styling (multiple built-in themes)
 - **UIRenderer** - Core UI rendering logic and layout
 - **UpdateChecker** - Automatic update notifications from GitHub releases
+- **ConfigManager** - JSON-based settings persistence (window state, preferences)
+- **Logger** - Thread-safe logging with file and console output
+- **DialogManager** - Reusable UI dialogs (message boxes, input, progress, lists)
+- **Localization** - Multi-language support with runtime language switching
 
 ### Adding New Features
 
@@ -218,8 +240,10 @@ The modular architecture makes it easy to extend:
 - **New UI components** - Add rendering methods to `UIRenderer`
 - **Additional themes** - Extend `ThemeManager` with new color schemes
 - **Menu items** - Modify the menu bar in `UIRenderer::RenderMenuBar()`
-- **Windows/dialogs** - Add new dialog methods to `Application`
-- **Settings persistence** - Extend with configuration file support
+- **Windows/dialogs** - Use `DialogManager` for message boxes, input, progress bars
+- **Settings persistence** - Use `ConfigManager` to save/load configuration values
+- **Logging** - Use `Logger::Instance()` with LOG_INFO, LOG_ERROR, LOG_DEBUG macros
+- **Translations** - Add new languages to `resources/translations/translations.json`
 - **Custom managers** - Create new manager classes following existing patterns
 
 ### Working with AI Assistants

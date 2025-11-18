@@ -101,6 +101,10 @@ add_executable(MetaImGUI
     src/UIRenderer.cpp
     src/ThemeManager.cpp
     src/UpdateChecker.cpp
+    src/ConfigManager.cpp
+    src/Logger.cpp
+    src/DialogManager.cpp
+    src/Localization.cpp
 )
 
 target_include_directories(MetaImGUI PRIVATE
@@ -203,8 +207,14 @@ if(BUILD_TESTS)
             tests/test_version.cpp
             tests/test_update_checker.cpp
             tests/test_theme_manager.cpp
+            tests/test_config_manager.cpp
+            tests/test_logger.cpp
+            tests/test_window_manager.cpp
             src/UpdateChecker.cpp
             src/ThemeManager.cpp
+            src/ConfigManager.cpp
+            src/Logger.cpp
+            src/WindowManager.cpp
         )
 
         target_include_directories(MetaImGUI_tests PRIVATE

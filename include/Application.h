@@ -8,6 +8,8 @@ namespace MetaImGUI {
 class WindowManager;
 class UIRenderer;
 class UpdateChecker;
+class ConfigManager;
+class DialogManager;
 struct UpdateInfo;
 } // namespace MetaImGUI
 
@@ -58,6 +60,8 @@ private:
     std::unique_ptr<WindowManager> m_windowManager;
     std::unique_ptr<UIRenderer> m_uiRenderer;
     std::unique_ptr<UpdateChecker> m_updateChecker;
+    std::unique_ptr<ConfigManager> m_configManager;
+    std::unique_ptr<DialogManager> m_dialogManager;
 
     // Application state
     bool m_initialized;
@@ -65,6 +69,7 @@ private:
     bool m_showDemoWindow;
     bool m_showUpdateNotification;
     bool m_updateCheckInProgress;
+    bool m_showExitDialog;
 
     // Update checking
     std::unique_ptr<UpdateInfo> m_latestUpdateInfo;

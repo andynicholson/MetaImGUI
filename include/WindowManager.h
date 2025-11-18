@@ -71,6 +71,13 @@ public:
     void GetFramebufferSize(int& width, int& height) const;
 
     /**
+     * @brief Get the current window size
+     * @param width Output: window width
+     * @param height Output: window height
+     */
+    void GetWindowSize(int& width, int& height) const;
+
+    /**
      * @brief Get the GLFW window pointer (for ImGui integration)
      * @return GLFWwindow pointer
      */
