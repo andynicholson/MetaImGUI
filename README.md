@@ -37,12 +37,12 @@ MetaImGUI is a minimal template that provides the essential structure for buildi
 - ✅ **Testing framework** - Catch2 integration with sample tests
 - 🔍 **Code quality tools** - clang-format, clang-tidy, and EditorConfig configured
 - 🧪 **Code coverage** - Automated test coverage tracking with Codecov integration (24%+)
-- 🛡️ **Memory safety** - Sanitizers (ASan, UBSan, LSan) run on every commit
+- 🛡️ **Memory safety** - Sanitizers (ASan with leak detection, UBSan, TSan) run on every commit
 - 🔒 **Security analysis** - CodeQL security scanning (scheduled/on-demand)
 - 📊 **Performance benchmarks** - Google Benchmark integration (scheduled/on-demand)
 - 📋 **Professional packaging** - AppImage, .deb, NSIS installer, and DMG support
 - 🤖 **Editor integration** - Pre-configured for VS Code and AI-assisted editors
-- 🚀 **Release automation** - Automated version bumping and changelog generation
+- 🚀 **Release automation** - Interactive release preparation with automated changelog generation
 
 ### Designed for AI-Assisted Development
 The codebase follows clear patterns and conventions that work well with AI coding assistants:
@@ -59,12 +59,21 @@ The codebase follows clear patterns and conventions that work well with AI codin
 ```
 MetaImGUI/
 ├── CMakeLists.txt              # Main build configuration
+├── CMakePresets.json           # CMake preset configurations
 ├── README.md                   # This file
 ├── LICENSE                     # GPL v3.0 license
 ├── AUTHORS                     # Project contributors
+├── CHANGELOG.md                # Version history and changes
+├── CODE_OF_CONDUCT.md          # Community guidelines
+├── CONTRIBUTING.md             # Contribution guidelines
+├── SECURITY.md                 # Security policy
+├── SECURITY_CHECKLIST.md       # Security best practices
 ├── META_FEATURES.md            # Detailed feature documentation
 ├── QUICK_REFERENCE.md          # Quick reference guide
 ├── SETUP_GUIDE.md              # Setup instructions
+├── GITHUB_ACTIONS_GUIDE.md     # GitHub Actions documentation
+├── Doxyfile                    # Doxygen configuration
+├── entitlements.plist          # macOS entitlements
 │
 ├── src/                        # Source files
 │   ├── main.cpp               # Application entry point
@@ -99,42 +108,91 @@ MetaImGUI/
 │   ├── test_logger.cpp        # Logger tests
 │   └── test_window_manager.cpp# Window manager tests
 │
+├── benchmarks/                 # Performance benchmarks (Google Benchmark)
+│   ├── CMakeLists.txt         # Benchmark build configuration
+│   ├── benchmark_main.cpp     # Benchmark entry point
+│   ├── benchmark_config.cpp   # ConfigManager benchmarks
+│   ├── benchmark_logger.cpp   # Logger benchmarks
+│   └── benchmark_localization.cpp # Localization benchmarks
+│
 ├── cmake/                      # CMake modules
-│   └── GetGitVersion.cmake    # Git version extraction
+│   ├── GetGitVersion.cmake    # Git version extraction
+│   ├── CodeCoverage.cmake     # Code coverage configuration
+│   ├── Sanitizers.cmake       # Sanitizer configuration
+│   └── StaticAnalysis.cmake   # Static analysis configuration
 │
 ├── scripts/                    # Utility scripts
-│   ├── monitor_actions.sh     # Linux/macOS workflow monitor (with cancel/delete)
+│   ├── monitor_actions.sh     # Linux/macOS workflow monitor
 │   ├── monitor_actions.ps1    # Windows workflow monitor
 │   ├── prepare_release.sh     # Interactive release preparation
 │   ├── quick_status.sh        # Quick status check
+│   ├── run_clang_tidy.sh      # Run clang-tidy locally
+│   ├── run_coverage.sh        # Generate coverage report
+│   ├── run_sanitizers.sh      # Run sanitizers locally
+│   ├── run_static_analysis.sh # Run static analysis
 │   └── README.md              # Scripts documentation
 │
 ├── packaging/                  # Platform-specific packaging
 │   ├── create_linux_packages.sh   # Linux package creation
 │   ├── create_windows_installer.ps1 # Windows installer
-│   └── windows_installer.nsi  # NSIS installer script
+│   ├── windows_installer.nsi  # NSIS installer script
+│   ├── PACKAGING_GUIDE.md     # Packaging documentation
+│   ├── README.md              # Packaging overview
+│   ├── flatpak/               # Flatpak packaging
+│   │   ├── com.metaimgui.MetaImGUI.desktop
+│   │   ├── com.metaimgui.MetaImGUI.metainfo.xml
+│   │   └── com.metaimgui.MetaImGUI.yaml
+│   └── snap/                  # Snap packaging
+│       └── snapcraft.yaml
 │
-├── .github/workflows/          # GitHub Actions CI/CD
-│   ├── ci.yml                 # Continuous Integration
-│   ├── coverage.yml           # Code coverage analysis
-│   ├── sanitizers.yml         # Memory safety checks
-│   ├── static-analysis.yml    # clang-tidy + cppcheck (scheduled)
-│   ├── codeql.yml             # Security analysis (scheduled)
-│   ├── benchmarks.yml         # Performance benchmarks (scheduled)
-│   └── release.yml            # Release automation
+├── .github/                    # GitHub configuration
+│   ├── workflows/             # GitHub Actions CI/CD
+│   │   ├── ci.yml            # Continuous Integration
+│   │   ├── coverage.yml      # Code coverage analysis
+│   │   ├── sanitizers.yml    # Memory safety checks
+│   │   ├── static-analysis.yml # clang-tidy + cppcheck
+│   │   ├── codeql.yml        # Security analysis (CodeQL)
+│   │   ├── benchmarks.yml    # Performance benchmarks
+│   │   ├── docs.yml          # Documentation generation
+│   │   ├── dependency-review.yml # Dependency scanning
+│   │   └── release.yml       # Release automation
+│   ├── ISSUE_TEMPLATE/        # Issue templates
+│   └── PULL_REQUEST_TEMPLATE.md
+│
+├── .devcontainer/              # VS Code Dev Container
+│   ├── devcontainer.json      # Container configuration
+│   ├── Dockerfile             # Container image
+│   └── post-create.sh         # Post-creation script
+│
+├── .vscode/                    # VS Code workspace settings
+│
+├── docs/                       # Documentation
+│   ├── README.md              # Documentation index
+│   ├── mainpage.md            # Doxygen main page
+│   ├── file-dialogs.md        # File dialog documentation
+│   ├── plugin-architecture.md # Plugin system design
+│   └── security-practices.md  # Security guidelines
+│
+├── resources/                  # Application resources
+│   ├── README.md              # Resources overview
+│   ├── translations/          # Translation files
+│   │   └── translations.json # Multi-language strings
+│   └── icons/                 # Application icons
+│       ├── README.md          # Icon documentation
+│       ├── metaimgui.svg      # Source icon
+│       └── generate_icons.sh  # Icon generation script
 │
 ├── setup_dependencies.sh/.bat  # Dependency setup scripts
 ├── build.sh/.bat              # Build scripts
-├── init_template.sh/.ps1      # Project initialization
-├── resources/                 # Application resources
-│   ├── translations/          # Translation files
-│   │   └── translations.json # Multi-language strings
-│   └── icons/                # Application icons
-├── external/                  # External dependencies (generated)
-│   ├── imgui/                # ImGui library
-│   ├── json/                 # nlohmann/json
-│   └── catch2/               # Catch2 testing framework
-└── build/                     # Build output (generated)
+├── init_template.sh/.ps1      # Project initialization scripts
+│
+├── external/                   # External dependencies (generated)
+│   ├── imgui/                 # ImGui library
+│   ├── json/                  # nlohmann/json
+│   └── catch2/                # Catch2 testing framework
+│
+├── build/                      # Build output (generated)
+└── logs/                       # Application logs (generated)
 ```
 
 ## Development Environment
@@ -292,7 +350,7 @@ The project includes comprehensive GitHub Actions workflows for:
 
 - **CI Build** - Automated builds and tests for Linux, Windows, and macOS
 - **Code Coverage** - Automated test coverage tracking with Codecov (24%+)
-- **Sanitizers** - Memory safety checks (AddressSanitizer, UndefinedBehaviorSanitizer, LeakSanitizer)
+- **Sanitizers** - Memory safety checks (AddressSanitizer with leak detection, UndefinedBehaviorSanitizer, ThreadSanitizer)
 - **Static Analysis** - clang-tidy + cppcheck (runs weekly or on-demand)
 - **Security Analysis** - CodeQL security scanning (runs weekly or on-demand)
 - **Benchmarks** - Performance testing with Google Benchmark (runs weekly or on-demand)
@@ -402,6 +460,50 @@ The template focuses on providing solid infrastructure so you can concentrate on
 ## Contributing
 
 This is a template project. If you find issues or have improvements, feel free to open issues or pull requests.
+
+### Commit Message Convention
+
+We follow [Conventional Commits](https://www.conventionalcommits.org/) for clear and structured commit history. This enables automatic changelog generation and semantic versioning.
+
+**Format:**
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+**Quick Reference:**
+
+| Type | Use When | Example |
+|------|----------|---------|
+| `feat` | New feature | `feat: add export to PDF` |
+| `fix` | Bug fix | `fix: prevent null pointer crash` |
+| `docs` | Documentation | `docs: update API reference` |
+| `style` | Formatting | `style: apply clang-format` |
+| `refactor` | Code restructure | `refactor: simplify error handling` |
+| `perf` | Performance | `perf: cache configuration reads` |
+| `test` | Testing | `test: add integration tests` |
+| `build` | Build/deps | `build: update CMake to 3.20` |
+| `ci` | CI/CD | `ci: add coverage reporting` |
+| `chore` | Maintenance | `chore: update .gitignore` |
+
+**Examples:**
+```bash
+feat: add benchmark suite for logger
+fix(ui): resolve dialog positioning bug
+docs(readme): update installation instructions
+feat(config)!: change API signature (breaking change)
+```
+
+**Breaking Changes:**
+Add `!` after type/scope or include `BREAKING CHANGE:` in the footer:
+```bash
+feat!: change Initialize() API signature
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## Acknowledgments
 

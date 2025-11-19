@@ -105,16 +105,19 @@ cd build && ASAN_OPTIONS="detect_leaks=1" ctest --output-on-failure
 # Build and run benchmarks
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARKS=ON
 cmake --build build
-./build/MetaImGUI_benchmarks
+./build/benchmarks/MetaImGUI_benchmarks
 
 # Run specific benchmarks
-./build/MetaImGUI_benchmarks --benchmark_filter=Config
+./build/benchmarks/MetaImGUI_benchmarks --benchmark_filter=Config
 
 # Save results to JSON
-./build/MetaImGUI_benchmarks --benchmark_out=results.json --benchmark_out_format=json
+./build/benchmarks/MetaImGUI_benchmarks --benchmark_out=results.json --benchmark_out_format=json
 
-# Compare results
-./build/MetaImGUI_benchmarks --benchmark_comparisons=results_baseline.json
+# Run with multiple repetitions for statistical significance
+./build/benchmarks/MetaImGUI_benchmarks --benchmark_repetitions=10
+
+# List all available benchmarks
+./build/benchmarks/MetaImGUI_benchmarks --benchmark_list_tests=true
 ```
 
 ### Code Quality
