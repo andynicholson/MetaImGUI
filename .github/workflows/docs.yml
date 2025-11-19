@@ -1,0 +1,83 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Doxygen and Graphviz
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y doxygen graphviz
+
+    - name: Generate Doxygen Documentation
+      run: |
+        # Create output directory
+        mkdir -p docs/api
+
+        # Generate docs
+        doxygen Doxyfile
+
+        # Check if docs were generated
+        if [ ! -d "docs/api/html" ]; then
+          echo "Error: Documentation generation failed"
+          exit 1
+        fi
+
+        # Create index redirect if needed
+        if [ ! -f "docs/index.html" ]; then
+          cat > docs/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>MetaImGUI Documentation</title>
+          <meta http-equiv="refresh" content="0; url=api/html/index.html">
+        </head>
+        <body>
+          <p>Redirecting to <a href="api/html/index.html">documentation</a>...</p>
+        </body>
+        </html>
+        EOF
+        fi
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './docs'
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+    - name: Documentation URL
+      run: |
+        echo "📚 Documentation deployed!" >> $GITHUB_STEP_SUMMARY
+        echo "URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> $GITHUB_STEP_SUMMARY
+

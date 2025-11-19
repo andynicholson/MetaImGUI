@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.metaimgui.MetaImGUI</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>MetaImGUI</name>
+  <summary>ImGui Application Template</summary>
+
+  <description>
+    <p>
+      MetaImGUI is a professional template for creating ImGui-based desktop applications.
+      It provides a complete infrastructure including cross-platform build system,
+      CI/CD automation, testing framework, and professional packaging.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Modern C++20 codebase</li>
+      <li>Cross-platform support (Linux, Windows, macOS)</li>
+      <li>ImGui v1.92.4 integration</li>
+      <li>Automated CI/CD with GitHub Actions</li>
+      <li>Built-in update checking</li>
+      <li>Configuration management</li>
+      <li>Logging system</li>
+      <li>Testing framework with Catch2</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">com.metaimgui.MetaImGUI.desktop</launchable>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main window</caption>
+      <image>https://raw.githubusercontent.com/andynicholson/MetaImGUI/main/docs/screenshots/main-window.png</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://github.com/andynicholson/MetaImGUI</url>
+  <url type="bugtracker">https://github.com/andynicholson/MetaImGUI/issues</url>
+  <url type="help">https://github.com/andynicholson/MetaImGUI#readme</url>
+
+  <developer_name>A P Nicholson</developer_name>
+
+  <provides>
+    <binary>MetaImGUI</binary>
+  </provides>
+
+  <releases>
+    <release version="1.0.0" date="2024-11-18">
+      <description>
+        <p>Initial release</p>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1" />
+</component>
+

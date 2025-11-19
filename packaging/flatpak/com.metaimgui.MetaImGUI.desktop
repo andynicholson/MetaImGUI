@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=MetaImGUI
+GenericName=ImGui Application Template
+Comment=Cross-platform ImGui application template
+Icon=com.metaimgui.MetaImGUI
+Exec=MetaImGUI
+Terminal=false
+Categories=Development;IDE;
+Keywords=imgui;gui;template;framework;
+

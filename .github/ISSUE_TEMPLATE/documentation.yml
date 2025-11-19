@@ -1,0 +1,71 @@
+name: Documentation Improvement
+description: Suggest improvements to documentation
+title: "[Docs]: "
+labels: ["documentation"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve our documentation!
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Type
+      description: Which type of documentation needs improvement?
+      options:
+        - API Documentation (Doxygen)
+        - README
+        - Setup Guide
+        - Quick Reference
+        - Contributing Guide
+        - Code Comments
+        - Architecture Documentation
+        - Build Instructions
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: Issue with Current Documentation
+      description: What's wrong, missing, or unclear in the current documentation?
+      placeholder: The documentation for X is unclear because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: improvement
+    attributes:
+      label: Suggested Improvement
+      description: How would you improve it?
+      placeholder: It would be clearer if...
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: Where is this documentation? (file path, URL, section name)
+      placeholder: docs/architecture.md, line 42
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information that might be helpful
+      placeholder: Screenshots, examples, etc...
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to submit a PR with this documentation improvement
+

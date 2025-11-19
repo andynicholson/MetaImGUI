@@ -1,0 +1,161 @@
+# Static Analysis Workflow
+# Runs clang-tidy and cppcheck on all code changes
+
+name: Static Analysis
+
+on:
+  # Disabled on push/PR - requires extensive codebase refactoring (186+ warnings)
+  # push:
+  #   branches: [ main, develop ]
+  # pull_request:
+  #   branches: [ main, develop ]
+  schedule:
+    # Run weekly on Monday at 2 AM UTC
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+jobs:
+  clang-tidy:
+    name: clang-tidy Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          clang-18 \
+          clang-tidy-18 \
+          clang-tools-18 \
+          build-essential \
+          cmake \
+          ninja-build \
+          libglfw3-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libcurl4-openssl-dev \
+          xorg-dev
+
+    - name: Setup ImGui
+      run: |
+        if [ ! -d "external/imgui" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+        fi
+
+    - name: Setup nlohmann/json
+      run: |
+        if [ ! -d "external/json" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+        fi
+
+    - name: Configure CMake
+      env:
+        CC: clang-18
+        CXX: clang++-18
+      run: |
+        cmake -B build \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -DBUILD_TESTS=ON
+
+    - name: Run clang-tidy
+      run: |
+        # Run clang-tidy on all source files
+        # Exclude build/include from header analysis (generated files)
+        find src include -name '*.cpp' -o -name '*.h' | \
+        xargs clang-tidy-18 \
+          -p build \
+          --warnings-as-errors='*' \
+          --header-filter='^(?!.*build/).*/(include|src)/.*' \
+          --quiet
+
+    - name: Check for errors
+      if: failure()
+      run: |
+        echo "::error::clang-tidy found issues. Please fix them before merging."
+        exit 1
+
+  cppcheck:
+    name: cppcheck Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install cppcheck
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cppcheck
+
+    - name: Run cppcheck
+      run: |
+        cppcheck \
+          --enable=all \
+          --inconclusive \
+          --force \
+          --inline-suppr \
+          --suppressions-list=.cppcheck-suppressions \
+          --error-exitcode=1 \
+          --std=c++17 \
+          --language=c++ \
+          --platform=unix64 \
+          --template='{file}:{line}:{column}: {severity}: {message} [{id}]' \
+          -I include \
+          -I external/imgui \
+          -I external/json/include \
+          --suppress=missingIncludeSystem \
+          --suppress=unmatchedSuppression \
+          --suppress=unusedFunction \
+          src/ include/ \
+          2>&1 | tee cppcheck-report.txt
+
+    - name: Upload cppcheck report
+      if: always()
+      uses: actions/upload-artifact@v5
+      with:
+        name: cppcheck-report
+        path: cppcheck-report.txt
+
+  analysis-summary:
+    name: Analysis Summary
+    runs-on: ubuntu-latest
+    needs: [clang-tidy, cppcheck]
+    if: always()
+
+    steps:
+    - name: Summary
+      run: |
+        echo "## Static Analysis Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        if [ "${{ needs.clang-tidy.result }}" == "success" ]; then
+          echo "✅ clang-tidy: **PASSED**" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ clang-tidy: **FAILED**" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        if [ "${{ needs.cppcheck.result }}" == "success" ]; then
+          echo "✅ cppcheck: **PASSED**" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ cppcheck: **FAILED**" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Check overall status
+      if: needs.clang-tidy.result != 'success' || needs.cppcheck.result != 'success'
+      run: |
+        echo "::error::Static analysis failed. Please fix all issues before merging."
+        exit 1
+

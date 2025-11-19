@@ -1,0 +1,80 @@
+{
+    "name": "MetaImGUI Development",
+    "dockerFile": "Dockerfile",
+    "context": "..",
+
+    // Configure tool-specific properties
+    "customizations": {
+        "vscode": {
+            // Extensions to install
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cmake-tools",
+                "twxs.cmake",
+                "llvm-vs-code-extensions.vscode-clangd",
+                "xaver.clang-format",
+                "ms-vscode.makefile-tools",
+                "GitHub.copilot",
+                "GitHub.vscode-pull-request-github",
+                "eamodio.gitlens",
+                "streetsidesoftware.code-spell-checker",
+                "aaron-bond.better-comments"
+            ],
+
+            // Settings
+            "settings": {
+                "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+                "C_Cpp.clang_format_style": "file",
+                "cmake.configureOnOpen": true,
+                "cmake.buildDirectory": "${workspaceFolder}/build",
+                "editor.formatOnSave": true,
+                "editor.rulers": [120],
+                "files.trimTrailingWhitespace": true,
+                "files.insertFinalNewline": true,
+                "clangd.path": "/usr/bin/clangd",
+                "clangd.arguments": [
+                    "--background-index",
+                    "--compile-commands-dir=${workspaceFolder}/build",
+                    "--clang-tidy",
+                    "--header-insertion=iwyu"
+                ]
+            }
+        }
+    },
+
+    // Container-specific settings
+    "containerEnv": {
+        "DISPLAY": ":0"
+    },
+
+    // Forward GUI to host (for Linux with X11)
+    "mounts": [
+        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
+        "source=${localEnv:HOME}/.Xauthority,target=/root/.Xauthority,type=bind"
+    ],
+
+    // Ports to forward
+    "forwardPorts": [],
+
+    // Use 'postCreateCommand' to run commands after the container is created
+    "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+    // Comment out to connect as root instead
+    "remoteUser": "vscode",
+
+    // Container features
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": true,
+            "configureZshAsDefaultShell": true,
+            "username": "vscode",
+            "userUid": "1000",
+            "userGid": "1000"
+        },
+        "ghcr.io/devcontainers/features/git:1": {
+            "version": "latest",
+            "ppa": false
+        }
+    }
+}
+
