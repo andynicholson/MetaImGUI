@@ -63,7 +63,7 @@ jobs:
 
     # Initialize CodeQL tools for scanning
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
         # Query suites: default, security-extended, security-and-quality
@@ -87,7 +87,7 @@ jobs:
 
     # Perform CodeQL Analysis
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
         output: sarif-results
@@ -95,7 +95,7 @@ jobs:
 
     # Upload results as artifact
     - name: Upload SARIF results
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       if: always()
       with:
         sarif_file: sarif-results/${{ matrix.language }}.sarif
