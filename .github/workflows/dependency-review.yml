@@ -1,0 +1,47 @@
+# Dependency Review Workflow
+# Scans pull requests for dependency changes and security vulnerabilities
+
+name: 'Dependency Review'
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    name: Review Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          # Fail the action if vulnerabilities are found
+          fail-on-severity: moderate
+          # Deny licenses (GPL, AGPL, proprietary)
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
+          # Allow common permissive licenses
+          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Zlib
+          # Comment on PR with findings
+          comment-summary-in-pr: always
+          # Show details in PR comment
+          warn-only: false
+
+      - name: Check Submodule Updates
+        run: |
+          echo "Checking for submodule changes..."
+          git diff --submodule=log ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
+
+      - name: Security Advisory Check
+        if: always()
+        run: |
+          echo "::notice::Dependency review complete. Check the Security tab for detailed vulnerability reports."
+

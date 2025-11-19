@@ -11,6 +11,17 @@ We release patches for security vulnerabilities in the following versions:
 
 **Note**: As MetaImGUI is a template project, we recommend always using the latest version. Security updates will be applied to the main branch and included in the next release.
 
+## Automated Security Measures
+
+MetaImGUI employs multiple automated security scanning tools:
+
+- **CodeQL Analysis**: Continuous security analysis for C++ code vulnerabilities
+- **Dependabot**: Automated dependency updates and vulnerability alerts
+- **Dependency Review**: PR-level dependency vulnerability scanning
+- **Memory Sanitizers**: ASAN, TSAN, UBSAN, MSAN for runtime error detection
+
+These automated checks run on every pull request and push to main/develop branches.
+
 ## Reporting a Vulnerability
 
 We take the security of MetaImGUI seriously. If you believe you have found a security vulnerability, please report it to us as described below.

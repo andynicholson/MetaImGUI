@@ -1,49 +1,53 @@
-# MetaImGUI Clang-Tidy Configuration
-# Static analysis checks for C++ code quality
+# clang-tidy configuration for MetaImGUI
+# Modern C++ best practices and security checks
 
----
 Checks: >
   -*,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
-  -bugprone-exception-escape,
   clang-analyzer-*,
   cppcoreguidelines-*,
   -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-non-private-member-variables-in-classes,
-  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
-  -cppcoreguidelines-pro-bounds-constant-array-index,
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -cppcoreguidelines-pro-type-reinterpret-cast,
-  -cppcoreguidelines-pro-type-vararg,
-  -cppcoreguidelines-avoid-const-or-ref-data-members,
   modernize-*,
   -modernize-use-trailing-return-type,
   performance-*,
   readability-*,
   -readability-magic-numbers,
   -readability-identifier-length,
-  -readability-function-cognitive-complexity,
-  -readability-else-after-return
+  portability-*,
+  misc-*,
+  -misc-non-private-member-variables-in-classes,
+  hicpp-*,
+  -hicpp-signed-bitwise,
+  concurrency-*
 
-WarningsAsErrors: ''
+WarningsAsErrors: >
+  bugprone-use-after-move,
+  bugprone-dangling-handle,
+  bugprone-infinite-loop,
+  cppcoreguidelines-no-malloc,
+  cppcoreguidelines-owning-memory,
+  cppcoreguidelines-slicing,
+  modernize-use-nullptr,
+  modernize-use-override,
+  performance-move-const-arg,
+  performance-unnecessary-copy-initialization
 
 CheckOptions:
+  # Naming conventions
   - key: readability-identifier-naming.NamespaceCase
     value: CamelCase
   - key: readability-identifier-naming.ClassCase
     value: CamelCase
   - key: readability-identifier-naming.StructCase
     value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
   - key: readability-identifier-naming.FunctionCase
     value: CamelCase
-  - key: readability-identifier-naming.MethodCase
-    value: CamelCase
   - key: readability-identifier-naming.VariableCase
-    value: camelBack
-  - key: readability-identifier-naming.ParameterCase
-    value: camelBack
-  - key: readability-identifier-naming.MemberCase
     value: camelBack
   - key: readability-identifier-naming.PrivateMemberPrefix
     value: 'm_'
@@ -51,18 +55,28 @@ CheckOptions:
     value: 'm_'
   - key: readability-identifier-naming.ConstantCase
     value: UPPER_CASE
-  - key: readability-identifier-naming.EnumConstantCase
-    value: UPPER_CASE
-  - key: readability-identifier-naming.GlobalConstantCase
-    value: UPPER_CASE
-  - key: readability-identifier-naming.StaticConstantCase
-    value: UPPER_CASE
-  - key: readability-identifier-naming.ConstexprVariableCase
-    value: UPPER_CASE
+
+  # Function size limits
   - key: readability-function-size.LineThreshold
     value: 150
   - key: readability-function-size.StatementThreshold
     value: 100
+  - key: readability-function-size.BranchThreshold
+    value: 20
 
-HeaderFilterRegex: '.*/(src|include)/.*'
+  # Performance tuning
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: 'std::shared_ptr;std::unique_ptr;std::function'
 
+  # Modern C++ standards
+  - key: modernize-use-auto.MinTypeNameLength
+    value: 5
+
+  # Readability
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: 1
+
+HeaderFilterRegex: '(include|src)/.*\.(h|hpp|hxx)$'
+
+# Exclude third-party code
+ExcludeHeaderFilterRegex: '(external|build|cmake-build-|\.cache)/.*'

@@ -16,6 +16,9 @@ setup_coverage_flags()
 # Include sanitizers module
 include(Sanitizers)
 
+# Include static analysis module
+include(StaticAnalysis)
+
 # Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)

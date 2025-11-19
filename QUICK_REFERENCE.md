@@ -64,6 +64,24 @@ xdg-open build/coverage_html/index.html  # Linux
 open build/coverage_html/index.html      # macOS
 ```
 
+### Static Analysis
+
+```bash
+# Run all static analysis tools
+./scripts/run_static_analysis.sh
+
+# Run with CMake integration
+cmake -B build -DENABLE_CLANG_TIDY=ON -DENABLE_CPPCHECK=ON
+cmake --build build
+
+# Run manually
+clang-tidy -p build src/*.cpp include/*.h
+cppcheck --enable=all src/ include/
+
+# Run as make target
+cd build && make static-analysis
+```
+
 ### Sanitizers
 
 ```bash
