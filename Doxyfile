@@ -128,7 +128,8 @@ WARN_LOGFILE           =
 INPUT                  = include \
                          src \
                          README.md \
-                         CONTRIBUTING.md
+                         CONTRIBUTING.md \
+                         docs/mainpage.md
 INPUT_ENCODING         = UTF-8
 INPUT_FILE_ENCODING    =
 FILE_PATTERNS          = *.c \
@@ -161,7 +162,7 @@ INPUT_FILTER           =
 FILTER_PATTERNS        =
 FILTER_SOURCE_FILES    = NO
 FILTER_SOURCE_PATTERNS =
-USE_MDFILE_AS_MAINPAGE = README.md
+USE_MDFILE_AS_MAINPAGE = docs/mainpage.md
 
 #---------------------------------------------------------------------------
 # Configuration options related to source browsing
@@ -311,7 +312,7 @@ EXTERNAL_PAGES         = YES
 #---------------------------------------------------------------------------
 
 HIDE_UNDOC_RELATIONS   = YES
-HAVE_DOT               = NO
+HAVE_DOT               = YES
 DOT_NUM_THREADS        = 0
 DOT_COMMON_ATTR        = "fontname=Helvetica,fontsize=10"
 DOT_EDGE_ATTR          = "labelfontname=Helvetica,labelfontsize=10"

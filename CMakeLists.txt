@@ -9,6 +9,13 @@ get_git_version()
 
 project(MetaImGUI VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 
+# Include code coverage module
+include(CodeCoverage)
+setup_coverage_flags()
+
+# Include sanitizers module
+include(Sanitizers)
+
 # Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
@@ -249,8 +256,21 @@ if(BUILD_TESTS)
         include(Catch)
         catch_discover_tests(MetaImGUI_tests)
 
+        # Add coverage target if enabled
+        add_coverage_target(MetaImGUI_tests)
+
         message(STATUS "Tests enabled. Run with: ctest --test-dir build")
     else()
         message(WARNING "Catch2 not found. Tests will not be built. Run setup_dependencies.sh first.")
     endif()
+endif()
+
+# ============================================================================
+# Benchmarks (optional)
+# ============================================================================
+option(BUILD_BENCHMARKS "Build benchmarks" OFF)
+
+if(BUILD_BENCHMARKS)
+    message(STATUS "Benchmarks enabled")
+    add_subdirectory(benchmarks)
 endif()

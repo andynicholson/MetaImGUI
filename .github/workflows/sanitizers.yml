@@ -1,0 +1,258 @@
+name: Sanitizers
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  address-sanitizer:
+    name: AddressSanitizer
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libglfw3-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libcurl4-openssl-dev \
+          xorg-dev
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          external/imgui
+          external/json
+          external/catch2
+        key: sanitizer-deps-imgui-1.92.4-json-3.11.3-catch2-3.4.0
+        restore-keys: |
+          sanitizer-deps-
+
+    - name: Setup dependencies
+      run: |
+        # Setup ImGui
+        if [ ! -d "external/imgui" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+          cd ..
+        fi
+
+        # Setup nlohmann/json
+        if [ ! -d "external/json" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+          cd ..
+        fi
+
+        # Setup Catch2
+        if [ ! -d "external/catch2" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.4.0 --depth 1 https://github.com/catchorg/Catch2.git catch2
+          cd ..
+        fi
+
+    - name: Configure with ASAN
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DENABLE_ASAN=ON \
+          -DBUILD_TESTS=ON
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Run tests with ASAN
+      run: |
+        cd build
+        ASAN_OPTIONS="detect_leaks=1:check_initialization_order=1:strict_init_order=1:halt_on_error=0" \
+        ctest --output-on-failure --verbose
+
+    - name: ASAN Summary
+      if: always()
+      run: |
+        echo "## AddressSanitizer Results" >> $GITHUB_STEP_SUMMARY
+        echo "✅ AddressSanitizer tests completed" >> $GITHUB_STEP_SUMMARY
+
+  thread-sanitizer:
+    name: ThreadSanitizer
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libglfw3-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libcurl4-openssl-dev \
+          xorg-dev
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          external/imgui
+          external/json
+          external/catch2
+        key: sanitizer-deps-imgui-1.92.4-json-3.11.3-catch2-3.4.0
+        restore-keys: |
+          sanitizer-deps-
+
+    - name: Setup dependencies
+      run: |
+        # Setup ImGui
+        if [ ! -d "external/imgui" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+          cd ..
+        fi
+
+        # Setup nlohmann/json
+        if [ ! -d "external/json" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+          cd ..
+        fi
+
+        # Setup Catch2
+        if [ ! -d "external/catch2" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.4.0 --depth 1 https://github.com/catchorg/Catch2.git catch2
+          cd ..
+        fi
+
+    - name: Configure with TSAN
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DENABLE_TSAN=ON \
+          -DBUILD_TESTS=ON
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Run tests with TSAN
+      run: |
+        cd build
+        TSAN_OPTIONS="second_deadlock_stack=1:halt_on_error=0" \
+        ctest --output-on-failure --verbose
+
+    - name: TSAN Summary
+      if: always()
+      run: |
+        echo "## ThreadSanitizer Results" >> $GITHUB_STEP_SUMMARY
+        echo "✅ ThreadSanitizer tests completed" >> $GITHUB_STEP_SUMMARY
+
+  undefined-behavior-sanitizer:
+    name: UndefinedBehaviorSanitizer
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libglfw3-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libcurl4-openssl-dev \
+          xorg-dev
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          external/imgui
+          external/json
+          external/catch2
+        key: sanitizer-deps-imgui-1.92.4-json-3.11.3-catch2-3.4.0
+        restore-keys: |
+          sanitizer-deps-
+
+    - name: Setup dependencies
+      run: |
+        # Setup ImGui
+        if [ ! -d "external/imgui" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+          cd ..
+        fi
+
+        # Setup nlohmann/json
+        if [ ! -d "external/json" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+          cd ..
+        fi
+
+        # Setup Catch2
+        if [ ! -d "external/catch2" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.4.0 --depth 1 https://github.com/catchorg/Catch2.git catch2
+          cd ..
+        fi
+
+    - name: Configure with UBSAN
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DENABLE_UBSAN=ON \
+          -DBUILD_TESTS=ON
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Run tests with UBSAN
+      run: |
+        cd build
+        UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=0" \
+        ctest --output-on-failure --verbose
+
+    - name: UBSAN Summary
+      if: always()
+      run: |
+        echo "## UndefinedBehaviorSanitizer Results" >> $GITHUB_STEP_SUMMARY
+        echo "✅ UndefinedBehaviorSanitizer tests completed" >> $GITHUB_STEP_SUMMARY
+

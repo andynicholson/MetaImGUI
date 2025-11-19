@@ -48,6 +48,57 @@ ctest --test-dir build --output-on-failure
 ./build/MetaImGUI_tests -v
 ```
 
+### Code Coverage
+
+```bash
+# Quick coverage report
+./scripts/run_coverage.sh
+
+# Manual coverage build
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=ON -DBUILD_TESTS=ON
+cmake --build build
+cd build && make coverage
+
+# View coverage report
+xdg-open build/coverage_html/index.html  # Linux
+open build/coverage_html/index.html      # macOS
+```
+
+### Sanitizers
+
+```bash
+# Run all sanitizers
+./scripts/run_sanitizers.sh ALL
+
+# Run specific sanitizer
+./scripts/run_sanitizers.sh ASAN   # AddressSanitizer
+./scripts/run_sanitizers.sh TSAN   # ThreadSanitizer
+./scripts/run_sanitizers.sh UBSAN  # UndefinedBehaviorSanitizer
+
+# Manual sanitizer build
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON -DBUILD_TESTS=ON
+cmake --build build
+cd build && ASAN_OPTIONS="detect_leaks=1" ctest --output-on-failure
+```
+
+### Benchmarks
+
+```bash
+# Build and run benchmarks
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARKS=ON
+cmake --build build
+./build/MetaImGUI_benchmarks
+
+# Run specific benchmarks
+./build/MetaImGUI_benchmarks --benchmark_filter=Config
+
+# Save results to JSON
+./build/MetaImGUI_benchmarks --benchmark_out=results.json --benchmark_out_format=json
+
+# Compare results
+./build/MetaImGUI_benchmarks --benchmark_comparisons=results_baseline.json
+```
+
 ### Code Quality
 
 ```bash

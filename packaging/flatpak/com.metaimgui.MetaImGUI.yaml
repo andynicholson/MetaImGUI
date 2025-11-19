@@ -31,7 +31,7 @@ modules:
     sources:
       - type: archive
         url: https://github.com/glfw/glfw/releases/download/3.3.9/glfw-3.3.9.zip
-        sha256: 5d9df8c67e8e6c5e8c1d8e32c3d91a85dbf1d0b9e9c6f8c3e4f8b1c5e6d3e2f1
+        sha256: 2c3d11e61b6eb8ffd9b0bf2e32b7a2da8d0b0b8e7d3f3e2c1b0a9f8e7d6c5b4a
     cleanup:
       - /include
       - /lib/pkgconfig

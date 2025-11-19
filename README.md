@@ -2,6 +2,7 @@
 
 [![CI Build](https://github.com/andynicholson/MetaImGUI/actions/workflows/ci.yml/badge.svg)](https://github.com/andynicholson/MetaImGUI/actions/workflows/ci.yml)
 [![Release Build](https://github.com/andynicholson/MetaImGUI/actions/workflows/release.yml/badge.svg)](https://github.com/andynicholson/MetaImGUI/actions/workflows/release.yml)
+[![codecov](https://codecov.io/gh/andynicholson/MetaImGUI/branch/main/graph/badge.svg)](https://codecov.io/gh/andynicholson/MetaImGUI)
 [![Latest Release](https://img.shields.io/github/v/release/andynicholson/MetaImGUI)](https://github.com/andynicholson/MetaImGUI/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)](https://github.com/andynicholson/MetaImGUI)
@@ -124,6 +125,23 @@ MetaImGUI/
 │   └── catch2/               # Catch2 testing framework
 └── build/                     # Build output (generated)
 ```
+
+## Development Environment
+
+### VS Code Devcontainer (Recommended)
+
+The easiest way to get started is using the pre-configured development container:
+
+1. Install [Docker](https://docs.docker.com/get-docker/) and [VS Code](https://code.visualstudio.com/)
+2. Install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+3. Open the project in VS Code
+4. Click "Reopen in Container" when prompted
+5. Wait for the container to build (first time only)
+6. Start developing!
+
+The devcontainer includes all tools pre-installed: compilers, CMake, sanitizers, coverage tools, and more.
+
+See [`.devcontainer/README.md`](.devcontainer/README.md) for details.
 
 ## Quick Start
 
@@ -267,6 +285,26 @@ The project includes GitHub Actions workflows for:
 - **Code quality checks** - Automated linting and formatting verification
 
 For detailed information about the monitoring scripts, see `scripts/README.md`.
+
+## Documentation
+
+- **API Documentation**: [https://andynicholson.github.io/MetaImGUI/](https://andynicholson.github.io/MetaImGUI/)
+- **Quick Reference**: [QUICK_REFERENCE.md](QUICK_REFERENCE.md)
+- **Setup Guide**: [SETUP_GUIDE.md](SETUP_GUIDE.md)
+- **Meta Features**: [META_FEATURES.md](META_FEATURES.md)
+- **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
+
+To generate documentation locally:
+```bash
+# Install Doxygen and Graphviz
+sudo apt-get install doxygen graphviz  # Ubuntu/Debian
+brew install doxygen graphviz          # macOS
+
+# Generate docs
+doxygen Doxyfile
+
+# Open docs/api/html/index.html in browser
+```
 
 ## Dependencies
 
