@@ -276,6 +276,8 @@ jobs:
         # Use the packaging script (creates both NSIS installer and portable ZIP)
         .\packaging\create_windows_installer.ps1 -Version ${{ needs.get-version.outputs.version }}
       shell: pwsh
+      env:
+        VCPKG_ROOT: C:/vcpkg
 
     - name: Generate checksums
       run: |
