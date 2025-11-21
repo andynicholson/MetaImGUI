@@ -31,17 +31,41 @@ modules:
     sources:
       - type: archive
         url: https://github.com/glfw/glfw/releases/download/3.3.9/glfw-3.3.9.zip
-        sha256: 2c3d11e61b6eb8ffd9b0bf2e32b7a2da8d0b0b8e7d3f3e2c1b0a9f8e7d6c5b4a
+        sha256: 55261410f8c3a9cc47ce8303468a90f40a653cd8f25fb968b12440624fb26d08
     cleanup:
       - /include
       - /lib/pkgconfig
 
-  # MetaImGUI
-  - name: metaimgui
+  # libcurl (for update checking)
+  - name: curl
     buildsystem: cmake-ninja
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS:BOOL=ON
+      - -DCURL_USE_OPENSSL:BOOL=ON
+      - -DBUILD_CURL_EXE:BOOL=OFF
+      - -DBUILD_TESTING:BOOL=OFF
+    sources:
+      - type: archive
+        url: https://curl.se/download/curl-8.5.0.tar.xz
+        sha256: 42ab8db9e20d8290a3b633e7fbb3cec15db34df65fd1015ef8ac1e4723750eeb
+    cleanup:
+      - /bin
+      - /include
+      - /lib/pkgconfig
+      - /share
+
+  # MetaImGUI
+  - name: metaimgui
+    buildsystem: cmake-ninja
+    build-options:
+      env:
+        PKG_CONFIG_PATH: /app/lib/pkgconfig:/app/share/pkgconfig
+        LDFLAGS: -L/app/lib -lcurl
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_TESTS=OFF
+      - -DCMAKE_EXE_LINKER_FLAGS=-L/app/lib -lcurl
     sources:
       - type: dir
         path: ../..

@@ -1,0 +1,11 @@
+Package: metaimgui
+Version: 1.0.0
+Section: devel
+Priority: optional
+Architecture: amd64
+Depends: libglfw3, libgl1, libc6
+Maintainer: Your Name <your.email@example.com>
+Installed-Size: 17428
+Description: ImGui Application Template
+ A template for creating ImGui-based applications with modern C++20,
+ cross-platform build system, and automated CI/CD.

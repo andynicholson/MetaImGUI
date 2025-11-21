@@ -14,8 +14,8 @@
 
 !define PRODUCT_NAME "MetaImGUI"
 !define PRODUCT_VERSION "1.0.0"
-!define PRODUCT_PUBLISHER "Your Name"
-!define PRODUCT_WEB_SITE "https://github.com/yourusername/MetaImGUI"
+!define PRODUCT_PUBLISHER "A P Nicholson"
+!define PRODUCT_WEB_SITE "https://github.com/andynicholson/MetaImGUI"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 
 ;--------------------------------
@@ -79,6 +79,10 @@ Section "Core Files (required)" SecCore
   IfFileExists "C:\vcpkg\installed\x64-windows\bin\glfw3.dll" 0 +2
     File "C:\vcpkg\installed\x64-windows\bin\glfw3.dll"
 
+  ; Add libcurl DLL if it exists (required for update checking)
+  IfFileExists "C:\vcpkg\installed\x64-windows\bin\libcurl.dll" 0 +2
+    File "C:\vcpkg\installed\x64-windows\bin\libcurl.dll"
+
   ; Add resources if they exist
   IfFileExists "..\resources\*.*" 0 +3
     CreateDirectory "$INSTDIR\resources"
@@ -133,6 +137,7 @@ Section "Uninstall"
   ; Remove files
   Delete "$INSTDIR\MetaImGUI.exe"
   Delete "$INSTDIR\glfw3.dll"
+  Delete "$INSTDIR\libcurl.dll"
   Delete "$INSTDIR\Uninstall.exe"
 
   ; Remove resources
@@ -166,5 +171,12 @@ Function .onInit
     MessageBox MB_OK|MB_ICONEXCLAMATION "This application requires a 64-bit version of Windows."
     Abort
   ${EndIf}
+
+  ; Note: This application requires Visual C++ Redistributable 2015-2022
+  ; If the application fails to start, install VC++ Redistributable from:
+  ; https://aka.ms/vs/17/release/vc_redist.x64.exe
+  ;
+  ; To check if installed, look for:
+  ; HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64
 FunctionEnd
 

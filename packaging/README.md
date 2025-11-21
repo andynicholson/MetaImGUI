@@ -84,14 +84,24 @@ metaimgui
 
 Creates a professional Windows installer.
 
+**Requirements:**
+- NSIS 3.0 or later
+- vcpkg with glfw3 and curl installed
+- Visual Studio 2019 or later with C++ tools
+
 **Build:**
 ```powershell
+# Set VCPKG_ROOT if not at C:\vcpkg
+$env:VCPKG_ROOT = "C:\your\vcpkg\path"
+
 .\packaging\create_windows_installer.ps1 -Version 1.0.0
 ```
 
 **Output:**
-- `MetaImGUI-1.0.0-Setup.exe` - Installer
-- `MetaImGUI-1.0.0-windows-x64.zip` - Portable version
+- `MetaImGUI-1.0.0-Setup.exe` - Installer with GLFW and libcurl DLLs
+- `MetaImGUI-1.0.0-windows-x64-portable.zip` - Portable version
+
+**Note:** Users may need Visual C++ Redistributable 2015-2022 installed.
 
 ### WiX Toolset (MSI)
 
@@ -310,6 +320,15 @@ If the app needs more permissions, change to classic confinement in snapcraft.ya
 - [NSIS Documentation](https://nsis.sourceforge.io/Docs/)
 - [WiX Toolset](https://wixtoolset.org/)
 - [macOS Packaging](https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases)
+
+## Testing Packages
+
+For detailed testing instructions on each platform, see [TESTING_GUIDE.md](TESTING_GUIDE.md).
+
+Quick tests:
+- **Linux**: `./packaging/test_packages.sh 1.0.0`
+- **Windows**: `.\packaging\create_windows_installer.ps1 -Version 1.0.0`
+- **macOS**: Build and create DMG as shown in TESTING_GUIDE.md
 
 ## Questions?
 

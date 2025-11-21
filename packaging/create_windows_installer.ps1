@@ -41,8 +41,20 @@ New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 if (-not (Test-Path "build\Release\MetaImGUI.exe")) {
     Write-Info "Building project..."
 
+    # Determine vcpkg path
+    $vcpkgRoot = if ($env:VCPKG_ROOT) { $env:VCPKG_ROOT } else { "C:/vcpkg" }
+    $vcpkgToolchain = "$vcpkgRoot/scripts/buildsystems/vcpkg.cmake"
+
+    if (-not (Test-Path $vcpkgToolchain)) {
+        Write-Error "vcpkg toolchain not found at: $vcpkgToolchain"
+        Write-Host "Please install vcpkg or set VCPKG_ROOT environment variable"
+        exit 1
+    }
+
+    Write-Info "Using vcpkg toolchain: $vcpkgToolchain"
+
     # Configure
-    cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$vcpkgToolchain"
 
     if ($LASTEXITCODE -ne 0) {
         Write-Error "CMake configuration failed"
@@ -101,11 +113,25 @@ New-Item -ItemType Directory -Force -Path $portablePath | Out-Null
 # Copy executable
 Copy-Item "build\Release\MetaImGUI.exe" $portablePath
 
+# Determine vcpkg installed path
+$vcpkgInstalled = if ($env:VCPKG_ROOT) { "$env:VCPKG_ROOT/installed/x64-windows/bin" } else { "C:\vcpkg\installed\x64-windows\bin" }
+
 # Copy GLFW DLL if exists
-$glfwDll = "C:\vcpkg\installed\x64-windows\bin\glfw3.dll"
+$glfwDll = "$vcpkgInstalled\glfw3.dll"
 if (Test-Path $glfwDll) {
     Copy-Item $glfwDll $portablePath
     Write-Info "Included GLFW DLL"
+} else {
+    Write-Warning "GLFW DLL not found at: $glfwDll"
+}
+
+# Copy libcurl DLL if exists (required for update checking)
+$curlDll = "$vcpkgInstalled\libcurl.dll"
+if (Test-Path $curlDll) {
+    Copy-Item $curlDll $portablePath
+    Write-Info "Included libcurl DLL"
+} else {
+    Write-Warning "libcurl DLL not found at: $curlDll (update checking may not work)"
 }
 
 # Copy resources if they exist

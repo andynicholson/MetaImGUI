@@ -190,13 +190,20 @@ jobs:
 
           ## Downloads
 
-          - **Linux**: Download the `.tar.gz` or `.AppImage` file
-          - **Windows**: Download the `.zip` file
-          - **macOS**: Download the `.dmg` file
+          ### Linux
+          - **Tarball**: `MetaImGUI-*-linux-x64.tar.gz` - Extract and run
+          - **AppImage**: `MetaImGUI-*-linux-x64.AppImage` - Portable, no installation needed
+
+          ### Windows
+          - **Installer**: `MetaImGUI-*-Setup.exe` - Installs to Program Files, creates shortcuts
+          - **Portable**: `MetaImGUI-*-windows-x64-portable.zip` - Extract and run, no installation
+
+          ### macOS
+          - **DMG**: `MetaImGUI-*-macos-x64.dmg` - Drag to Applications folder
 
           ## Installation
 
-          See the README for installation instructions.
+          See the [README](https://github.com/andynicholson/MetaImGUI#readme) for detailed installation instructions.
 
           ## Checksums
 
@@ -236,6 +243,11 @@ jobs:
         restore-keys: |
           release-deps-
 
+    - name: Install NSIS
+      run: |
+        choco install nsis -y
+      shell: pwsh
+
     - name: Install dependencies (vcpkg)
       run: |
         vcpkg install glfw3:x64-windows curl:x64-windows
@@ -259,56 +271,21 @@ jobs:
         fi
       shell: bash
 
-    - name: Build
+    - name: Build and create packages
       run: |
-        cmake -B build `
-          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
-          -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-        cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+        # Use the packaging script (creates both NSIS installer and portable ZIP)
+        .\packaging\create_windows_installer.ps1 -Version ${{ needs.get-version.outputs.version }}
       shell: pwsh
 
-    - name: Package portable ZIP
+    - name: Generate checksums
       run: |
-        mkdir MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64
+        # Generate checksum for portable ZIP
+        $zipHash = (Get-FileHash -Path "packaging\output\MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64-portable.zip" -Algorithm SHA256).Hash
+        "$zipHash  MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64-portable.zip" | Out-File -FilePath "packaging\output\MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64-portable.zip.sha256" -Encoding ASCII
 
-        # Copy executable
-        if (Test-Path "build/Release/MetaImGUI.exe") {
-          cp build/Release/MetaImGUI.exe MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64/
-        } elseif (Test-Path "build/MetaImGUI.exe") {
-          cp build/MetaImGUI.exe MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64/
-        } else {
-          Write-Error "MetaImGUI.exe not found!"
-          exit 1
-        }
-
-        # Copy resources
-        if (Test-Path "README.md") {
-          cp README.md MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64/
-        }
-        if (Test-Path "resources") {
-          cp -r resources MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64/
-        }
-
-        # Copy GLFW DLL from vcpkg
-        $glfwDll = "C:/vcpkg/installed/x64-windows/bin/glfw3.dll"
-        if (Test-Path $glfwDll) {
-          cp $glfwDll MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64/
-        }
-
-        # Copy libcurl DLL from vcpkg
-        $curlDll = "C:/vcpkg/installed/x64-windows/bin/libcurl.dll"
-        if (Test-Path $curlDll) {
-          cp $curlDll MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64/
-        }
-
-        # Create ZIP
-        Compress-Archive -Path MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64 -DestinationPath MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64.zip
-      shell: pwsh
-
-    - name: Generate checksum
-      run: |
-        $hash = (Get-FileHash -Path "MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64.zip" -Algorithm SHA256).Hash
-        "$hash  MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64.zip" | Out-File -FilePath "MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64.zip.sha256" -Encoding ASCII
+        # Generate checksum for installer
+        $exeHash = (Get-FileHash -Path "packaging\output\MetaImGUI-${{ needs.get-version.outputs.version }}-Setup.exe" -Algorithm SHA256).Hash
+        "$exeHash  MetaImGUI-${{ needs.get-version.outputs.version }}-Setup.exe" | Out-File -FilePath "packaging\output\MetaImGUI-${{ needs.get-version.outputs.version }}-Setup.exe.sha256" -Encoding ASCII
       shell: pwsh
 
     - name: Upload Release Assets
@@ -317,8 +294,10 @@ jobs:
         tag_name: ${{ needs.get-version.outputs.tag }}
         draft: false
         files: |
-          MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64.zip
-          MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64.zip.sha256
+          packaging/output/MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64-portable.zip
+          packaging/output/MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64-portable.zip.sha256
+          packaging/output/MetaImGUI-${{ needs.get-version.outputs.version }}-Setup.exe
+          packaging/output/MetaImGUI-${{ needs.get-version.outputs.version }}-Setup.exe.sha256
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -400,6 +379,18 @@ jobs:
           cp -r resources MetaImGUI.app/Contents/Resources/
         fi
 
+        # Generate .icns icon if possible
+        if [ -f "resources/icons/metaimgui.svg" ] && command -v iconutil &> /dev/null; then
+          echo "Generating app icon..."
+          cd resources/icons
+          ./generate_icons.sh || true
+          cd ../..
+          if [ -f "resources/icons/metaimgui.icns" ]; then
+            cp resources/icons/metaimgui.icns MetaImGUI.app/Contents/Resources/
+            echo "Icon added to app bundle"
+          fi
+        fi
+
         # Create Info.plist
         cat > MetaImGUI.app/Contents/Info.plist << 'EOF'
         <?xml version="1.0" encoding="UTF-8"?>
@@ -412,49 +403,41 @@ jobs:
             <string>com.metaimgui.app</string>
             <key>CFBundleName</key>
             <string>MetaImGUI</string>
+            <key>CFBundleDisplayName</key>
+            <string>MetaImGUI</string>
             <key>CFBundleVersion</key>
             <string>${{ needs.get-version.outputs.version }}</string>
             <key>CFBundleShortVersionString</key>
             <string>${{ needs.get-version.outputs.version }}</string>
             <key>CFBundlePackageType</key>
             <string>APPL</string>
+            <key>CFBundleIconFile</key>
+            <string>metaimgui.icns</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
         </dict>
         </plist>
         EOF
 
     - name: Code Sign App Bundle
       run: |
-        # Create minimal entitlements file if needed
-        if [ ! -f "entitlements.plist" ]; then
-          cat > entitlements.plist << 'EOF'
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>com.apple.security.cs.allow-jit</key>
-            <true/>
-            <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-            <true/>
-        </dict>
-        </plist>
-        EOF
-        fi
+        # Note: entitlements.plist already exists in repo
 
         # Sign the executable
         codesign --force --deep --sign "Developer ID Application" \
           --options runtime \
           --entitlements entitlements.plist \
           --timestamp \
-          MetaImGUI.app/Contents/MacOS/MetaImGUI || echo "Code signing skipped (no certificate)"
+          MetaImGUI.app/Contents/MacOS/MetaImGUI || echo "⚠️  Code signing skipped (no certificate)"
 
         # Sign the app bundle
         codesign --force --deep --sign "Developer ID Application" \
           --options runtime \
           --timestamp \
-          MetaImGUI.app || echo "Code signing skipped (no certificate)"
+          MetaImGUI.app || echo "⚠️  Code signing skipped (no certificate)"
 
         # Verify signature
-        codesign --verify --deep --strict --verbose=2 MetaImGUI.app || true
+        codesign --verify --deep --strict --verbose=2 MetaImGUI.app || echo "⚠️  App bundle is unsigned"
       continue-on-error: true
 
     - name: Create DMG
@@ -462,6 +445,9 @@ jobs:
         # Create a temporary directory for DMG contents
         mkdir -p dmg_contents
         cp -r MetaImGUI.app dmg_contents/
+
+        # Add Applications folder symlink for better UX
+        ln -s /Applications dmg_contents/Applications
 
         # Create DMG
         hdiutil create -volname "MetaImGUI" -srcfolder dmg_contents -ov -format UDZO MetaImGUI-${{ needs.get-version.outputs.version }}-macos-x64.dmg

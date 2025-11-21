@@ -55,6 +55,7 @@ parts:
       - libxi-dev
       - libxinerama-dev
       - libxcursor-dev
+      - git
 
     stage-packages:
       - libglfw3

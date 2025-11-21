@@ -181,6 +181,16 @@ endif()
 # Enable folder grouping in IDEs
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# Install targets
+install(TARGETS MetaImGUI
+    RUNTIME DESTINATION bin
+)
+
+# Install resources
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources
+    DESTINATION share/MetaImGUI
+)
+
 # Group source files
 source_group("Source Files" FILES
     src/main.cpp

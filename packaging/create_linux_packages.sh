@@ -101,14 +101,19 @@ cat > "$APPDIR/usr/share/metainfo/${APP_NAME}.appdata.xml" << EOF
 </component>
 EOF
 
-# Create a simple icon (you should replace this with a real icon)
-# For now, create a placeholder
-if [ ! -f "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_NAME}.png" ]; then
-    # Create a simple colored square as placeholder
+# Copy icon file
+if [ -f "resources/icons/metaimgui-256.png" ]; then
+    cp "resources/icons/metaimgui-256.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_NAME}.png"
+    print_info "Using application icon"
+elif [ ! -f "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_NAME}.png" ]; then
+    # Create a simple colored square as placeholder if no icon exists
     if command -v convert &> /dev/null; then
         convert -size 256x256 xc:#3498db "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_NAME}.png"
+        print_info "Generated placeholder icon"
     else
-        touch "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_NAME}.png"
+        print_error "Icon not found and ImageMagick not available to generate placeholder"
+        print_info "Run: cd resources/icons && ./generate_icons.sh"
+        exit 1
     fi
 fi
 
@@ -142,7 +147,13 @@ mkdir -p "$DEB_DIR/usr/share/doc/$PROJECT_NAME"
 # Copy files
 cp "$BUILD_DIR/$PROJECT_NAME" "$DEB_DIR/usr/bin/"
 cp "$APPDIR/usr/share/applications/${APP_NAME}.desktop" "$DEB_DIR/usr/share/applications/"
-cp "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_NAME}.png" "$DEB_DIR/usr/share/icons/hicolor/256x256/apps/"
+
+# Copy icon
+if [ -f "resources/icons/metaimgui-256.png" ]; then
+    cp "resources/icons/metaimgui-256.png" "$DEB_DIR/usr/share/icons/hicolor/256x256/apps/${APP_NAME}.png"
+else
+    cp "$APPDIR/usr/share/icons/hicolor/256x256/apps/${APP_NAME}.png" "$DEB_DIR/usr/share/icons/hicolor/256x256/apps/"
+fi
 
 # Copy resources
 if [ -d "resources" ]; then

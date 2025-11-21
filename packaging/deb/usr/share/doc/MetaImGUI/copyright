@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: MetaImGUI
+Source: https://github.com/yourusername/MetaImGUI
+
+Files: *
+Copyright: 2025 Your Name
+License: MIT
