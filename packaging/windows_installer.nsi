@@ -77,11 +77,8 @@ Section "Core Files (required)" SecCore
 
   ; Add vcpkg DLLs (required dependencies)
   ; Note: These must be copied from vcpkg's bin directory
-  IfFileExists "C:\vcpkg\installed\x64-windows\bin\glfw3.dll" 0 +2
-    File "C:\vcpkg\installed\x64-windows\bin\glfw3.dll"
-
-  IfFileExists "C:\vcpkg\installed\x64-windows\bin\libcurl.dll" 0 +2
-    File "C:\vcpkg\installed\x64-windows\bin\libcurl.dll"
+  File "C:\vcpkg\installed\x64-windows\bin\glfw3.dll"
+  File "C:\vcpkg\installed\x64-windows\bin\libcurl.dll"
 
   ; libcurl dependencies
   File /nonfatal "C:\vcpkg\installed\x64-windows\bin\zlib1.dll"
@@ -97,6 +94,7 @@ Section "Core Files (required)" SecCore
   File /nonfatal "C:\vcpkg\installed\x64-windows\bin\msvcp140.dll"
   File /nonfatal "C:\vcpkg\installed\x64-windows\bin\vcruntime140.dll"
   File /nonfatal "C:\vcpkg\installed\x64-windows\bin\vcruntime140_1.dll"
+  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\msvcp140_atomic_wait.dll"
 
   ; Add resources if they exist
   IfFileExists "..\resources\*.*" 0 +3

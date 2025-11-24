@@ -128,7 +128,8 @@ $requiredDlls = @(
 $optionalDlls = @(
     "msvcp140.dll",
     "vcruntime140.dll",
-    "vcruntime140_1.dll"
+    "vcruntime140_1.dll",
+    "msvcp140_atomic_wait.dll"
 )
 
 Write-Info "Copying required DLLs from vcpkg..."
