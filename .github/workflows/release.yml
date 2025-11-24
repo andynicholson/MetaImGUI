@@ -544,41 +544,79 @@ jobs:
     - name: Code Sign App Bundle
       run: |
         # Note: entitlements.plist already exists in repo
+        
+        # Check if we have a Developer ID certificate
+        SIGN_IDENTITY="Developer ID Application"
+        if ! security find-identity -v -p codesigning | grep -q "Developer ID Application"; then
+          echo "⚠️  No Developer ID certificate found, using ad-hoc signing"
+          SIGN_IDENTITY="-"
+        else
+          echo "✓ Found Developer ID certificate"
+        fi
 
         # Sign all frameworks first
+        # IMPORTANT: We MUST sign these because install_name_tool broke their original signatures
         if [ -d "MetaImGUI.app/Contents/Frameworks" ]; then
-          echo "Signing frameworks..."
+          echo "Signing frameworks with identity: $SIGN_IDENTITY"
           for framework in MetaImGUI.app/Contents/Frameworks/*.dylib; do
             if [ -f "$framework" ]; then
               echo "Signing $(basename "$framework")"
-              codesign --force --sign "Developer ID Application" \
-                --options runtime \
-                --timestamp \
-                "$framework" || echo "⚠️  Skipped signing $(basename "$framework")"
+              if [ "$SIGN_IDENTITY" = "-" ]; then
+                # Ad-hoc signing (no entitlements, no timestamp)
+                codesign --force --sign "$SIGN_IDENTITY" "$framework"
+              else
+                # Full signing with Developer ID
+                codesign --force --sign "$SIGN_IDENTITY" \
+                  --options runtime \
+                  --timestamp \
+                  "$framework"
+              fi
+              echo "✓ Signed $(basename "$framework")"
             fi
           done
         fi
 
         # Sign the executable
-        codesign --force --sign "Developer ID Application" \
-          --options runtime \
-          --entitlements entitlements.plist \
-          --timestamp \
-          MetaImGUI.app/Contents/MacOS/MetaImGUI || echo "⚠️  Code signing skipped (no certificate)"
+        echo "Signing executable with identity: $SIGN_IDENTITY"
+        if [ "$SIGN_IDENTITY" = "-" ]; then
+          # Ad-hoc signing (no entitlements, no timestamp)
+          codesign --force --sign "$SIGN_IDENTITY" \
+            MetaImGUI.app/Contents/MacOS/MetaImGUI
+        else
+          # Full signing with Developer ID
+          codesign --force --sign "$SIGN_IDENTITY" \
+            --options runtime \
+            --entitlements entitlements.plist \
+            --timestamp \
+            MetaImGUI.app/Contents/MacOS/MetaImGUI
+        fi
+        echo "✓ Signed executable"
 
         # Sign the app bundle (don't use --deep as we've signed components individually)
-        codesign --force --sign "Developer ID Application" \
-          --options runtime \
-          --timestamp \
-          MetaImGUI.app || echo "⚠️  Code signing skipped (no certificate)"
+        echo "Signing app bundle with identity: $SIGN_IDENTITY"
+        if [ "$SIGN_IDENTITY" = "-" ]; then
+          # Ad-hoc signing
+          codesign --force --sign "$SIGN_IDENTITY" MetaImGUI.app
+        else
+          # Full signing with Developer ID
+          codesign --force --sign "$SIGN_IDENTITY" \
+            --options runtime \
+            --timestamp \
+            MetaImGUI.app
+        fi
+        echo "✓ Signed app bundle"
 
         # Verify signature
-        codesign --verify --deep --strict --verbose=2 MetaImGUI.app || echo "⚠️  App bundle is unsigned"
+        echo "Verifying signature..."
+        if codesign --verify --deep --strict --verbose=2 MetaImGUI.app 2>&1; then
+          echo "✓ Signature verification successful"
+        else
+          echo "⚠️  Signature verification failed (but continuing)"
+        fi
 
         # Show what was signed
         echo "Signature details:"
-        codesign -dvvv MetaImGUI.app || true
-      continue-on-error: true
+        codesign -dvvv MetaImGUI.app 2>&1 || true
 
     - name: Create DMG
       run: |
