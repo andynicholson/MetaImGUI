@@ -75,26 +75,9 @@ Section "Core Files (required)" SecCore
   ; Add files
   File "..\build\Release\MetaImGUI.exe"
 
-  ; Add vcpkg DLLs (required dependencies)
-  ; Note: These must be copied from vcpkg's bin directory
-  File "C:\vcpkg\installed\x64-windows\bin\glfw3.dll"
-  File "C:\vcpkg\installed\x64-windows\bin\libcurl.dll"
-
-  ; libcurl dependencies
-  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\zlib1.dll"
-
-  ; OpenSSL DLLs (try different versions, vcpkg may have renamed)
-  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\libssl-3-x64.dll"
-  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\libssl-3.dll"
-  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\libcrypto-3-x64.dll"
-  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\libcrypto-3.dll"
-
-  ; VC++ Runtime DLLs (if not already installed system-wide)
-  ; These might be at vcpkg\installed\x64-windows\bin or in System32
-  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\msvcp140.dll"
-  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\vcruntime140.dll"
-  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\vcruntime140_1.dll"
-  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\msvcp140_atomic_wait.dll"
+  ; NOTE: Using static linking (x64-windows-static triplet)
+  ; All dependencies (glfw3, libcurl, zlib) and MSVC runtime are 
+  ; statically linked into the executable. No DLL files needed!
 
   ; Add resources if they exist
   IfFileExists "..\resources\*.*" 0 +3
@@ -149,15 +132,8 @@ SectionEnd
 Section "Uninstall"
   ; Remove files
   Delete "$INSTDIR\MetaImGUI.exe"
-  Delete "$INSTDIR\glfw3.dll"
-  Delete "$INSTDIR\libcurl.dll"
-  Delete "$INSTDIR\zlib1.dll"
-  Delete "$INSTDIR\libssl-3-x64.dll"
-  Delete "$INSTDIR\libcrypto-3-x64.dll"
-  Delete "$INSTDIR\msvcp140.dll"
-  Delete "$INSTDIR\vcruntime140.dll"
-  Delete "$INSTDIR\vcruntime140_1.dll"
   Delete "$INSTDIR\Uninstall.exe"
+  ; Note: No DLL files to remove (using static linking)
 
   ; Remove resources
   RMDir /r "$INSTDIR\resources"

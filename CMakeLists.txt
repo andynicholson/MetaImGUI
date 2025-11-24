@@ -44,6 +44,10 @@ if(MSVC)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
     # Enable multi-processor compilation
     add_compile_options(/MP)
+    
+    # Use static runtime library to avoid redistributable dependencies
+    # This eliminates the need for MSVCP140.dll, VCRUNTIME140.dll, etc.
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 else()
     add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()

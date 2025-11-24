@@ -53,8 +53,10 @@ if (-not (Test-Path "build\Release\MetaImGUI.exe")) {
 
     Write-Info "Using vcpkg toolchain: $vcpkgToolchain"
 
-    # Configure
-    cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$vcpkgToolchain"
+    # Configure with static triplet for self-contained executable
+    cmake -B build -DCMAKE_BUILD_TYPE=Release `
+        -DCMAKE_TOOLCHAIN_FILE="$vcpkgToolchain" `
+        -DVCPKG_TARGET_TRIPLET=x64-windows-static
 
     if ($LASTEXITCODE -ne 0) {
         Write-Error "CMake configuration failed"
@@ -113,46 +115,12 @@ New-Item -ItemType Directory -Force -Path $portablePath | Out-Null
 # Copy executable
 Copy-Item "build\Release\MetaImGUI.exe" $portablePath
 
-# Determine vcpkg installed path
-$vcpkgInstalled = if ($env:VCPKG_ROOT) { "$env:VCPKG_ROOT/installed/x64-windows/bin" } else { "C:\vcpkg\installed\x64-windows\bin" }
-
-# Copy required DLLs from vcpkg
-$requiredDlls = @(
-    "glfw3.dll",
-    "libcurl.dll",
-    "zlib1.dll",
-    "libssl-3-x64.dll",
-    "libcrypto-3-x64.dll"
-)
-
-$optionalDlls = @(
-    "msvcp140.dll",
-    "vcruntime140.dll",
-    "vcruntime140_1.dll",
-    "msvcp140_atomic_wait.dll"
-)
-
-Write-Info "Copying required DLLs from vcpkg..."
-foreach ($dll in $requiredDlls) {
-    $dllPath = "$vcpkgInstalled\$dll"
-    if (Test-Path $dllPath) {
-        Copy-Item $dllPath $portablePath
-        Write-Info "  ✓ $dll"
-    } else {
-        Write-Warning "  ✗ $dll not found at: $dllPath"
-    }
-}
-
-Write-Info "Copying optional runtime DLLs..."
-foreach ($dll in $optionalDlls) {
-    $dllPath = "$vcpkgInstalled\$dll"
-    if (Test-Path $dllPath) {
-        Copy-Item $dllPath $portablePath
-        Write-Info "  ✓ $dll"
-    } else {
-        Write-Info "  - $dll (not found, may be in system)"
-    }
-}
+Write-Info "Using static linking - all dependencies included in executable"
+Write-Info "  ✓ glfw3 (statically linked)"
+Write-Info "  ✓ libcurl (statically linked)"
+Write-Info "  ✓ zlib (statically linked)"
+Write-Info "  ✓ MSVC runtime (statically linked)"
+Write-Info "No DLL files needed!"
 
 # Copy resources if they exist
 if (Test-Path "resources") {
