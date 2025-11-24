@@ -167,6 +167,13 @@ elseif(APPLE)
     endif()
     # Silence OpenGL deprecation warnings on macOS
     target_compile_definitions(MetaImGUI PRIVATE GL_SILENCE_DEPRECATION)
+
+    # Set rpath for app bundle
+    set_target_properties(MetaImGUI PROPERTIES
+        INSTALL_RPATH "@executable_path/../Frameworks"
+        BUILD_WITH_INSTALL_RPATH TRUE
+        MACOSX_RPATH TRUE
+    )
 endif()
 
 # Copy resources to build directory

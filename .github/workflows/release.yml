@@ -368,6 +368,7 @@ jobs:
       run: |
         mkdir -p MetaImGUI.app/Contents/MacOS
         mkdir -p MetaImGUI.app/Contents/Resources
+        mkdir -p MetaImGUI.app/Contents/Frameworks
 
         # Verify executable exists
         if [ ! -f "build/MetaImGUI" ]; then
@@ -418,29 +419,118 @@ jobs:
             <string>metaimgui.icns</string>
             <key>NSHighResolutionCapable</key>
             <true/>
+            <key>LSMinimumSystemVersion</key>
+            <string>11.0</string>
         </dict>
         </plist>
         EOF
+
+    - name: Bundle Dynamic Libraries
+      run: |
+        echo "Bundling dynamic libraries into app bundle..."
+
+        # Function to recursively copy and fix library dependencies
+        bundle_library() {
+          local lib_path="$1"
+          local lib_name=$(basename "$lib_path")
+
+          # Skip system libraries
+          if [[ "$lib_path" == /System/* ]] || [[ "$lib_path" == /usr/lib/lib* ]]; then
+            return
+          fi
+
+          # Skip if already bundled
+          if [ -f "MetaImGUI.app/Contents/Frameworks/$lib_name" ]; then
+            return
+          fi
+
+          echo "Bundling: $lib_name"
+          cp "$lib_path" MetaImGUI.app/Contents/Frameworks/
+          chmod +w "MetaImGUI.app/Contents/Frameworks/$lib_name"
+
+          # Fix the library's install name
+          install_name_tool -id "@executable_path/../Frameworks/$lib_name" \
+            "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
+
+          # Get and fix dependencies of this library
+          otool -L "MetaImGUI.app/Contents/Frameworks/$lib_name" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r dep; do
+            if [[ ! "$dep" == /System/* ]] && [[ ! "$dep" == /usr/lib/lib* ]]; then
+              local dep_name=$(basename "$dep")
+              if [ -f "$dep" ]; then
+                bundle_library "$dep"
+                install_name_tool -change "$dep" "@executable_path/../Frameworks/$dep_name" \
+                  "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
+              fi
+            fi
+          done
+        }
+
+        # Get all dependencies of the executable
+        echo "Analyzing executable dependencies..."
+        otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI
+
+        # Bundle each non-system library
+        otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
+          # Skip system libraries
+          if [[ "$lib" == /System/* ]] || [[ "$lib" == /usr/lib/libSystem* ]] || \
+             [[ "$lib" == /usr/lib/libc++* ]] || [[ "$lib" == /usr/lib/libobjc* ]] || \
+             [[ "$lib" == /usr/lib/libresolv* ]]; then
+            continue
+          fi
+
+          if [ -f "$lib" ]; then
+            lib_name=$(basename "$lib")
+            bundle_library "$lib"
+
+            # Update the executable to look in Frameworks directory
+            install_name_tool -change "$lib" "@executable_path/../Frameworks/$lib_name" \
+              MetaImGUI.app/Contents/MacOS/MetaImGUI || true
+          fi
+        done
+
+        echo "Bundled libraries:"
+        ls -lh MetaImGUI.app/Contents/Frameworks/
+
+        echo "Final executable dependencies:"
+        otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI
 
     - name: Code Sign App Bundle
       run: |
         # Note: entitlements.plist already exists in repo
 
+        # Sign all frameworks first
+        if [ -d "MetaImGUI.app/Contents/Frameworks" ]; then
+          echo "Signing frameworks..."
+          for framework in MetaImGUI.app/Contents/Frameworks/*.dylib; do
+            if [ -f "$framework" ]; then
+              echo "Signing $(basename "$framework")"
+              codesign --force --sign "Developer ID Application" \
+                --options runtime \
+                --timestamp \
+                "$framework" || echo "⚠️  Skipped signing $(basename "$framework")"
+            fi
+          done
+        fi
+
         # Sign the executable
-        codesign --force --deep --sign "Developer ID Application" \
+        codesign --force --sign "Developer ID Application" \
           --options runtime \
           --entitlements entitlements.plist \
           --timestamp \
           MetaImGUI.app/Contents/MacOS/MetaImGUI || echo "⚠️  Code signing skipped (no certificate)"
 
-        # Sign the app bundle
-        codesign --force --deep --sign "Developer ID Application" \
+        # Sign the app bundle (don't use --deep as we've signed components individually)
+        codesign --force --sign "Developer ID Application" \
           --options runtime \
           --timestamp \
           MetaImGUI.app || echo "⚠️  Code signing skipped (no certificate)"
 
         # Verify signature
         codesign --verify --deep --strict --verbose=2 MetaImGUI.app || echo "⚠️  App bundle is unsigned"
+
+        # Show what was signed
+        echo "Signature details:"
+        codesign -dvvv MetaImGUI.app || true
       continue-on-error: true
 
     - name: Create DMG
