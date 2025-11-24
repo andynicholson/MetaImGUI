@@ -75,13 +75,34 @@ Section "Core Files (required)" SecCore
   ; Add files
   File "..\build\Release\MetaImGUI.exe"
 
-  ; Add GLFW DLL if it exists
+  ; Add vcpkg DLLs (required dependencies)
+  ; Note: These must be copied from vcpkg's bin directory
   IfFileExists "C:\vcpkg\installed\x64-windows\bin\glfw3.dll" 0 +2
     File "C:\vcpkg\installed\x64-windows\bin\glfw3.dll"
 
-  ; Add libcurl DLL if it exists (required for update checking)
   IfFileExists "C:\vcpkg\installed\x64-windows\bin\libcurl.dll" 0 +2
     File "C:\vcpkg\installed\x64-windows\bin\libcurl.dll"
+
+  ; libcurl dependencies
+  IfFileExists "C:\vcpkg\installed\x64-windows\bin\zlib1.dll" 0 +2
+    File "C:\vcpkg\installed\x64-windows\bin\zlib1.dll"
+
+  IfFileExists "C:\vcpkg\installed\x64-windows\bin\libssl-3-x64.dll" 0 +2
+    File "C:\vcpkg\installed\x64-windows\bin\libssl-3-x64.dll"
+
+  IfFileExists "C:\vcpkg\installed\x64-windows\bin\libcrypto-3-x64.dll" 0 +2
+    File "C:\vcpkg\installed\x64-windows\bin\libcrypto-3-x64.dll"
+
+  ; VC++ Runtime DLLs (if not already installed system-wide)
+  ; These might be at vcpkg\installed\x64-windows\bin or in System32
+  IfFileExists "C:\vcpkg\installed\x64-windows\bin\msvcp140.dll" 0 +2
+    File "C:\vcpkg\installed\x64-windows\bin\msvcp140.dll"
+
+  IfFileExists "C:\vcpkg\installed\x64-windows\bin\vcruntime140.dll" 0 +2
+    File "C:\vcpkg\installed\x64-windows\bin\vcruntime140.dll"
+
+  IfFileExists "C:\vcpkg\installed\x64-windows\bin\vcruntime140_1.dll" 0 +2
+    File "C:\vcpkg\installed\x64-windows\bin\vcruntime140_1.dll"
 
   ; Add resources if they exist
   IfFileExists "..\resources\*.*" 0 +3
@@ -138,6 +159,12 @@ Section "Uninstall"
   Delete "$INSTDIR\MetaImGUI.exe"
   Delete "$INSTDIR\glfw3.dll"
   Delete "$INSTDIR\libcurl.dll"
+  Delete "$INSTDIR\zlib1.dll"
+  Delete "$INSTDIR\libssl-3-x64.dll"
+  Delete "$INSTDIR\libcrypto-3-x64.dll"
+  Delete "$INSTDIR\msvcp140.dll"
+  Delete "$INSTDIR\vcruntime140.dll"
+  Delete "$INSTDIR\vcruntime140_1.dll"
   Delete "$INSTDIR\Uninstall.exe"
 
   ; Remove resources

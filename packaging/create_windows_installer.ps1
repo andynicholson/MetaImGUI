@@ -116,22 +116,41 @@ Copy-Item "build\Release\MetaImGUI.exe" $portablePath
 # Determine vcpkg installed path
 $vcpkgInstalled = if ($env:VCPKG_ROOT) { "$env:VCPKG_ROOT/installed/x64-windows/bin" } else { "C:\vcpkg\installed\x64-windows\bin" }
 
-# Copy GLFW DLL if exists
-$glfwDll = "$vcpkgInstalled\glfw3.dll"
-if (Test-Path $glfwDll) {
-    Copy-Item $glfwDll $portablePath
-    Write-Info "Included GLFW DLL"
-} else {
-    Write-Warning "GLFW DLL not found at: $glfwDll"
+# Copy required DLLs from vcpkg
+$requiredDlls = @(
+    "glfw3.dll",
+    "libcurl.dll",
+    "zlib1.dll",
+    "libssl-3-x64.dll",
+    "libcrypto-3-x64.dll"
+)
+
+$optionalDlls = @(
+    "msvcp140.dll",
+    "vcruntime140.dll",
+    "vcruntime140_1.dll"
+)
+
+Write-Info "Copying required DLLs from vcpkg..."
+foreach ($dll in $requiredDlls) {
+    $dllPath = "$vcpkgInstalled\$dll"
+    if (Test-Path $dllPath) {
+        Copy-Item $dllPath $portablePath
+        Write-Info "  ✓ $dll"
+    } else {
+        Write-Warning "  ✗ $dll not found at: $dllPath"
+    }
 }
 
-# Copy libcurl DLL if exists (required for update checking)
-$curlDll = "$vcpkgInstalled\libcurl.dll"
-if (Test-Path $curlDll) {
-    Copy-Item $curlDll $portablePath
-    Write-Info "Included libcurl DLL"
-} else {
-    Write-Warning "libcurl DLL not found at: $curlDll (update checking may not work)"
+Write-Info "Copying optional runtime DLLs..."
+foreach ($dll in $optionalDlls) {
+    $dllPath = "$vcpkgInstalled\$dll"
+    if (Test-Path $dllPath) {
+        Copy-Item $dllPath $portablePath
+        Write-Info "  ✓ $dll"
+    } else {
+        Write-Info "  - $dll (not found, may be in system)"
+    }
 }
 
 # Copy resources if they exist
