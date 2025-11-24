@@ -80,8 +80,18 @@ Section "Core Files (required)" SecCore
   ; statically linked into the executable. No DLL files needed!
 
   ; Add resources (REQUIRED - app won't work without translations)
-  CreateDirectory "$INSTDIR\resources"
-  File /r "..\resources\*.*"
+  ; Preserve the directory structure: resources/translations/*, resources/icons/*
+  SetOutPath "$INSTDIR\resources\translations"
+  File "..\resources\translations\*.*"
+  
+  SetOutPath "$INSTDIR\resources\icons"
+  File "..\resources\icons\*.*"
+  
+  SetOutPath "$INSTDIR\resources"
+  File "..\resources\README.md"
+  
+  ; Reset to install directory
+  SetOutPath "$INSTDIR"
 
   ; Write registry keys
   WriteRegStr HKLM "Software\${PRODUCT_NAME}" "Install_Dir" "$INSTDIR"
