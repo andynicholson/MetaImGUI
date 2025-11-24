@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [y] - 2025-11-24
+
+### Fixed
+-  Fix macOS app crash by bundling dynamic libraries and setting correct deployment target
+
+## [y] - 2025-11-24
+
+### Fixed
+-  Fix macOS app crash by bundling dynamic libraries and setting correct deployment target
+
+## [1.0.4] - 2025-11-24
+
+### Fixed
+-  Fix macOS app crash by bundling dynamic libraries and setting correct deployment target
+
 ## [1.0.3] - 2025-11-24
 
 ### Fixed
