@@ -238,10 +238,7 @@ if(APPLE)
     install(TARGETS MetaImGUI
         BUNDLE DESTINATION .
         RUNTIME DESTINATION bin
-    )
-    # Resources are already in the bundle, but install for system-wide installs too
-    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources
-        DESTINATION MetaImGUI.app/Contents/Resources
+        RESOURCE DESTINATION Resources
     )
 else()
     install(TARGETS MetaImGUI
