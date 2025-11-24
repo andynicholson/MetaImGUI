@@ -204,11 +204,8 @@ endif()
 
 # Copy resources to build directory
 if(APPLE)
-    # For macOS bundles, copy resources into the app bundle
-    set_target_properties(MetaImGUI PROPERTIES
-        RESOURCE "${CMAKE_CURRENT_SOURCE_DIR}/resources"
-    )
-    # Also copy to build dir for development
+    # For macOS bundles, copy resources into the app bundle at build time
+    # Note: We do NOT use RESOURCE property here because it expects files, not directories
     file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources
          DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/MetaImGUI.app/Contents/Resources/)
 else()
@@ -235,10 +232,11 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Install targets
 if(APPLE)
     # macOS bundle installation
+    # Resources are already in the bundle from the file(COPY) command above
+    # So we only need to install the bundle itself
     install(TARGETS MetaImGUI
         BUNDLE DESTINATION .
         RUNTIME DESTINATION bin
-        RESOURCE DESTINATION Resources
     )
 else()
     install(TARGETS MetaImGUI
