@@ -84,14 +84,13 @@ Section "Core Files (required)" SecCore
     File "C:\vcpkg\installed\x64-windows\bin\libcurl.dll"
 
   ; libcurl dependencies
-  IfFileExists "C:\vcpkg\installed\x64-windows\bin\zlib1.dll" 0 +2
-    File "C:\vcpkg\installed\x64-windows\bin\zlib1.dll"
+  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\zlib1.dll"
 
-  IfFileExists "C:\vcpkg\installed\x64-windows\bin\libssl-3-x64.dll" 0 +2
-    File "C:\vcpkg\installed\x64-windows\bin\libssl-3-x64.dll"
-
-  IfFileExists "C:\vcpkg\installed\x64-windows\bin\libcrypto-3-x64.dll" 0 +2
-    File "C:\vcpkg\installed\x64-windows\bin\libcrypto-3-x64.dll"
+  ; OpenSSL DLLs (try different versions, vcpkg may have renamed)
+  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\libssl-3-x64.dll"
+  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\libssl-3.dll"
+  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\libcrypto-3-x64.dll"
+  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\libcrypto-3.dll"
 
   ; VC++ Runtime DLLs (if not already installed system-wide)
   ; These might be at vcpkg\installed\x64-windows\bin or in System32
