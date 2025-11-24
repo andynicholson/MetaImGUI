@@ -54,7 +54,7 @@ bool Application::Initialize() {
     // Check if running from AppImage (METAIMGUI_APPDIR set by custom AppRun)
     const char* appdir = std::getenv("METAIMGUI_APPDIR");
     if (appdir) {
-        std::string appdir_path = std::string(appdir) + "/usr/share/MetaImGUI/translations/translations.json";
+        std::string appdir_path = std::string(appdir) + "/usr/share/MetaImGUI/resources/translations/translations.json";
         translationPaths.insert(translationPaths.begin(), appdir_path); // Try AppImage location first
     }
 
@@ -66,9 +66,10 @@ bool Application::Initialize() {
 #endif
 
     // Add system installation paths
-    translationPaths.push_back("../share/MetaImGUI/translations/translations.json");   // Installed (relative to bin)
-    translationPaths.push_back("/usr/share/MetaImGUI/translations/translations.json"); // System-wide install
-    translationPaths.push_back("/usr/local/share/MetaImGUI/translations/translations.json"); // Local install
+    translationPaths.push_back(
+        "../share/MetaImGUI/resources/translations/translations.json"); // Installed (relative to bin)
+    translationPaths.push_back("/usr/share/MetaImGUI/resources/translations/translations.json"); // System-wide install
+    translationPaths.push_back("/usr/local/share/MetaImGUI/resources/translations/translations.json"); // Local install
 
     bool translationsLoaded = false;
     for (const auto& path : translationPaths) {
