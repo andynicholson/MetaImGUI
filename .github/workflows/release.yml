@@ -416,26 +416,45 @@ jobs:
         p12-password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
       continue-on-error: true
 
-    - name: Create App Bundle
+    - name: Prepare App Bundle
       run: |
-        mkdir -p MetaImGUI.app/Contents/MacOS
-        mkdir -p MetaImGUI.app/Contents/Resources
-        mkdir -p MetaImGUI.app/Contents/Frameworks
-
-        # Verify executable exists
-        if [ ! -f "build/MetaImGUI" ]; then
-          echo "Error: MetaImGUI executable not found!"
+        # CMake already created MetaImGUI.app because of MACOSX_BUNDLE
+        # Just verify it exists and copy it to the working directory
+        if [ ! -d "build/MetaImGUI.app" ]; then
+          echo "Error: MetaImGUI.app bundle not found!"
+          echo "Looking for bundle in build directory..."
+          ls -la build/
           exit 1
         fi
 
-        cp build/MetaImGUI MetaImGUI.app/Contents/MacOS/
+        echo "✓ Found CMake-built bundle at build/MetaImGUI.app"
 
-        # Copy resources if they exist
-        if [ -d "resources" ]; then
-          cp -r resources MetaImGUI.app/Contents/Resources/
+        # Copy the CMake-built bundle to working directory
+        cp -R build/MetaImGUI.app ./
+
+        # Verify the executable is in the bundle
+        if [ ! -f "MetaImGUI.app/Contents/MacOS/MetaImGUI" ]; then
+          echo "Error: Executable not found in bundle!"
+          ls -la MetaImGUI.app/Contents/MacOS/
+          exit 1
         fi
 
-        # Generate .icns icon if possible
+        echo "✓ Bundle structure verified"
+
+        # Verify resources are in the bundle
+        if [ ! -f "MetaImGUI.app/Contents/Resources/resources/translations/translations.json" ]; then
+          echo "⚠️  Warning: translations.json not found in bundle!"
+          echo "Bundle contents:"
+          find MetaImGUI.app/Contents/Resources -type f
+        else
+          echo "✓ Resources verified in bundle"
+        fi
+
+        # Update Info.plist with version info
+        /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ needs.get-version.outputs.version }}" MetaImGUI.app/Contents/Info.plist
+        /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ needs.get-version.outputs.version }}" MetaImGUI.app/Contents/Info.plist
+
+        # Try to add icon if available
         if [ -f "resources/icons/metaimgui.svg" ] && command -v iconutil &> /dev/null; then
           echo "Generating app icon..."
           cd resources/icons
@@ -443,39 +462,9 @@ jobs:
           cd ../..
           if [ -f "resources/icons/metaimgui.icns" ]; then
             cp resources/icons/metaimgui.icns MetaImGUI.app/Contents/Resources/
-            echo "Icon added to app bundle"
+            echo "✓ Icon added to app bundle"
           fi
         fi
-
-        # Create Info.plist
-        cat > MetaImGUI.app/Contents/Info.plist << 'EOF'
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>CFBundleExecutable</key>
-            <string>MetaImGUI</string>
-            <key>CFBundleIdentifier</key>
-            <string>com.metaimgui.app</string>
-            <key>CFBundleName</key>
-            <string>MetaImGUI</string>
-            <key>CFBundleDisplayName</key>
-            <string>MetaImGUI</string>
-            <key>CFBundleVersion</key>
-            <string>${{ needs.get-version.outputs.version }}</string>
-            <key>CFBundleShortVersionString</key>
-            <string>${{ needs.get-version.outputs.version }}</string>
-            <key>CFBundlePackageType</key>
-            <string>APPL</string>
-            <key>CFBundleIconFile</key>
-            <string>metaimgui.icns</string>
-            <key>NSHighResolutionCapable</key>
-            <true/>
-            <key>LSMinimumSystemVersion</key>
-            <string>11.0</string>
-        </dict>
-        </plist>
-        EOF
 
     - name: Bundle Dynamic Libraries
       run: |
