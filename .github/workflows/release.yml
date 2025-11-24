@@ -371,13 +371,14 @@ jobs:
     - name: Install dependencies
       run: |
         brew install cmake glfw llvm
-        # LLVM is required for C++20 jthread/stop_token support (not in system Clang)
-        # Configure to use system C++ runtime for compatibility across macOS versions
         LLVM_PATH=$(brew --prefix llvm)
-        echo "LLVM_PATH=$LLVM_PATH" >> $GITHUB_ENV
+        SDK_PATH=$(xcrun --show-sdk-path)
         echo "$LLVM_PATH/bin" >> $GITHUB_PATH
         echo "CC=$LLVM_PATH/bin/clang" >> $GITHUB_ENV
         echo "CXX=$LLVM_PATH/bin/clang++" >> $GITHUB_ENV
+        echo "SDKROOT=$SDK_PATH" >> $GITHUB_ENV
+        echo "CPPFLAGS=-isysroot $SDK_PATH" >> $GITHUB_ENV
+        echo "LDFLAGS=-L$LLVM_PATH/lib/c++ -Wl,-rpath,$LLVM_PATH/lib/c++" >> $GITHUB_ENV
 
     - name: Cache dependencies
       uses: actions/cache@v4
@@ -407,12 +408,8 @@ jobs:
 
     - name: Build
       run: |
-        # Force use of system C++ library (not LLVM's bundled one)
-        # This ensures compatibility with older macOS versions
         cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
-          -DCMAKE_CXX_FLAGS="-stdlib=libc++ -mmacosx-version-min=11.0" \
-          -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libc++ -mmacosx-version-min=11.0"
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
         cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
 
     - name: Import Code-Signing Certificates
