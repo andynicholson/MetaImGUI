@@ -233,14 +233,25 @@ endif()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Install targets
-install(TARGETS MetaImGUI
-    RUNTIME DESTINATION bin
-)
-
-# Install resources
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources
-    DESTINATION share/MetaImGUI
-)
+if(APPLE)
+    # macOS bundle installation
+    install(TARGETS MetaImGUI
+        BUNDLE DESTINATION .
+        RUNTIME DESTINATION bin
+    )
+    # Resources are already in the bundle, but install for system-wide installs too
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources
+        DESTINATION MetaImGUI.app/Contents/Resources
+    )
+else()
+    install(TARGETS MetaImGUI
+        RUNTIME DESTINATION bin
+    )
+    # Install resources
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources
+        DESTINATION share/MetaImGUI
+    )
+endif()
 
 # Group source files
 source_group("Source Files" FILES
