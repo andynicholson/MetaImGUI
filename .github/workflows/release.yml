@@ -473,6 +473,9 @@ jobs:
       run: |
         echo "Bundling dynamic libraries into app bundle..."
 
+        # Ensure Frameworks directory exists
+        mkdir -p MetaImGUI.app/Contents/Frameworks
+
         # Function to recursively copy and fix library dependencies
         bundle_library() {
           local lib_path="$1"
