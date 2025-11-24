@@ -510,6 +510,10 @@ jobs:
     - name: Bundle Dynamic Libraries
       run: |
         echo "Bundling dynamic libraries into app bundle..."
+        
+        # Get LLVM path for finding @rpath dependencies
+        LLVM_PATH=$(brew --prefix llvm)
+        echo "LLVM path: $LLVM_PATH"
 
         # Ensure Frameworks directory exists
         mkdir -p MetaImGUI.app/Contents/Frameworks
@@ -539,8 +543,25 @@ jobs:
             "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
 
           # Get and fix dependencies of this library
-          otool -L "MetaImGUI.app/Contents/Frameworks/$lib_name" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r dep; do
-            if [[ ! "$dep" == /System/* ]] && [[ ! "$dep" == /usr/lib/* ]]; then
+          # Process both absolute paths and @rpath references
+          otool -L "MetaImGUI.app/Contents/Frameworks/$lib_name" | grep -v ":" | awk '{print $1}' | while read -r dep; do
+            # Skip the library's own name
+            if [[ "$dep" == *"$lib_name" ]]; then
+              continue
+            fi
+            
+            # Handle @rpath references (e.g., @rpath/libc++abi.1.dylib)
+            if [[ "$dep" == @rpath/* ]]; then
+              local dep_name=$(basename "$dep")
+              # Try to find it in LLVM path
+              local actual_path="$LLVM_PATH/lib/c++/$dep_name"
+              if [ -f "$actual_path" ]; then
+                bundle_library "$actual_path"
+                install_name_tool -change "$dep" "@executable_path/../Frameworks/$dep_name" \
+                  "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
+              fi
+            # Handle absolute paths
+            elif [[ ! "$dep" == /System/* ]] && [[ ! "$dep" == /usr/lib/* ]] && [[ ! "$dep" == @executable_path/* ]]; then
               local dep_name=$(basename "$dep")
               if [ -f "$dep" ]; then
                 bundle_library "$dep"
