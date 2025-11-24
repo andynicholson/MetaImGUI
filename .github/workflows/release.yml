@@ -517,10 +517,11 @@ jobs:
         
         # List ALL LLVM C++ runtime libraries that we need to bundle
         # These form a dependency chain: libc++ -> libc++abi -> libunwind
+        # Note: Homebrew LLVM puts libunwind in lib/ not lib/c++/
         LLVM_LIBS=(
           "$LLVM_PATH/lib/c++/libc++.1.dylib"
           "$LLVM_PATH/lib/c++/libc++abi.1.dylib"
-          "$LLVM_PATH/lib/c++/libunwind.1.dylib"
+          "$LLVM_PATH/lib/libunwind.1.dylib"
         )
         
         echo "LLVM C++ libraries to bundle:"
@@ -560,11 +561,32 @@ jobs:
             # Get dependencies and fix @rpath references
             otool -L "MetaImGUI.app/Contents/Frameworks/$lib_name" | grep "@rpath" | awk '{print $1}' | while read -r dep; do
               dep_name=$(basename "$dep")
-              # Change @rpath to @executable_path for bundled LLVM libs
+              
+              # First check if we already bundled it
               if [ -f "MetaImGUI.app/Contents/Frameworks/$dep_name" ]; then
-                echo "    $lib_name: @rpath/$dep_name -> @executable_path/../Frameworks/$dep_name"
+                echo "    $lib_name: $dep -> @executable_path/../Frameworks/$dep_name"
                 install_name_tool -change "$dep" "@executable_path/../Frameworks/$dep_name" \
                   "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
+              else
+                # Try to find and bundle it from LLVM
+                # Check lib/c++/ first, then lib/
+                if [ -f "$LLVM_PATH/lib/c++/$dep_name" ]; then
+                  echo "    Found $dep_name in lib/c++, bundling..."
+                  cp "$LLVM_PATH/lib/c++/$dep_name" MetaImGUI.app/Contents/Frameworks/
+                  chmod +w "MetaImGUI.app/Contents/Frameworks/$dep_name"
+                  install_name_tool -id "@executable_path/../Frameworks/$dep_name" \
+                    "MetaImGUI.app/Contents/Frameworks/$dep_name" || true
+                  install_name_tool -change "$dep" "@executable_path/../Frameworks/$dep_name" \
+                    "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
+                elif [ -f "$LLVM_PATH/lib/$dep_name" ]; then
+                  echo "    Found $dep_name in lib/, bundling..."
+                  cp "$LLVM_PATH/lib/$dep_name" MetaImGUI.app/Contents/Frameworks/
+                  chmod +w "MetaImGUI.app/Contents/Frameworks/$dep_name"
+                  install_name_tool -id "@executable_path/../Frameworks/$dep_name" \
+                    "MetaImGUI.app/Contents/Frameworks/$dep_name" || true
+                  install_name_tool -change "$dep" "@executable_path/../Frameworks/$dep_name" \
+                    "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
+                fi
               fi
             done
           fi
