@@ -94,14 +94,9 @@ Section "Core Files (required)" SecCore
 
   ; VC++ Runtime DLLs (if not already installed system-wide)
   ; These might be at vcpkg\installed\x64-windows\bin or in System32
-  IfFileExists "C:\vcpkg\installed\x64-windows\bin\msvcp140.dll" 0 +2
-    File "C:\vcpkg\installed\x64-windows\bin\msvcp140.dll"
-
-  IfFileExists "C:\vcpkg\installed\x64-windows\bin\vcruntime140.dll" 0 +2
-    File "C:\vcpkg\installed\x64-windows\bin\vcruntime140.dll"
-
-  IfFileExists "C:\vcpkg\installed\x64-windows\bin\vcruntime140_1.dll" 0 +2
-    File "C:\vcpkg\installed\x64-windows\bin\vcruntime140_1.dll"
+  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\msvcp140.dll"
+  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\vcruntime140.dll"
+  File /nonfatal "C:\vcpkg\installed\x64-windows\bin\vcruntime140_1.dll"
 
   ; Add resources if they exist
   IfFileExists "..\resources\*.*" 0 +3
