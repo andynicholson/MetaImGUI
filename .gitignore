@@ -96,3 +96,9 @@ Desktop.ini
 # Temporary files
 *.tmp
 *.temp
+
+# Crash reports and diagnostic files
+crash
+*.crash
+*.dmp
+*.stackdump

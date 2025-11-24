@@ -370,15 +370,9 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install cmake glfw llvm
-        LLVM_PATH=$(brew --prefix llvm)
-        SDK_PATH=$(xcrun --show-sdk-path)
-        echo "$LLVM_PATH/bin" >> $GITHUB_PATH
-        echo "CC=$LLVM_PATH/bin/clang" >> $GITHUB_ENV
-        echo "CXX=$LLVM_PATH/bin/clang++" >> $GITHUB_ENV
-        echo "SDKROOT=$SDK_PATH" >> $GITHUB_ENV
-        echo "CPPFLAGS=-isysroot $SDK_PATH" >> $GITHUB_ENV
-        echo "LDFLAGS=-L$LLVM_PATH/lib/c++ -Wl,-rpath,$LLVM_PATH/lib/c++" >> $GITHUB_ENV
+        brew install cmake glfw
+        # Use system AppleClang for better compatibility with deployment target
+        # System compiler respects CMAKE_OSX_DEPLOYMENT_TARGET properly
 
     - name: Cache dependencies
       uses: actions/cache@v4
@@ -481,8 +475,9 @@ jobs:
           local lib_path="$1"
           local lib_name=$(basename "$lib_path")
 
-          # Skip system libraries
-          if [[ "$lib_path" == /System/* ]] || [[ "$lib_path" == /usr/lib/lib* ]]; then
+          # Skip system libraries - these must NOT be bundled
+          # System libraries are provided by macOS and work across versions
+          if [[ "$lib_path" == /System/* ]] || [[ "$lib_path" == /usr/lib/* ]]; then
             return
           fi
 
@@ -501,7 +496,7 @@ jobs:
 
           # Get and fix dependencies of this library
           otool -L "MetaImGUI.app/Contents/Frameworks/$lib_name" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r dep; do
-            if [[ ! "$dep" == /System/* ]] && [[ ! "$dep" == /usr/lib/lib* ]]; then
+            if [[ ! "$dep" == /System/* ]] && [[ ! "$dep" == /usr/lib/* ]]; then
               local dep_name=$(basename "$dep")
               if [ -f "$dep" ]; then
                 bundle_library "$dep"
@@ -516,12 +511,12 @@ jobs:
         echo "Analyzing executable dependencies..."
         otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI
 
-        # Bundle each non-system library
+        # Bundle each non-system library (e.g., GLFW from Homebrew)
+        # System libraries (libc++, libobjc, etc.) should NOT be bundled
         otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
-          # Skip system libraries
-          if [[ "$lib" == /System/* ]] || [[ "$lib" == /usr/lib/libSystem* ]] || \
-             [[ "$lib" == /usr/lib/libc++* ]] || [[ "$lib" == /usr/lib/libobjc* ]] || \
-             [[ "$lib" == /usr/lib/libresolv* ]]; then
+          # Skip system libraries - they're guaranteed to be on all macOS systems
+          if [[ "$lib" == /System/* ]] || [[ "$lib" == /usr/lib/* ]]; then
+            echo "Skipping system library: $lib"
             continue
           fi
 
@@ -535,16 +530,22 @@ jobs:
           fi
         done
 
+        echo ""
         echo "Bundled libraries:"
-        ls -lh MetaImGUI.app/Contents/Frameworks/
+        if [ -d "MetaImGUI.app/Contents/Frameworks" ] && [ "$(ls -A MetaImGUI.app/Contents/Frameworks)" ]; then
+          ls -lh MetaImGUI.app/Contents/Frameworks/
+        else
+          echo "(none - using system libraries only)"
+        fi
 
+        echo ""
         echo "Final executable dependencies:"
         otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI
 
     - name: Code Sign App Bundle
       run: |
         # Note: entitlements.plist already exists in repo
-        
+
         # Check if we have a Developer ID certificate
         SIGN_IDENTITY="Developer ID Application"
         if ! security find-identity -v -p codesigning | grep -q "Developer ID Application"; then
