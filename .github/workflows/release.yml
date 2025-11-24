@@ -326,6 +326,17 @@ jobs:
         fi
       shell: bash
 
+    - name: Verify vcpkg DLLs
+      run: |
+        echo "Checking vcpkg DLLs..."
+        ls -la C:/vcpkg/installed/x64-windows/bin/*.dll | head -30
+        echo ""
+        echo "Looking for required DLLs:"
+        ls -la C:/vcpkg/installed/x64-windows/bin/glfw3.dll || echo "❌ glfw3.dll NOT FOUND"
+        ls -la C:/vcpkg/installed/x64-windows/bin/libcurl.dll || echo "❌ libcurl.dll NOT FOUND"
+        ls -la C:/vcpkg/installed/x64-windows/bin/zlib1.dll || echo "❌ zlib1.dll NOT FOUND"
+      shell: bash
+
     - name: Build and create packages
       run: |
         # Use the packaging script (creates both NSIS installer and portable ZIP)
