@@ -209,10 +209,13 @@ jobs:
         if [ -f "MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage" ]; then
           echo "✓ AppImage created successfully"
           ./MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage --appimage-extract > /dev/null
-          if [ -f "squashfs-root/usr/share/MetaImGUI/translations/translations.json" ]; then
+          if [ -f "squashfs-root/usr/share/MetaImGUI/resources/translations/translations.json" ]; then
             echo "✓ VERIFIED: translations.json is present in AppImage"
           else
             echo "❌ ERROR: translations.json NOT found in AppImage!"
+            echo "Expected: squashfs-root/usr/share/MetaImGUI/resources/translations/translations.json"
+            echo "Contents of usr/share/MetaImGUI:"
+            ls -la squashfs-root/usr/share/MetaImGUI/
             exit 1
           fi
           rm -rf squashfs-root
