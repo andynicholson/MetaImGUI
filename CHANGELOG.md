@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [1.0.9] - 2025-11-24
+
+### Fixed
+-  use ad-hoc signing for macOS when Developer ID certificate unavailable
+-  add missing 'resources/' directory in translation paths for AppImage and system installs
+
 ## [1.0.8] - 2025-11-24
 
 ### Fixed
