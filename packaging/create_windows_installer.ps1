@@ -122,10 +122,14 @@ Write-Info "  ✓ zlib (statically linked)"
 Write-Info "  ✓ MSVC runtime (statically linked)"
 Write-Info "No DLL files needed!"
 
-# Copy resources if they exist
-if (Test-Path "resources") {
-    Copy-Item "resources" $portablePath -Recurse
+# Copy resources (REQUIRED - app won't work without translations)
+if (-not (Test-Path "resources")) {
+    Write-Error "resources folder not found! App requires resources/translations/translations.json"
+    exit 1
 }
+Write-Info "Copying resources folder..."
+Copy-Item "resources" $portablePath -Recurse
+Write-Info "  ✓ resources/translations/translations.json"
 
 # Copy README
 if (Test-Path "README.md") {

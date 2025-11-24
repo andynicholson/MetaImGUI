@@ -79,10 +79,9 @@ Section "Core Files (required)" SecCore
   ; All dependencies (glfw3, libcurl, zlib) and MSVC runtime are 
   ; statically linked into the executable. No DLL files needed!
 
-  ; Add resources if they exist
-  IfFileExists "..\resources\*.*" 0 +3
-    CreateDirectory "$INSTDIR\resources"
-    File /r "..\resources\*.*"
+  ; Add resources (REQUIRED - app won't work without translations)
+  CreateDirectory "$INSTDIR\resources"
+  File /r "..\resources\*.*"
 
   ; Write registry keys
   WriteRegStr HKLM "Software\${PRODUCT_NAME}" "Install_Dir" "$INSTDIR"
