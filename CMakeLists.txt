@@ -30,6 +30,14 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Set macOS deployment target for backward compatibility
+if(APPLE)
+    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment version" FORCE)
+        message(STATUS "Setting macOS deployment target to 11.0 for backward compatibility")
+    endif()
+endif()
+
 # Platform-specific compiler settings
 if(MSVC)
     add_compile_options(/W4 /WX)

@@ -99,9 +99,16 @@ jobs:
     - name: Configure CMake (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
-        cmake -B build \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_INSTALL_PREFIX=install
+        if [ "${{ runner.os }}" == "macOS" ]; then
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_INSTALL_PREFIX=install \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+        else
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_INSTALL_PREFIX=install
+        fi
 
     - name: Configure CMake (Windows)
       if: runner.os == 'Windows'
