@@ -514,17 +514,69 @@ jobs:
         # Get LLVM path for finding @rpath dependencies
         LLVM_PATH=$(brew --prefix llvm)
         echo "LLVM path: $LLVM_PATH"
+        
+        # List ALL LLVM C++ runtime libraries that we need to bundle
+        # These form a dependency chain: libc++ -> libc++abi -> libunwind
+        LLVM_LIBS=(
+          "$LLVM_PATH/lib/c++/libc++.1.dylib"
+          "$LLVM_PATH/lib/c++/libc++abi.1.dylib"
+          "$LLVM_PATH/lib/c++/libunwind.1.dylib"
+        )
+        
+        echo "LLVM C++ libraries to bundle:"
+        for lib in "${LLVM_LIBS[@]}"; do
+          if [ -f "$lib" ]; then
+            echo "  ✓ $(basename $lib)"
+          else
+            echo "  ✗ $(basename $lib) NOT FOUND at $lib"
+          fi
+        done
+        echo ""
 
         # Ensure Frameworks directory exists
         mkdir -p MetaImGUI.app/Contents/Frameworks
 
-        # Function to recursively copy and fix library dependencies
+        # FIRST: Bundle all LLVM C++ libraries and fix their inter-dependencies
+        # This must be done BEFORE bundling other libraries that depend on them
+        echo "Step 1: Bundling LLVM C++ runtime libraries..."
+        for llvm_lib in "${LLVM_LIBS[@]}"; do
+          if [ -f "$llvm_lib" ]; then
+            lib_name=$(basename "$llvm_lib")
+            echo "  Copying $lib_name"
+            cp "$llvm_lib" MetaImGUI.app/Contents/Frameworks/
+            chmod +w "MetaImGUI.app/Contents/Frameworks/$lib_name"
+            
+            # Set the library's install name to use @executable_path
+            install_name_tool -id "@executable_path/../Frameworks/$lib_name" \
+              "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
+          fi
+        done
+        
+        # Fix @rpath dependencies WITHIN the LLVM libraries
+        echo "  Fixing LLVM library inter-dependencies..."
+        for llvm_lib in "${LLVM_LIBS[@]}"; do
+          lib_name=$(basename "$llvm_lib")
+          if [ -f "MetaImGUI.app/Contents/Frameworks/$lib_name" ]; then
+            # Get dependencies and fix @rpath references
+            otool -L "MetaImGUI.app/Contents/Frameworks/$lib_name" | grep "@rpath" | awk '{print $1}' | while read -r dep; do
+              dep_name=$(basename "$dep")
+              # Change @rpath to @executable_path for bundled LLVM libs
+              if [ -f "MetaImGUI.app/Contents/Frameworks/$dep_name" ]; then
+                echo "    $lib_name: @rpath/$dep_name -> @executable_path/../Frameworks/$dep_name"
+                install_name_tool -change "$dep" "@executable_path/../Frameworks/$dep_name" \
+                  "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
+              fi
+            done
+          fi
+        done
+        echo ""
+
+        # Function to bundle additional libraries (like glfw)
         bundle_library() {
           local lib_path="$1"
           local lib_name=$(basename "$lib_path")
 
-          # Skip system libraries - these must NOT be bundled
-          # System libraries are provided by macOS and work across versions
+          # Skip system libraries
           if [[ "$lib_path" == /System/* ]] || [[ "$lib_path" == /usr/lib/* ]]; then
             return
           fi
@@ -541,59 +593,39 @@ jobs:
           # Fix the library's install name
           install_name_tool -id "@executable_path/../Frameworks/$lib_name" \
             "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
-
-          # Get and fix dependencies of this library
-          # Process both absolute paths and @rpath references
-          otool -L "MetaImGUI.app/Contents/Frameworks/$lib_name" | grep -v ":" | awk '{print $1}' | while read -r dep; do
-            # Skip the library's own name
-            if [[ "$dep" == *"$lib_name" ]]; then
-              continue
-            fi
-            
-            # Handle @rpath references (e.g., @rpath/libc++abi.1.dylib)
-            if [[ "$dep" == @rpath/* ]]; then
-              local dep_name=$(basename "$dep")
-              # Try to find it in LLVM path
-              local actual_path="$LLVM_PATH/lib/c++/$dep_name"
-              if [ -f "$actual_path" ]; then
-                bundle_library "$actual_path"
-                install_name_tool -change "$dep" "@executable_path/../Frameworks/$dep_name" \
-                  "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
-              fi
-            # Handle absolute paths
-            elif [[ ! "$dep" == /System/* ]] && [[ ! "$dep" == /usr/lib/* ]] && [[ ! "$dep" == @executable_path/* ]]; then
-              local dep_name=$(basename "$dep")
-              if [ -f "$dep" ]; then
-                bundle_library "$dep"
-                install_name_tool -change "$dep" "@executable_path/../Frameworks/$dep_name" \
-                  "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
-              fi
-            fi
-          done
         }
 
         # Get all dependencies of the executable
         echo "Analyzing executable dependencies..."
         otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI
 
-        # Bundle each non-system library (e.g., GLFW from Homebrew)
-        # System libraries (libc++, libobjc, etc.) should NOT be bundled
-        otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
-          # Skip system libraries - they're guaranteed to be on all macOS systems
-          if [[ "$lib" == /System/* ]] || [[ "$lib" == /usr/lib/* ]]; then
-            echo "Skipping system library: $lib"
+        echo "Step 2: Processing executable dependencies..."
+        # Get all library dependencies (including @rpath references)
+        otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI | grep -v ":" | awk '{print $1}' | while read -r lib; do
+          # Skip the executable itself
+          if [[ "$lib" == *"MetaImGUI"* ]] && [[ "$lib" != *".dylib" ]]; then
             continue
           fi
-
-          if [ -f "$lib" ]; then
+          
+          # Handle @rpath references (LLVM libraries already bundled in Step 1)
+          if [[ "$lib" == @rpath/* ]]; then
             lib_name=$(basename "$lib")
-            bundle_library "$lib"
-
-            # Update the executable to look in Frameworks directory
+            echo "  Fixing @rpath: $lib -> @executable_path/../Frameworks/$lib_name"
             install_name_tool -change "$lib" "@executable_path/../Frameworks/$lib_name" \
               MetaImGUI.app/Contents/MacOS/MetaImGUI || true
+              
+          # Handle absolute paths (e.g., /opt/homebrew/lib/libglfw.dylib)
+          elif [[ ! "$lib" == /System/* ]] && [[ ! "$lib" == /usr/lib/* ]] && [[ ! "$lib" == @executable_path/* ]]; then
+            if [ -f "$lib" ]; then
+              lib_name=$(basename "$lib")
+              bundle_library "$lib"
+              echo "  Bundling and fixing: $lib -> @executable_path/../Frameworks/$lib_name"
+              install_name_tool -change "$lib" "@executable_path/../Frameworks/$lib_name" \
+                MetaImGUI.app/Contents/MacOS/MetaImGUI || true
+            fi
           fi
         done
+        echo ""
 
         echo ""
         echo "Bundled libraries:"
