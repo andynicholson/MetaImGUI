@@ -284,9 +284,11 @@ jobs:
       uses: actions/cache@v4
       with:
         path: C:/vcpkg/installed
-        key: ${{ runner.os }}-vcpkg-glfw3-curl
+        # Include version suffix to force cache invalidation when needed
+        # Increment v2 -> v3 if DLLs are missing again
+        key: ${{ runner.os }}-vcpkg-glfw3-curl-v2
         restore-keys: |
-          ${{ runner.os }}-vcpkg-
+          ${{ runner.os }}-vcpkg-glfw3-curl-
 
     - name: Cache dependencies
       uses: actions/cache@v4
@@ -302,6 +304,26 @@ jobs:
       run: |
         choco install nsis -y
       shell: pwsh
+
+    - name: Validate vcpkg cache (if restored)
+      run: |
+        if [ -d "C:/vcpkg/installed/x64-windows/bin" ]; then
+          echo "📦 Cache was restored, validating required DLLs..."
+          MISSING=0
+          for DLL in glfw3.dll libcurl.dll zlib1.dll; do
+            if [ ! -f "C:/vcpkg/installed/x64-windows/bin/$DLL" ]; then
+              echo "❌ $DLL missing from cache - cache is invalid"
+              MISSING=1
+            fi
+          done
+          if [ $MISSING -eq 1 ]; then
+            echo "🔄 Clearing invalid cache..."
+            rm -rf C:/vcpkg/installed
+          else
+            echo "✅ Cache validated - all required DLLs present"
+          fi
+        fi
+      shell: bash
 
     - name: Install dependencies (vcpkg)
       run: |
