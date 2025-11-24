@@ -141,9 +141,41 @@ jobs:
         mkdir -p AppDir/usr/share/applications
         mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
         mkdir -p AppDir/usr/share/metainfo
+        mkdir -p AppDir/usr/share/MetaImGUI
 
         # Copy executable
         cp build/MetaImGUI AppDir/usr/bin/
+
+        # CRITICAL: Copy resources (including translations.json)
+        if [ -d "resources" ]; then
+          cp -r resources AppDir/usr/share/MetaImGUI/
+          echo "✓ Resources copied to AppDir (including translations)"
+        else
+          echo "⚠️  WARNING: resources directory not found!"
+          exit 1
+        fi
+
+        # Create custom AppRun script (sets METAIMGUI_APPDIR for resource path detection)
+        cat > AppDir/AppRun << 'APPRUNEOF'
+        #!/bin/bash
+        # Custom AppRun for MetaImGUI
+        # This sets up the environment so the app can find its resources
+
+        # Get the directory where the AppImage is mounted
+        APPDIR="$(dirname "$(readlink -f "$0")")"
+
+        # Set up resource paths
+        export METAIMGUI_APPDIR="$APPDIR"
+
+        # Change to a writable directory (user's home) for config files
+        cd "$HOME"
+
+        # Run the application
+        exec "$APPDIR/usr/bin/MetaImGUI" "$@"
+        APPRUNEOF
+
+        chmod +x AppDir/AppRun
+        echo "✓ Custom AppRun script created"
 
         # Create desktop entry
         cat > AppDir/usr/share/applications/metaimgui.desktop << 'EOF'
@@ -157,14 +189,34 @@ jobs:
         Terminal=false
         EOF
 
-        # Create a simple icon (you should replace this with a real icon)
-        touch AppDir/usr/share/icons/hicolor/256x256/apps/metaimgui.png
+        # Copy icon if it exists, otherwise create placeholder
+        if [ -f "resources/icons/metaimgui-256.png" ]; then
+          cp resources/icons/metaimgui-256.png AppDir/usr/share/icons/hicolor/256x256/apps/metaimgui.png
+          echo "✓ Application icon copied"
+        else
+          echo "⚠️  Icon not found, creating placeholder"
+          touch AppDir/usr/share/icons/hicolor/256x256/apps/metaimgui.png
+        fi
 
-        # Build AppImage
+        # Build AppImage (skip AppStream validation)
+        export NO_APPSTREAM=1
         ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
 
         # Rename to include version
         mv MetaImGUI-*.AppImage MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage || true
+
+        # Verify resources are in the AppImage
+        if [ -f "MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage" ]; then
+          echo "✓ AppImage created successfully"
+          ./MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage --appimage-extract > /dev/null
+          if [ -f "squashfs-root/usr/share/MetaImGUI/translations/translations.json" ]; then
+            echo "✓ VERIFIED: translations.json is present in AppImage"
+          else
+            echo "❌ ERROR: translations.json NOT found in AppImage!"
+            exit 1
+          fi
+          rm -rf squashfs-root
+        fi
 
     - name: Generate checksums
       run: |

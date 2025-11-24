@@ -72,7 +72,30 @@ cp "$BUILD_DIR/$PROJECT_NAME" "$APPDIR/usr/bin/"
 if [ -d "resources" ]; then
     mkdir -p "$APPDIR/usr/share/$PROJECT_NAME"
     cp -r resources/* "$APPDIR/usr/share/$PROJECT_NAME/"
+    print_info "Copied resources to usr/share/$PROJECT_NAME"
 fi
+
+# Create custom AppRun script
+cat > "$APPDIR/AppRun" << 'APPRUNEOF'
+#!/bin/bash
+# Custom AppRun for MetaImGUI
+# This sets up the environment so the app can find its resources
+
+# Get the directory where the AppImage is mounted
+APPDIR="$(dirname "$(readlink -f "$0")")"
+
+# Set up resource paths
+export METAIMGUI_APPDIR="$APPDIR"
+
+# Change to a writable directory (user's home) for config files
+cd "$HOME"
+
+# Run the application
+exec "$APPDIR/usr/bin/MetaImGUI" "$@"
+APPRUNEOF
+
+chmod +x "$APPDIR/AppRun"
+print_info "Created custom AppRun script"
 
 # Create desktop entry
 cat > "$APPDIR/usr/share/applications/${APP_NAME}.desktop" << EOF
@@ -120,6 +143,7 @@ fi
 # Build AppImage
 cd packaging
 export OUTPUT="${PROJECT_NAME}-${VERSION}-${ARCH}.AppImage"
+export NO_APPSTREAM=1  # Skip AppStream validation (metadata is minimal)
 ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage 2>/dev/null || true
 
 # Move to output directory

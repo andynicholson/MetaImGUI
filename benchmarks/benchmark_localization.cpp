@@ -7,8 +7,8 @@ using namespace MetaImGUI;
 
 // Benchmark simple translation lookup
 static void BM_LocalizationGet(benchmark::State& state) {
-    // Initialize with built-in translations
-    Localization::Instance().InitializeBuiltInTranslations();
+    // Load translations from JSON file
+    Localization::Instance().LoadTranslations("resources/translations/translations.json");
     Localization::Instance().SetLanguage("en");
 
     for (auto _ : state) {
@@ -19,7 +19,7 @@ BENCHMARK(BM_LocalizationGet);
 
 // Benchmark language switching
 static void BM_LocalizationSwitchLanguage(benchmark::State& state) {
-    Localization::Instance().InitializeBuiltInTranslations();
+    Localization::Instance().LoadTranslations("resources/translations/translations.json");
 
     bool toggle = false;
     for (auto _ : state) {
@@ -46,7 +46,7 @@ BENCHMARK(BM_LocalizationAdd);
 
 // Benchmark multiple lookups
 static void BM_LocalizationMultipleLookups(benchmark::State& state) {
-    Localization::Instance().InitializeBuiltInTranslations();
+    Localization::Instance().LoadTranslations("resources/translations/translations.json");
     Localization::Instance().SetLanguage("en");
 
     const std::vector<std::string> keys = {"menu.file", "menu.edit", "menu.view",
@@ -62,7 +62,7 @@ BENCHMARK(BM_LocalizationMultipleLookups);
 
 // Benchmark missing key lookup
 static void BM_LocalizationMissingKey(benchmark::State& state) {
-    Localization::Instance().InitializeBuiltInTranslations();
+    Localization::Instance().LoadTranslations("resources/translations/translations.json");
 
     for (auto _ : state) {
         benchmark::DoNotOptimize(Localization::Instance().Tr("nonexistent.key.that.does.not.exist"));

@@ -112,18 +112,44 @@ configure_file(
 )
 
 # Main executable
-add_executable(MetaImGUI
-    src/main.cpp
-    src/Application.cpp
-    src/WindowManager.cpp
-    src/UIRenderer.cpp
-    src/ThemeManager.cpp
-    src/UpdateChecker.cpp
-    src/ConfigManager.cpp
-    src/Logger.cpp
-    src/DialogManager.cpp
-    src/Localization.cpp
-)
+# On macOS, create an application bundle
+if(APPLE)
+    add_executable(MetaImGUI MACOSX_BUNDLE
+        src/main.cpp
+        src/Application.cpp
+        src/WindowManager.cpp
+        src/UIRenderer.cpp
+        src/ThemeManager.cpp
+        src/UpdateChecker.cpp
+        src/ConfigManager.cpp
+        src/Logger.cpp
+        src/DialogManager.cpp
+        src/Localization.cpp
+    )
+
+    # Set bundle properties
+    set_target_properties(MetaImGUI PROPERTIES
+        MACOSX_BUNDLE_BUNDLE_NAME "MetaImGUI"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.metaimgui.MetaImGUI"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_INFO_STRING "ImGui Application Template"
+        MACOSX_BUNDLE_COPYRIGHT "Copyright © 2025"
+    )
+else()
+    add_executable(MetaImGUI
+        src/main.cpp
+        src/Application.cpp
+        src/WindowManager.cpp
+        src/UIRenderer.cpp
+        src/ThemeManager.cpp
+        src/UpdateChecker.cpp
+        src/ConfigManager.cpp
+        src/Logger.cpp
+        src/DialogManager.cpp
+        src/Localization.cpp
+    )
+endif()
 
 target_include_directories(MetaImGUI PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -177,8 +203,18 @@ elseif(APPLE)
 endif()
 
 # Copy resources to build directory
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+if(APPLE)
+    # For macOS bundles, copy resources into the app bundle
+    set_target_properties(MetaImGUI PROPERTIES
+        RESOURCE "${CMAKE_CURRENT_SOURCE_DIR}/resources"
+    )
+    # Also copy to build dir for development
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources
+         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/MetaImGUI.app/Contents/Resources/)
+else()
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources
+         DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+endif()
 
 # Set output directory for Windows
 if(WIN32)

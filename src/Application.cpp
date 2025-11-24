@@ -12,6 +12,7 @@
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 
+#include <cstdlib> // for std::getenv
 #include <iostream>
 
 namespace MetaImGUI {
@@ -44,12 +45,53 @@ bool Application::Initialize() {
     }
 
     // Load translations and set language from config
-    if (!Localization::Instance().LoadTranslations("resources/translations/translations.json")) {
-        LOG_ERROR("Failed to load translations, using fallback keys");
+    // CRITICAL: translations.json MUST be present and valid
+    // Try multiple locations for translations file (for different package formats)
+    std::vector<std::string> translationPaths = {
+        "resources/translations/translations.json", // Development/local build
+    };
+
+    // Check if running from AppImage (METAIMGUI_APPDIR set by custom AppRun)
+    const char* appdir = std::getenv("METAIMGUI_APPDIR");
+    if (appdir) {
+        std::string appdir_path = std::string(appdir) + "/usr/share/MetaImGUI/translations/translations.json";
+        translationPaths.insert(translationPaths.begin(), appdir_path); // Try AppImage location first
     }
+
+#ifdef __APPLE__
+    // macOS bundle resources path
+    translationPaths.insert(translationPaths.begin() + 1,
+                            "../Resources/resources/translations/translations.json"); // Relative to Contents/MacOS/
+    translationPaths.push_back("MetaImGUI.app/Contents/Resources/resources/translations/translations.json");
+#endif
+
+    // Add system installation paths
+    translationPaths.push_back("../share/MetaImGUI/translations/translations.json");   // Installed (relative to bin)
+    translationPaths.push_back("/usr/share/MetaImGUI/translations/translations.json"); // System-wide install
+    translationPaths.push_back("/usr/local/share/MetaImGUI/translations/translations.json"); // Local install
+
+    bool translationsLoaded = false;
+    for (const auto& path : translationPaths) {
+        if (Localization::Instance().LoadTranslations(path)) {
+            translationsLoaded = true;
+            break;
+        }
+    }
+
+    if (!translationsLoaded) {
+        LOG_ERROR("========================================");
+        LOG_ERROR("CRITICAL: Failed to load translations!");
+        LOG_ERROR("UI will show translation keys instead of actual text");
+        LOG_ERROR("Tried the following locations:");
+        for (const auto& path : translationPaths) {
+            LOG_ERROR("  - {}", path);
+        }
+        LOG_ERROR("This is a PACKAGING ERROR - file is missing from bundle");
+        LOG_ERROR("========================================");
+    }
+
     std::string language = m_configManager->GetString("language").value_or("en");
     Localization::Instance().SetLanguage(language);
-    LOG_INFO("Language set to: {}", language);
 
     // Create and initialize window manager
     auto windowSize = m_configManager->GetWindowSize();

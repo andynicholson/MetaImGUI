@@ -1,1 +1,15 @@
-usr/bin/MetaImGUI
+#!/bin/bash
+# Custom AppRun for MetaImGUI
+# This sets up the environment so the app can find its resources
+
+# Get the directory where the AppImage is mounted
+APPDIR="$(dirname "$(readlink -f "$0")")"
+
+# Set up resource paths
+export METAIMGUI_APPDIR="$APPDIR"
+
+# Change to a writable directory (user's home) for config files
+cd "$HOME"
+
+# Run the application
+exec "$APPDIR/usr/bin/MetaImGUI" "$@"

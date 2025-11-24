@@ -11,6 +11,9 @@ namespace MetaImGUI {
  *
  * Provides translation services for UI strings using key-value pairs.
  * Supports multiple languages with fallback to English.
+ *
+ * IMPORTANT: All translations MUST come from resources/translations/translations.json
+ * DO NOT add built-in translations here. This is the single source of truth.
  */
 class Localization {
 public:
@@ -60,11 +63,6 @@ public:
      * @return true if successful
      */
     bool LoadTranslations(const std::string& filepath);
-
-    /**
-     * @brief Initialize with built-in translations
-     */
-    void InitializeBuiltInTranslations();
 
 private:
     Localization();
