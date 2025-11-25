@@ -1,17 +1,16 @@
 # MetaImGUI Setup Guide
 
-This guide will help you get started with MetaImGUI as a template for your own project.
+Setup instructions for using MetaImGUI as a template.
 
-## 🎯 What You're Getting
+## 🎯 What's Included
 
-MetaImGUI is a **production-ready template** with:
-- ✅ Cross-platform ImGui application base
-- ✅ Automated CI/CD for all platforms
-- ✅ Automated installers (AppImage, .deb, .msi, .dmg)
-- ✅ Built-in update notifications
+- ✅ Cross-platform ImGui application
+- ✅ CI/CD workflows
+- ✅ Installers (AppImage, .deb, NSIS, DMG)
+- ✅ Update notifications
 - ✅ Testing framework
 - ✅ Code quality tools
-- ✅ Professional packaging scripts
+- ✅ Packaging scripts
 
 ## 📋 Prerequisites
 
@@ -70,7 +69,7 @@ sudo dnf install -y \
 brew install cmake glfw
 ```
 
-## 🚀 Step-by-Step Setup
+## 🚀 Setup Steps
 
 ### Step 1: Clone the Template
 
@@ -118,9 +117,7 @@ The script will ask you for:
 .\setup_dependencies.bat
 ```
 
-This will download:
-- ImGui v1.90.4
-- Catch2 v3.4.0 (testing framework)
+Downloads ImGui v1.92.4, Catch2 v3.4.0, nlohmann/json v3.11.3
 
 ### Step 4: Build the Project
 
@@ -217,31 +214,8 @@ ctest --output-on-failure
 
 ## 💎 Code Quality
 
-### Format Code
-
 ```bash
-# Format all source files
 find src include -name "*.cpp" -o -name "*.h" | xargs clang-format -i
-
-# Or use VS Code (auto-format on save if configured)
-```
-
-### Pre-commit Hook
-
-The pre-commit hook is **automatically installed** by `setup_dependencies.sh`. It will:
-- Run `clang-format` on all staged C++ files before each commit
-- Ensure code style consistency
-- Prevent CI formatting failures
-
-If you need to reinstall it manually:
-```bash
-cp .pre-commit-hook.sh .git/hooks/pre-commit
-chmod +x .git/hooks/pre-commit
-```
-
-To skip the hook temporarily (not recommended):
-```bash
-git commit --no-verify
 ```
 
 ## 🛠️ Development Environment
@@ -318,13 +292,13 @@ export DISPLAY=:0
 
 ## 📚 Next Steps
 
-1. **Customize the UI**: Edit `src/Application.cpp`
-2. **Add your features**: Create new source files
-3. **Write tests**: Add files to `tests/` directory
-4. **Update documentation**: Edit README.md
-5. **Add a license**: Create LICENSE file
-6. **Set up GitHub**: Push and enable Actions
-7. **Create first release**: Tag v1.0.0
+1. Edit `src/Application.cpp`
+2. Add source files
+3. Write tests in `tests/`
+4. Update README.md
+5. Add LICENSE file
+6. Enable GitHub Actions
+7. Tag v1.0.0
 
 ## 🆘 Getting Help
 
@@ -333,31 +307,16 @@ export DISPLAY=:0
 - **CMake Documentation**: https://cmake.org/documentation/
 - **GitHub Actions**: https://docs.github.com/en/actions
 
-## ✅ Checklist for Production
+## ✅ Production Checklist
 
-Before releasing your application:
-
-- [ ] Run `init_template.sh` to customize
-- [ ] Update README.md with your project info
+- [ ] Run `init_template.sh`
+- [ ] Update README.md
 - [ ] Add LICENSE file
-- [ ] Replace placeholder icons
-- [ ] Configure UpdateChecker with your repo
-- [ ] Test on all target platforms
-- [ ] Write comprehensive tests
-- [ ] Update version numbers
-- [ ] Create GitHub repository
+- [ ] Replace icons
+- [ ] Configure UpdateChecker
+- [ ] Test on target platforms
+- [ ] Write tests
 - [ ] Enable GitHub Actions
-- [ ] Push initial release tag
-- [ ] Test installers on clean machines
-
-## 🎉 You're Ready!
-
-You now have a professional, production-ready ImGui application template with:
-- ✅ Multi-platform support
-- ✅ Automated builds and releases
-- ✅ Update notifications
-- ✅ Testing framework
-- ✅ Professional packaging
-
-**Start building your amazing application!** 🚀
+- [ ] Push release tag
+- [ ] Test installers
 

@@ -1,6 +1,6 @@
 # GitHub Actions Guide
 
-**Comprehensive Guide for Monitoring, Fixing, and Managing Workflows**
+Monitoring and managing workflows.
 
 ---
 
@@ -53,7 +53,7 @@
 
 ### Concurrency Control
 
-To prevent duplicate workflow runs and reduce CI credit consumption, add concurrency control to workflows in `.github/workflows/`. Place this configuration immediately after the `on:` section:
+Prevents duplicate workflow runs. Add to `.github/workflows/` files after the `on:` section:
 
 ```yaml
 # Prevent duplicate runs
@@ -87,16 +87,7 @@ jobs:
         run: ctest --test-dir build
 ```
 
-**Applicable workflow files:**
-- `ci.yml`
-- `coverage.yml`
-- `static-analysis.yml`
-- `sanitizers.yml`
-- `benchmarks.yml`
-- `codeql.yml`
-- `dependency-review.yml`
-- `release.yml`
-- `docs.yml`
+Applies to: `ci.yml`, `coverage.yml`, `static-analysis.yml`, `sanitizers.yml`, `benchmarks.yml`, `codeql.yml`, `dependency-review.yml`, `release.yml`, `docs.yml`
 
 ---
 
@@ -165,82 +156,46 @@ jobs:
 ## Troubleshooting
 
 ### Static Analysis Failures
-**Error:** `unknown key 'ExcludeHeaderFilterRegex'`
-
-**Solution:** The `ExcludeHeaderFilterRegex` key is not valid in `.clang-tidy` configuration. Remove this key from the configuration file.
+Remove `ExcludeHeaderFilterRegex` from `.clang-tidy` (invalid key).
 
 ### Coverage Failures
-**Error:** `unable to open .../external/catch2/...`
-
-**Solution:** Add the `--no-external` flag to the coverage workflow in `.github/workflows/coverage.yml` to exclude external dependencies from coverage analysis.
+Add `--no-external` flag to `coverage.yml` to exclude external dependencies.
 
 ### Benchmark Failures
-**Error:** `CMake Error at googlebenchmark-src/CMakeLists.txt`
-
-**Solution:** Use a stable version of Google Benchmark (e.g., v1.9.1) in `benchmarks/CMakeLists.txt` instead of the master branch.
+Use stable Google Benchmark version (v1.9.1) in `benchmarks/CMakeLists.txt`.
 
 ### Multiple Concurrent Workflows
-**Issue:** Multiple workflow instances run simultaneously, consuming excessive CI credits.
-
-**Solution:** Add concurrency controls to workflow files (see Concurrency Control section above).
+Add concurrency controls to workflow files.
 
 ### Excessive Dependabot Workflows
-**Issue:** Dependabot pull requests trigger numerous workflow runs.
-
-**Solution:**
-- Immediate: `./scripts/monitor_actions.sh cancel-pattern dependabot`
-- Long-term: Add concurrency controls to workflow files
+Run `./scripts/monitor_actions.sh cancel-pattern dependabot` or add concurrency controls.
 
 ---
 
 ## Common Workflows
 
 ### Managing Mass Workflow Runs
-When multiple workflows run simultaneously (e.g., from pull requests):
-
 ```bash
-# 1. Cancel all running workflows
 ./scripts/monitor_actions.sh cancel
-
-# 2. Clean up failed/cancelled runs
 ./scripts/monitor_actions.sh delete
-
-# 3. Add concurrency controls to prevent recurrence
-
-# 4. Monitor workflow status
 ./scripts/monitor_actions.sh watch
 ```
 
 ### Managing Dependabot Workflows
-When Dependabot creates pull requests that trigger multiple workflows:
-
 ```bash
-# Cancel Dependabot-specific runs
 ./scripts/monitor_actions.sh cancel-pattern dependabot
-
-# Delete stopped Dependabot runs
 ./scripts/monitor_actions.sh delete-pattern dependabot
-
-# View Dependabot-specific status
 ./scripts/monitor_actions.sh dependabot
 ```
 
 ### Cleaning Up Old Workflow History
-To maintain a clean workflow history, delete workflows from older commits while preserving runs from the latest commit:
-
 ```bash
-# Delete all workflows except those from the latest commit
 ./scripts/monitor_actions.sh delete-old
 ```
 
-This command is useful for:
-- Cleaning up after rebases or force pushes
-- Removing outdated workflow runs from old branches
-- Maintaining a clean workflow history focused on current work
+Useful after rebases or for removing outdated runs.
 
 ### Skipping Workflows
-To skip workflow execution for documentation or minor changes, include `[skip ci]` in the commit message:
-
 ```bash
 git commit -m "docs: update README [skip ci]"
 ```
@@ -249,73 +204,49 @@ git commit -m "docs: update README [skip ci]"
 
 ## Workflow Overview
 
-The project includes the following GitHub Actions workflows:
+GitHub Actions workflows:
 
-- **CI** (`ci.yml`): Builds and tests the codebase
-- **Coverage** (`coverage.yml`): Generates code coverage reports with percentage tracking
-- **Static Analysis** (`static-analysis.yml`): Runs clang-tidy checks
-- **Benchmarks** (`benchmarks.yml`): Executes performance benchmarks
-- **Sanitizers** (`sanitizers.yml`): Runs address and undefined behavior sanitizers
-- **CodeQL** (`codeql.yml`): Performs security analysis with alert tracking
-- **Dependency Review** (`dependency-review.yml`): Reviews dependency changes
-- **Release** (`release.yml`): Builds and publishes releases
-- **Docs** (`docs.yml`): Generates and deploys documentation
-
-The monitoring script provides specialized views for each workflow type, allowing focused investigation of specific build, test, security, or deployment issues.
+- `ci.yml`: Builds and tests
+- `coverage.yml`: Code coverage reports
+- `static-analysis.yml`: clang-tidy, cppcheck
+- `benchmarks.yml`: Performance benchmarks
+- `sanitizers.yml`: ASan, UBSan, TSan
+- `codeql.yml`: Security analysis
+- `dependency-review.yml`: Dependency scanning
+- `release.yml`: Release builds
+- `docs.yml`: Documentation generation
 
 ---
 
 ## Best Practices
 
 ### Monitoring
-
-1. Use `./scripts/monitor_actions.sh` or `./scripts/monitor_actions.sh status` for a comprehensive dashboard
-2. Run `./scripts/monitor_actions.sh watch` in a separate terminal for continuous monitoring
-3. Use workflow-specific commands (`ci`, `coverage`, `security`, etc.) to focus on particular areas
-4. Review error details with `./scripts/monitor_actions.sh logs [workflow]`
-5. View detailed run information with `./scripts/monitor_actions.sh view <run_id>`
+- `./scripts/monitor_actions.sh` - Dashboard
+- `./scripts/monitor_actions.sh watch` - Continuous monitoring
+- `./scripts/monitor_actions.sh <workflow>` - Specific workflow
+- `./scripts/monitor_actions.sh logs [workflow]` - Error details
 
 ### Workflow Management
-
-**View workflow status:**
-- `./scripts/monitor_actions.sh` - Complete dashboard
-- `./scripts/monitor_actions.sh watch [seconds]` - Real-time updates with custom refresh interval
-- `./scripts/monitor_actions.sh <workflow>` - Specific workflow (ci, coverage, codeql, release, etc.)
-
-**Cancel running workflows:**
-- `./scripts/monitor_actions.sh cancel` - All running/queued workflows (interactive confirmation)
-- `./scripts/monitor_actions.sh cancel-pattern <pattern>` - Workflows matching a pattern
-
-**Delete workflow history:**
-- `./scripts/monitor_actions.sh delete` - All stopped (failed/cancelled) workflows
-- `./scripts/monitor_actions.sh delete-pattern <pattern>` - Stopped workflows matching a pattern
-- `./scripts/monitor_actions.sh delete-old` - All workflows except those from the latest commit
-
-**Analyze workflow runs:**
-- `./scripts/monitor_actions.sh view <run_id>` - Detailed information for a specific run
-- `./scripts/monitor_actions.sh logs [workflow]` - Download and extract errors from logs
-- `./scripts/monitor_actions.sh list [workflow]` - List recent runs
+- `./scripts/monitor_actions.sh cancel` - Cancel running
+- `./scripts/monitor_actions.sh delete` - Delete stopped
+- `./scripts/monitor_actions.sh delete-old` - Clean old runs
+- `./scripts/monitor_actions.sh view <run_id>` - Run details
 
 ### Resource Optimization
-
-- Add `[skip ci]` to commit messages for documentation changes
-- Configure concurrency controls in workflow files to prevent duplicate runs
-- Use path filters to limit workflow triggers to relevant file changes
-- Regularly clean up old workflow runs with `delete-old` after rebases or major refactors
-- Use pattern-based cancellation/deletion for bulk management of specific workflow types
+- Use `[skip ci]` for doc changes
+- Add concurrency controls
+- Clean old runs with `delete-old`
+- Use pattern-based operations for bulk management
 
 ---
 
-## Requirements and Setup
+## Requirements
 
-### Dependencies
-
-The monitoring script requires the following tools:
-
-- **gh** (GitHub CLI) - Required for interacting with GitHub Actions
-- **jq** - Required for JSON processing
-- **git** - Required for repository detection
-- Standard Unix tools (grep, sed, awk, xargs)
+Monitoring script requires:
+- GitHub CLI (`gh`)
+- `jq`
+- `git`
+- Standard Unix tools
 
 ### Installation
 
@@ -331,39 +262,29 @@ brew install gh jq
 ```
 
 ### Authentication
-
-After installing the GitHub CLI, authenticate with:
-
 ```bash
 gh auth login
 ```
 
-### First Run
-
-On first run, the script automatically detects the repository from the git remote configuration and stores this information in `~/.metaimgui_monitor_config` for subsequent runs.
-
 ### Log Files
-
-The script stores log files in the following locations:
-
 - Workflow logs: `./workflow_logs/`
-- Error extracts: `./workflow_logs/run_<id>_errors.txt`
-- Configuration: `~/.metaimgui_monitor_config`
-- Cache directory: `~/.cache/metaimgui_monitor`
+- Errors: `./workflow_logs/run_<id>_errors.txt`
+- Config: `~/.metaimgui_monitor_config`
+- Cache: `~/.cache/metaimgui_monitor`
 
 ---
 
 ## Script Features
 
-- **Comprehensive monitoring**: Tracks all workflow types (CI, coverage, security, etc.)
-- **Real-time updates**: Watch mode with configurable refresh intervals
-- **Error extraction**: Automatic extraction and highlighting of errors from failed runs
-- **Coverage tracking**: Extracts and displays code coverage percentages
-- **Security alerts**: Displays CodeQL and Dependabot alerts with severity levels
-- **Interactive management**: Confirms before canceling or deleting workflows
-- **Batch operations**: Parallel deletion of workflows for improved performance
-- **Pattern matching**: Filter workflows by name or pattern for targeted operations
-- **Commit-aware cleanup**: Delete old workflows while preserving runs from latest commit
+- Tracks all workflow types
+- Real-time watch mode
+- Error extraction from logs
+- Coverage tracking
+- Security alerts (CodeQL, Dependabot)
+- Interactive confirmations
+- Batch operations
+- Pattern matching
+- Commit-aware cleanup
 
 ---
 

@@ -9,48 +9,38 @@
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
 [![ImGui](https://img.shields.io/badge/ImGui-1.92.4-orange)](https://github.com/ocornut/imgui)
 
-A template project for creating ImGui-based desktop applications with a modern C++20 codebase and cross-platform build system. Designed for efficient development in AI-assisted editors like Cursor.
+A C++20 template for ImGui desktop applications. Includes build system, CI/CD, and basic application structure.
 
 ## Overview
 
-MetaImGUI is a minimal template that provides the essential structure for building ImGui-based desktop applications. It includes complete build infrastructure, dependency management, and CI/CD automation. The project is structured to work well with AI-assisted development tools, providing clear patterns and organization that AI assistants can understand and extend.
+MetaImGUI provides the structure for building ImGui desktop applications. Includes build infrastructure, dependency management, and CI/CD automation.
 
 ## Features
 
 ### Core Application
-- 🚀 **Modern C++20** codebase with proper error handling
-- 🔧 **Cross-platform build system** using CMake
-- 🎨 **ImGui v1.92.4** integration with GLFW and OpenGL 3.3
-- 🏗️ **Clean architecture** with separated concerns
-- 🖼️ **Basic UI structure** with menu bar and about dialog
-- ⚙️ **Settings persistence** - JSON-based configuration management (window size, preferences)
-- 📝 **Logging system** - Thread-safe multi-level logging (console + file output)
-- 💬 **Dialog system** - Reusable dialogs (message boxes, input, progress, lists)
-- 🌍 **Localization** - Multi-language support (English, Spanish, French, German)
+- 🚀 C++20 codebase
+- 🔧 CMake build system for Linux, Windows, macOS
+- 🎨 ImGui v1.92.4 with GLFW and OpenGL 3.3
+- 🖼️ Menu bar and about dialog
+- ⚙️ JSON configuration (window size, language preference)
+- 📝 Thread-safe logging (console and file)
+- 💬 Dialog system (message boxes, confirmation, input, progress)
+- 🌍 Localization (English, Spanish, French, German)
 
-### Infrastructure & Tooling
-- ⚡ **Automated CI/CD** - Cross-platform builds (Linux, Windows, macOS) on every commit
-- 📦 **Automated releases** - Tag-based release generation with platform-specific installers
-- 🔔 **Update notifications** - Built-in update checker for end users
-- 🏷️ **Git-based versioning** - Version numbers extracted from git tags
-- 🎯 **Template initialization** - Script to customize project name and namespace
-- ✅ **Testing framework** - Catch2 integration with sample tests
-- 🔍 **Code quality tools** - clang-format, clang-tidy, and EditorConfig configured
-- 🧪 **Code coverage** - Automated test coverage tracking with Codecov integration (24%+)
-- 🛡️ **Memory safety** - Sanitizers (ASan with leak detection, UBSan, TSan) run on every commit
-- 🔒 **Security analysis** - CodeQL security scanning (scheduled/on-demand)
-- 📊 **Performance benchmarks** - Google Benchmark integration (scheduled/on-demand)
-- 📋 **Professional packaging** - AppImage, .deb, NSIS installer, and DMG support
-- 🤖 **Editor integration** - Pre-configured for VS Code and AI-assisted editors
-- 🚀 **Release automation** - Interactive release preparation with automated changelog generation
-
-### Designed for AI-Assisted Development
-The codebase follows clear patterns and conventions that work well with AI coding assistants:
-- 📐 Consistent naming conventions and project structure
-- 📖 Well-documented code with clear separation of concerns
-- 🎓 Standard C++ patterns that AI models recognize
-- 🛠️ Complete build system that AI can modify confidently
-- 📁 Straightforward file organization
+### Build & Infrastructure
+- ⚡ CI/CD workflows (builds on every push)
+- 📦 Automated releases (create tag, get installers)
+- 🔔 Update checker (GitHub API)
+- 🏷️ Git-based versioning
+- 🎯 Init script (renames project, updates namespaces)
+- ✅ Catch2 tests
+- 🧪 Code coverage tracking (Codecov)
+- 🛡️ Sanitizers (AddressSanitizer, UndefinedBehaviorSanitizer, ThreadSanitizer)
+- 🔍 Static analysis (clang-tidy, cppcheck)
+- 🔒 Security scanning (CodeQL)
+- 📊 Performance benchmarks (Google Benchmark)
+- 📋 Packaging (AppImage, .deb, NSIS installer, DMG)
+- 🤖 VS Code configuration
 
 > **See [META_FEATURES.md](META_FEATURES.md) for detailed documentation of all features.**
 
@@ -308,53 +298,51 @@ The script automatically updates all project files, namespaces, and configuratio
 
 ### Architecture Overview
 
-The template uses a modular architecture:
+Modular structure:
 
-- **Application** - Main application lifecycle and coordination
-- **WindowManager** - Window creation, event handling, and lifecycle
-- **ThemeManager** - UI theming and styling (multiple built-in themes)
-- **UIRenderer** - Core UI rendering logic and layout
-- **UpdateChecker** - Automatic update notifications from GitHub releases
-- **ConfigManager** - JSON-based settings persistence (window state, preferences)
-- **Logger** - Thread-safe logging with file and console output
-- **DialogManager** - Reusable UI dialogs (message boxes, input, progress, lists)
-- **Localization** - Multi-language support with runtime language switching
+- **Application** - Lifecycle and coordination
+- **WindowManager** - GLFW window wrapper
+- **ThemeManager** - UI theming (4 themes: Dark, Light, Classic, Modern)
+- **UIRenderer** - ImGui rendering
+- **UpdateChecker** - Update notifications via GitHub API
+- **ConfigManager** - JSON settings (window state, preferences)
+- **Logger** - Thread-safe logging (file and console)
+- **DialogManager** - Reusable dialogs (message boxes, input, progress, lists)
+- **Localization** - Runtime language switching
 
 ### Adding New Features
 
-The modular architecture makes it easy to extend:
+Extending the template:
 
-- **New UI components** - Add rendering methods to `UIRenderer`
-- **Additional themes** - Extend `ThemeManager` with new color schemes
-- **Menu items** - Modify the menu bar in `UIRenderer::RenderMenuBar()`
-- **Windows/dialogs** - Use `DialogManager` for message boxes, input, progress bars
-- **Settings persistence** - Use `ConfigManager` to save/load configuration values
-- **Logging** - Use `Logger::Instance()` with LOG_INFO, LOG_ERROR, LOG_DEBUG macros
-- **Translations** - Add new languages to `resources/translations/translations.json`
-- **Custom managers** - Create new manager classes following existing patterns
+- **UI components** - Add methods to `UIRenderer`
+- **Themes** - Add color schemes to `ThemeManager`
+- **Menu items** - Edit `UIRenderer::RenderMenuBar()`
+- **Dialogs** - Use `DialogManager` methods
+- **Settings** - Use `ConfigManager` get/set methods
+- **Logging** - Use `Logger::Instance()` with LOG_INFO, LOG_ERROR, LOG_DEBUG
+- **Translations** - Edit `resources/translations/translations.json`
+- **New managers** - Follow existing manager patterns
 
 ### Working with AI Assistants
 
-When working in AI-assisted editors like Cursor:
+Structured for AI-assisted editors:
 
-1. **Ask for specific features** - "Add a settings window with theme selection"
-2. **Request modifications** - "Update the menu bar to include a File menu"
-3. **Code review** - "Review the Application class for potential improvements"
-4. **Extend functionality** - "Add support for loading and displaying images"
-
-The codebase structure allows AI assistants to understand the project layout and make coherent modifications across multiple files.
+- Standard C++ patterns
+- Consistent naming conventions
+- Clear separation of concerns
+- Straightforward file organization
 
 ### GitHub Actions and Monitoring
 
-The project includes comprehensive GitHub Actions workflows for:
+GitHub Actions workflows:
 
-- **CI Build** - Automated builds and tests for Linux, Windows, and macOS
-- **Code Coverage** - Automated test coverage tracking with Codecov (24%+)
-- **Sanitizers** - Memory safety checks (AddressSanitizer with leak detection, UndefinedBehaviorSanitizer, ThreadSanitizer)
-- **Static Analysis** - clang-tidy + cppcheck (runs weekly or on-demand)
-- **Security Analysis** - CodeQL security scanning (runs weekly or on-demand)
-- **Benchmarks** - Performance testing with Google Benchmark (runs weekly or on-demand)
-- **Release automation** - Package generation and release creation on git tags
+- **CI Build** - Builds and tests on Linux, Windows, macOS
+- **Code Coverage** - Coverage tracking via Codecov
+- **Sanitizers** - AddressSanitizer, UndefinedBehaviorSanitizer, ThreadSanitizer
+- **Static Analysis** - clang-tidy, cppcheck
+- **Security Analysis** - CodeQL scanning
+- **Benchmarks** - Google Benchmark
+- **Release** - Builds installers on tag push
 
 **Advanced Workflow Management:**
 
@@ -404,24 +392,24 @@ doxygen Doxyfile
 ## Dependencies
 
 ### Core Dependencies
-- 🎨 **ImGui v1.92.4**: Immediate mode GUI library
-- 🪟 **GLFW 3.x**: Cross-platform window management
-- 🎮 **OpenGL 3.3**: Graphics API
-- 🌐 **libcurl**: HTTP client for update checking
-- 📦 **nlohmann/json v3.11.3**: JSON parsing library
+- 🎨 ImGui v1.92.4
+- 🪟 GLFW 3.x
+- 🎮 OpenGL 3.3
+- 🌐 libcurl (update checking)
+- 📦 nlohmann/json v3.11.3
 
 ### Build & Development
-- 🔨 **CMake 3.16+**: Build system generator
-- ✅ **Catch2 v3.x**: Testing framework
-- 🛠️ **C++20 Standard Library**: Modern C++ features (ranges, concepts, designated initializers)
+- 🔨 CMake 3.16+
+- ✅ Catch2 v3.x
+- 🛠️ C++20 compiler (GCC 10+, Clang 10+, MSVC 2019 16.11+)
 
 ## Platform Support
 
-- 🐧 **Linux** - Tested on Ubuntu 20.04+, Fedora 33+
-- 🪟 **Windows** - Tested on Windows 10/11 with MSVC
-- 🍎 **macOS** - Supported (tested on macOS 11+)
+- 🐧 Linux (Ubuntu 20.04+, Fedora 33+)
+- 🪟 Windows (10/11 with MSVC)
+- 🍎 macOS (15+)
 
-All platforms are built and tested via GitHub Actions CI/CD pipeline.
+Tested via GitHub Actions.
 
 ## Troubleshooting
 
@@ -447,19 +435,17 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 ## Use Cases
 
-This template is suitable for:
+Suitable for:
 
-- 🔧 Desktop utilities and tools
-- 📊 Data visualization applications
-- ⚙️ Configuration and management interfaces
-- 🎨 Prototyping GUI applications
-- 🌍 Cross-platform desktop software
-
-The template focuses on providing solid infrastructure so you can concentrate on building your application's unique features.
+- 🔧 Desktop utilities
+- 📊 Data visualization
+- ⚙️ Configuration interfaces
+- 🎨 GUI prototypes
+- 🌍 Cross-platform desktop apps
 
 ## Contributing
 
-This is a template project. If you find issues or have improvements, feel free to open issues or pull requests.
+Issues and pull requests welcome.
 
 ### Commit Message Convention
 
@@ -507,8 +493,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## Acknowledgments
 
-- [ImGui](https://github.com/ocornut/imgui) by Omar Cornut for the immediate mode GUI library
-- [GLFW](https://www.glfw.org/) team for cross-platform window management
-- [Catch2](https://github.com/catchorg/Catch2) for the modern C++ testing framework
-- [nlohmann/json](https://github.com/nlohmann/json) by Niels Lohmann for JSON parsing
-- [libcurl](https://curl.se/libcurl/) team for HTTP client functionality
+- [ImGui](https://github.com/ocornut/imgui) by Omar Cornut
+- [GLFW](https://www.glfw.org/)
+- [Catch2](https://github.com/catchorg/Catch2)
+- [nlohmann/json](https://github.com/nlohmann/json) by Niels Lohmann
+- [libcurl](https://curl.se/libcurl/)

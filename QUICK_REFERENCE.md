@@ -1,20 +1,13 @@
 # MetaImGUI Quick Reference
 
-One-page reference for common operations.
+Common commands and operations.
 
 ## 🚀 Quick Start
 
 ```bash
-# Initialize new project
 ./init_template.sh
-
-# Setup dependencies
 ./setup_dependencies.sh
-
-# Build
 ./build.sh
-
-# Run
 ./build/YourProjectName
 ```
 
@@ -51,15 +44,12 @@ ctest --test-dir build --output-on-failure
 ### Code Coverage
 
 ```bash
-# Quick coverage report
 ./scripts/run_coverage.sh
 
-# Manual coverage build
+# Manual
 cmake -B build -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=ON -DBUILD_TESTS=ON
 cmake --build build
 cd build && make coverage
-
-# View coverage report
 xdg-open build/coverage_html/index.html  # Linux
 open build/coverage_html/index.html      # macOS
 ```
@@ -67,33 +57,26 @@ open build/coverage_html/index.html      # macOS
 ### Static Analysis
 
 ```bash
-# Run all static analysis tools
 ./scripts/run_static_analysis.sh
 
-# Run with CMake integration
+# With CMake
 cmake -B build -DENABLE_CLANG_TIDY=ON -DENABLE_CPPCHECK=ON
 cmake --build build
 
-# Run manually
+# Manual
 clang-tidy -p build src/*.cpp include/*.h
 cppcheck --enable=all src/ include/
-
-# Run as make target
-cd build && make static-analysis
 ```
 
 ### Sanitizers
 
 ```bash
-# Run all sanitizers
 ./scripts/run_sanitizers.sh ALL
+./scripts/run_sanitizers.sh ASAN
+./scripts/run_sanitizers.sh TSAN
+./scripts/run_sanitizers.sh UBSAN
 
-# Run specific sanitizer
-./scripts/run_sanitizers.sh ASAN   # AddressSanitizer
-./scripts/run_sanitizers.sh TSAN   # ThreadSanitizer
-./scripts/run_sanitizers.sh UBSAN  # UndefinedBehaviorSanitizer
-
-# Manual sanitizer build
+# Manual
 cmake -B build -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON -DBUILD_TESTS=ON
 cmake --build build
 cd build && ASAN_OPTIONS="detect_leaks=1" ctest --output-on-failure
@@ -102,35 +85,22 @@ cd build && ASAN_OPTIONS="detect_leaks=1" ctest --output-on-failure
 ### Benchmarks
 
 ```bash
-# Build and run benchmarks
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARKS=ON
 cmake --build build
 ./build/benchmarks/MetaImGUI_benchmarks
 
-# Run specific benchmarks
+# Specific benchmark
 ./build/benchmarks/MetaImGUI_benchmarks --benchmark_filter=Config
 
-# Save results to JSON
-./build/benchmarks/MetaImGUI_benchmarks --benchmark_out=results.json --benchmark_out_format=json
-
-# Run with multiple repetitions for statistical significance
-./build/benchmarks/MetaImGUI_benchmarks --benchmark_repetitions=10
-
-# List all available benchmarks
-./build/benchmarks/MetaImGUI_benchmarks --benchmark_list_tests=true
+# JSON output
+./build/benchmarks/MetaImGUI_benchmarks --benchmark_out=results.json
 ```
 
 ### Code Quality
 
 ```bash
-# Format all code
 find src include -name "*.cpp" -o -name "*.h" | xargs clang-format -i
-
-# Check formatting (dry run)
 find src include -name "*.cpp" -o -name "*.h" | xargs clang-format --dry-run --Werror
-
-# Enable pre-commit hook
-cp .pre-commit-hook.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
 ```
 
 ## 📦 Packaging
@@ -319,20 +289,13 @@ git status
 | CMake docs | https://cmake.org/documentation/ |
 | GitHub Actions | https://docs.github.com/en/actions |
 
-## ⚡ Pro Tips
+## ⚡ Tips
 
-1. **Use VS Code**: Best IDE support with included configs
-2. **Enable pre-commit hook**: Automatic code formatting
-3. **Tag releases properly**: Use semantic versioning (v1.2.3)
-4. **Test before release**: Run `ctest` before tagging
-5. **Keep git clean**: Commit often, push frequently
-6. **Document changes**: Update README as you add features
-7. **Use branches**: Develop features in branches, merge to main
-8. **Monitor CI**: Check GitHub Actions after pushing
-9. **Version carefully**: Tags are permanent, choose wisely
-10. **Read META_FEATURES.md**: Detailed info on all features
+- Use VS Code (configs included)
+- Tag releases with semantic versioning (v1.2.3)
+- Run `ctest` before tagging
+- Use feature branches
+- Monitor GitHub Actions
+- Read META_FEATURES.md for details
 
----
-
-**Need more help?** See the full documentation in the root directory!
 
