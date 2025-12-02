@@ -31,6 +31,19 @@ else
     echo "Catch2 already exists"
 fi
 
+# Download and setup nlohmann/json (JSON library)
+if [ ! -d "external/json" ]; then
+    echo "Downloading nlohmann/json..."
+    cd external
+    git clone https://github.com/nlohmann/json.git
+    cd json
+    git checkout v3.11.3
+    cd ../..
+    echo "nlohmann/json downloaded successfully"
+else
+    echo "nlohmann/json already exists"
+fi
+
 # Install required system packages (Ubuntu/Debian)
 if command -v apt-get &> /dev/null; then
     echo "Installing system dependencies (Ubuntu/Debian)..."

@@ -1,10 +1,17 @@
 name: CI
 
 on:
-  push:
-    branches: [ main, develop ]
+  # Run on pull requests (good for code review)
   pull_request:
     branches: [ main, develop ]
+
+  # Run on version tags (for releases)
+  push:
+    tags:
+      - 'v*'
+
+  # Allow manual triggering from GitHub UI
+  workflow_dispatch:
 
 # Cancel in-progress runs when a new workflow with the same ref is triggered
 concurrency:
