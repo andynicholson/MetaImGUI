@@ -1,9 +1,10 @@
 #include "ConfigManager.h"
 
+#include "Logger.h"
+
 #include <nlohmann/json.hpp>
 
 #include <fstream>
-#include <iostream>
 
 #ifdef _WIN32
 #include <shlobj.h>
@@ -41,25 +42,25 @@ ConfigManager::~ConfigManager() = default;
 bool ConfigManager::Load() {
     try {
         if (!ConfigFileExists()) {
-            std::cout << "Config file not found, using defaults" << std::endl;
+            LOG_INFO("Config file not found, using defaults");
             return false;
         }
 
         std::ifstream file(m_impl->configPath);
         if (!file.is_open()) {
-            std::cerr << "Failed to open config file: " << m_impl->configPath << std::endl;
+            LOG_ERROR("Failed to open config file: {}", m_impl->configPath.string());
             return false;
         }
 
         m_impl->config = json::parse(file);
-        std::cout << "Configuration loaded from: " << m_impl->configPath << std::endl;
+        LOG_INFO("Configuration loaded from: {}", m_impl->configPath.string());
         return true;
     } catch (const json::exception& e) {
-        std::cerr << "Failed to parse config file: " << e.what() << std::endl;
+        LOG_ERROR("Failed to parse config file: {}", e.what());
         Reset(); // Reset to defaults on parse error
         return false;
     } catch (const std::exception& e) {
-        std::cerr << "Failed to load config: " << e.what() << std::endl;
+        LOG_ERROR("Failed to load config: {}", e.what());
         return false;
     }
 }
@@ -67,21 +68,21 @@ bool ConfigManager::Load() {
 bool ConfigManager::Save() {
     try {
         if (!EnsureConfigDirectoryExists()) {
-            std::cerr << "Failed to create config directory" << std::endl;
+            LOG_ERROR("Failed to create config directory");
             return false;
         }
 
         std::ofstream file(m_impl->configPath);
         if (!file.is_open()) {
-            std::cerr << "Failed to open config file for writing: " << m_impl->configPath << std::endl;
+            LOG_ERROR("Failed to open config file for writing: {}", m_impl->configPath.string());
             return false;
         }
 
         file << m_impl->config.dump(2); // Pretty print with 2-space indent
-        std::cout << "Configuration saved to: " << m_impl->configPath << std::endl;
+        LOG_INFO("Configuration saved to: {}", m_impl->configPath.string());
         return true;
     } catch (const std::exception& e) {
-        std::cerr << "Failed to save config: " << e.what() << std::endl;
+        LOG_ERROR("Failed to save config: {}", e.what());
         return false;
     }
 }
@@ -352,7 +353,7 @@ bool ConfigManager::EnsureConfigDirectoryExists() {
         }
         return true;
     } catch (const std::filesystem::filesystem_error& e) {
-        std::cerr << "Failed to create config directory: " << e.what() << std::endl;
+        LOG_ERROR("Failed to create config directory: {}", e.what());
         return false;
     }
 }

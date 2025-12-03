@@ -1,21 +1,20 @@
 #include "Application.h"
-
-#include <iostream>
+#include "Logger.h"
 
 int main() {
     MetaImGUI::Application app;
 
-    std::cout << "Initializing MetaImGUI...\n";
+    LOG_INFO("Initializing MetaImGUI...");
 
     if (!app.Initialize()) {
-        std::cerr << "Failed to initialize application!\n";
+        LOG_ERROR("Failed to initialize application!");
         return -1;
     }
 
-    std::cout << "Running MetaImGUI...\n";
+    LOG_INFO("Running MetaImGUI...");
     app.Run();
 
-    std::cout << "Shutting down...\n";
+    LOG_INFO("Shutting down...");
     app.Shutdown();
 
     return 0;

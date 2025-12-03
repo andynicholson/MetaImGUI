@@ -1,8 +1,8 @@
 #include "WindowManager.h"
 
-#include <GLFW/glfw3.h>
+#include "Logger.h"
 
-#include <iostream>
+#include <GLFW/glfw3.h>
 
 namespace MetaImGUI {
 
@@ -21,7 +21,7 @@ bool WindowManager::Initialize() {
     // Initialize GLFW
     glfwSetErrorCallback(ErrorCallback);
     if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW\n";
+        LOG_ERROR("Failed to initialize GLFW");
         return false;
     }
 
@@ -37,7 +37,7 @@ bool WindowManager::Initialize() {
     // Create window
     m_window = glfwCreateWindow(m_width, m_height, m_title.c_str(), nullptr, nullptr);
     if (m_window == nullptr) {
-        std::cerr << "Failed to create GLFW window\n";
+        LOG_ERROR("Failed to create GLFW window");
         glfwTerminate();
         return false;
     }
@@ -49,10 +49,10 @@ bool WindowManager::Initialize() {
     glfwSwapInterval(1); // Enable vsync
 
     // Print OpenGL information
-    std::cout << "OpenGL version: " << glGetString(GL_VERSION) << '\n';
-    std::cout << "OpenGL vendor: " << glGetString(GL_VENDOR) << '\n';
-    std::cout << "OpenGL renderer: " << glGetString(GL_RENDERER) << '\n';
-    std::cout << "OpenGL context ready\n";
+    LOG_INFO("OpenGL version: {}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+    LOG_INFO("OpenGL vendor: {}", reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
+    LOG_INFO("OpenGL renderer: {}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+    LOG_INFO("OpenGL context ready");
 
     m_initialized = true;
     return true;
@@ -149,7 +149,7 @@ void WindowManager::CancelClose() {
 // Static callbacks
 
 void WindowManager::ErrorCallback(int error, const char* description) {
-    std::cerr << "GLFW Error " << error << ": " << description << '\n';
+    LOG_ERROR("GLFW Error {}: {}", error, description);
 }
 
 void WindowManager::FramebufferSizeCallbackInternal(GLFWwindow* window, int width, int height) {
