@@ -38,7 +38,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
       with:
-        submodules: recursive
+        # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
     - name: Cache ImGui
       uses: actions/cache@v4
@@ -103,6 +103,15 @@ jobs:
         fi
       shell: bash
 
+    - name: Setup ImPlot
+      run: |
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.16 --depth 1 https://github.com/epezent/implot.git
+        fi
+      shell: bash
+
     - name: Configure CMake (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
@@ -157,7 +166,8 @@ jobs:
         path: |
           external/imgui
           external/json
-        key: ${{ runner.os }}-lint-deps-imgui-1.92.4-json-3.11.3
+          external/implot
+        key: ${{ runner.os }}-lint-deps-imgui-1.92.4-json-3.11.3-implot-0.16
         restore-keys: |
           ${{ runner.os }}-lint-deps-
 
@@ -182,6 +192,14 @@ jobs:
           mkdir -p external
           cd external
           git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+          cd ..
+        fi
+
+        # Setup ImPlot
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.16 --depth 1 https://github.com/epezent/implot.git
           cd ..
         fi
 

@@ -23,7 +23,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
       with:
-        submodules: recursive
+        # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
     - name: Install dependencies
       run: |
@@ -55,6 +55,14 @@ jobs:
           mkdir -p external
           cd external
           git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+        fi
+
+    - name: Setup ImPlot
+      run: |
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.16 --depth 1 https://github.com/epezent/implot.git
         fi
 
     - name: Configure CMake
@@ -93,7 +101,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
       with:
-        submodules: recursive
+        # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
     - name: Install cppcheck
       run: |

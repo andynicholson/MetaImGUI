@@ -75,7 +75,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
       with:
-        submodules: recursive
+        # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
     - name: Install dependencies
       run: |
@@ -97,7 +97,8 @@ jobs:
         path: |
           external/imgui
           external/json
-        key: release-deps-imgui-1.92.4-json-3.11.3
+          external/implot
+        key: release-deps-imgui-1.92.4-json-3.11.3-implot-0.16
         restore-keys: |
           release-deps-
 
@@ -115,6 +116,14 @@ jobs:
           mkdir -p external
           cd external
           git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+        fi
+
+    - name: Setup ImPlot
+      run: |
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.16 --depth 1 https://github.com/epezent/implot.git
         fi
 
     - name: Build
@@ -275,7 +284,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
       with:
-        submodules: recursive
+        # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -404,7 +413,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
       with:
-        submodules: recursive
+        # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
     - name: Install dependencies
       run: |
@@ -424,7 +433,8 @@ jobs:
         path: |
           external/imgui
           external/json
-        key: release-deps-imgui-1.92.4-json-3.11.3
+          external/implot
+        key: release-deps-imgui-1.92.4-json-3.11.3-implot-0.16
         restore-keys: |
           release-deps-
 
@@ -442,6 +452,14 @@ jobs:
           mkdir -p external
           cd external
           git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+        fi
+
+    - name: Setup ImPlot
+      run: |
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.16 --depth 1 https://github.com/epezent/implot.git
         fi
 
     - name: Build

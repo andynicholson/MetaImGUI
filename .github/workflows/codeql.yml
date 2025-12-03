@@ -32,7 +32,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v6
       with:
-        submodules: recursive
+        # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
     - name: Install dependencies
       run: |

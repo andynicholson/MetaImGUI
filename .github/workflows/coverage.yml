@@ -17,8 +17,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
-      with:
-        submodules: recursive
 
     - name: Install dependencies
       run: |
@@ -39,8 +37,9 @@ jobs:
         path: |
           external/imgui
           external/json
+          external/implot
           external/catch2
-        key: coverage-deps-imgui-1.92.4-json-3.11.3-catch2-3.4.0
+        key: coverage-deps-imgui-1.92.4-json-3.11.3-implot-0.16-catch2-3.4.0
         restore-keys: |
           coverage-deps-
 
@@ -58,6 +57,14 @@ jobs:
           mkdir -p external
           cd external
           git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+        fi
+
+    - name: Setup ImPlot
+      run: |
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.16 --depth 1 https://github.com/epezent/implot.git
         fi
 
     - name: Setup Catch2

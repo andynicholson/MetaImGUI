@@ -51,6 +51,7 @@ _deps
 
 # Dependencies (downloaded by setup_dependencies.sh)
 external/imgui/
+external/implot/
 external/catch2/
 external/json/
 !external/.gitkeep

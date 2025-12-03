@@ -19,7 +19,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v6
         with:
-          submodules: recursive
+          # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
       - name: Dependency Review
         uses: actions/dependency-review-action@v4
