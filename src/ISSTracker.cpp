@@ -1,9 +1,10 @@
 #include "ISSTracker.h"
 
+#include "Logger.h"
+
 #include <nlohmann/json.hpp>
 
 #include <chrono>
-#include <iostream>
 #include <thread>
 
 // HTTP requests using libcurl (cross-platform)
@@ -21,18 +22,23 @@ void ISSTracker::StartTracking(std::function<void(const ISSPosition&)> callback)
     std::lock_guard<std::mutex> lock(m_threadMutex);
 
     if (m_tracking) {
-        std::cout << "ISS Tracker: Already tracking, skipping" << std::endl;
+        LOG_INFO("ISS Tracker: Already tracking, skipping");
         return;
     }
 
     m_tracking = true;
-    m_callback = callback;
+
+    // Store callback under lock protection
+    {
+        std::lock_guard<std::mutex> callbackLock(m_callbackMutex);
+        m_callback = callback;
+    }
 
     // C++20: std::jthread with stop_token for clean cancellation
     m_stopSource = std::stop_source();
     m_trackingThread = std::jthread([this](std::stop_token stopToken) { TrackingLoop(stopToken); });
 
-    std::cout << "ISS Tracker: Started tracking" << std::endl;
+    LOG_INFO("ISS Tracker: Started tracking");
 }
 
 void ISSTracker::StopTracking() {
@@ -46,7 +52,7 @@ void ISSTracker::StopTracking() {
     m_stopSource.request_stop();
     m_tracking = false;
 
-    std::cout << "ISS Tracker: Stopped tracking" << std::endl;
+    LOG_INFO("ISS Tracker: Stopped tracking");
 }
 
 bool ISSTracker::IsTracking() const {
@@ -83,6 +89,12 @@ void ISSTracker::TrackingLoop(std::stop_token stopToken) {
         try {
             ISSPosition position = FetchPositionImpl();
 
+            // Check if stop was requested after fetch (important for slow networks)
+            if (stopToken.stop_requested()) {
+                LOG_INFO("ISS Tracker: Stop requested, discarding fetched data");
+                break;
+            }
+
             if (position.valid) {
                 // Update current position and add to history
                 {
@@ -91,25 +103,30 @@ void ISSTracker::TrackingLoop(std::stop_token stopToken) {
                     AddToHistory(position);
                 }
 
-                // Invoke callback if set
-                if (m_callback) {
+                // Invoke callback if set (copy under lock to avoid data race)
+                std::function<void(const ISSPosition&)> callback;
+                {
+                    std::lock_guard<std::mutex> lock(m_callbackMutex);
+                    callback = m_callback;
+                }
+
+                if (callback) {
                     try {
-                        m_callback(position);
+                        callback(position);
                     } catch (const std::exception& e) {
-                        std::cerr << "ISS Tracker: Callback threw exception: " << e.what() << std::endl;
+                        LOG_ERROR("ISS Tracker: Callback threw exception: {}", e.what());
                     } catch (...) {
-                        std::cerr << "ISS Tracker: Callback threw unknown exception" << std::endl;
+                        LOG_ERROR("ISS Tracker: Callback threw unknown exception");
                     }
                 }
 
-                std::cout << "ISS Tracker: Position updated - Lat: " << position.latitude
-                          << ", Long: " << position.longitude << ", Alt: " << position.altitude
-                          << " km, Vel: " << position.velocity << " km/h" << std::endl;
+                LOG_INFO("ISS Tracker: Position updated - Lat: {}, Long: {}, Alt: {} km, Vel: {} km/h",
+                         position.latitude, position.longitude, position.altitude, position.velocity);
             }
         } catch (const std::exception& e) {
-            std::cerr << "ISS Tracker: Error fetching position: " << e.what() << std::endl;
+            LOG_ERROR("ISS Tracker: Error fetching position: {}", e.what());
         } catch (...) {
-            std::cerr << "ISS Tracker: Unknown error fetching position" << std::endl;
+            LOG_ERROR("ISS Tracker: Unknown error fetching position");
         }
 
         // Wait 5 seconds before next update (if not stopped)
@@ -124,7 +141,7 @@ void ISSTracker::TrackingLoop(std::stop_token stopToken) {
         }
     }
 
-    std::cout << "ISS Tracker: Tracking loop exited" << std::endl;
+    LOG_INFO("ISS Tracker: Tracking loop exited");
 }
 
 ISSPosition ISSTracker::FetchPositionImpl() {
@@ -134,17 +151,17 @@ ISSPosition ISSTracker::FetchPositionImpl() {
     try {
         std::string jsonResponse = FetchJSON(ISS_API_URL);
         if (jsonResponse.empty()) {
-            std::cerr << "ISS Tracker: Empty response from server" << std::endl;
+            LOG_ERROR("ISS Tracker: Empty response from server");
             return position;
         }
 
         position = ParseJSON(jsonResponse);
     } catch (const std::bad_alloc& e) {
-        std::cerr << "ISS Tracker: Memory allocation failed: " << e.what() << std::endl;
+        LOG_ERROR("ISS Tracker: Memory allocation failed: {}", e.what());
     } catch (const std::exception& e) {
-        std::cerr << "ISS Tracker: Fetch failed: " << e.what() << std::endl;
+        LOG_ERROR("ISS Tracker: Fetch failed: {}", e.what());
     } catch (...) {
-        std::cerr << "ISS Tracker: Unknown error during fetch" << std::endl;
+        LOG_ERROR("ISS Tracker: Unknown error during fetch");
     }
 
     return position;
@@ -161,7 +178,7 @@ std::string ISSTracker::FetchJSON(const std::string& url) {
 
     CURL* curl = curl_easy_init();
     if (!curl) {
-        std::cerr << "ISS Tracker: Failed to initialize CURL" << std::endl;
+        LOG_ERROR("ISS Tracker: Failed to initialize CURL");
         return result;
     }
 
@@ -177,7 +194,7 @@ std::string ISSTracker::FetchJSON(const std::string& url) {
     CURLcode res = curl_easy_perform(curl);
 
     if (res != CURLE_OK) {
-        std::cerr << "ISS Tracker: Request failed: " << curl_easy_strerror(res) << std::endl;
+        LOG_ERROR("ISS Tracker: Request failed: {}", curl_easy_strerror(res));
         result.clear();
     }
 
@@ -193,9 +210,6 @@ ISSPosition ISSTracker::ParseJSON(const std::string& jsonResponse) {
     try {
         auto json = nlohmann::json::parse(jsonResponse);
 
-        // Debug: Print the raw JSON response
-        std::cout << "ISS Tracker: Parsing JSON: " << jsonResponse << std::endl;
-
         // Parse required fields
         if (json.contains("latitude") && json.contains("longitude")) {
             position.latitude = json["latitude"].get<double>();
@@ -204,15 +218,9 @@ ISSPosition ISSTracker::ParseJSON(const std::string& jsonResponse) {
             // Parse optional fields
             if (json.contains("altitude")) {
                 position.altitude = json["altitude"].get<double>();
-                std::cout << "ISS Tracker: Parsed altitude: " << position.altitude << std::endl;
-            } else {
-                std::cout << "ISS Tracker: No altitude field in JSON" << std::endl;
             }
             if (json.contains("velocity")) {
                 position.velocity = json["velocity"].get<double>();
-                std::cout << "ISS Tracker: Parsed velocity: " << position.velocity << std::endl;
-            } else {
-                std::cout << "ISS Tracker: No velocity field in JSON" << std::endl;
             }
             if (json.contains("timestamp")) {
                 position.timestamp = json["timestamp"].get<long>();
@@ -220,14 +228,14 @@ ISSPosition ISSTracker::ParseJSON(const std::string& jsonResponse) {
 
             position.valid = true;
         } else {
-            std::cerr << "ISS Tracker: Missing required fields in JSON response" << std::endl;
+            LOG_ERROR("ISS Tracker: Missing required fields in JSON response");
         }
     } catch (const nlohmann::json::parse_error& e) {
-        std::cerr << "ISS Tracker: JSON parse error: " << e.what() << std::endl;
+        LOG_ERROR("ISS Tracker: JSON parse error: {}", e.what());
     } catch (const nlohmann::json::type_error& e) {
-        std::cerr << "ISS Tracker: JSON type error: " << e.what() << std::endl;
+        LOG_ERROR("ISS Tracker: JSON type error: {}", e.what());
     } catch (const std::exception& e) {
-        std::cerr << "ISS Tracker: Error parsing JSON: " << e.what() << std::endl;
+        LOG_ERROR("ISS Tracker: Error parsing JSON: {}", e.what());
     }
 
     return position;

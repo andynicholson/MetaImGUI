@@ -1,12 +1,12 @@
 #include "UpdateChecker.h"
 
+#include "Logger.h"
 #include "version.h"
 
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cctype>
-#include <iostream>
 #include <sstream>
 
 // HTTP requests using libcurl (cross-platform)
@@ -26,7 +26,7 @@ void UpdateChecker::CheckForUpdatesAsync(std::function<void(const UpdateInfo&)> 
     std::lock_guard<std::mutex> lock(m_threadMutex);
 
     if (m_checking) {
-        std::cout << "Update Checker: Check already in progress, skipping" << std::endl;
+        LOG_INFO("Update Checker: Check already in progress, skipping");
         return; // Already checking
     }
 
@@ -44,9 +44,9 @@ void UpdateChecker::CheckForUpdatesAsync(std::function<void(const UpdateInfo&)> 
             try {
                 callback(info);
             } catch (const std::exception& e) {
-                std::cerr << "Update Checker: Callback threw exception: " << e.what() << std::endl;
+                LOG_ERROR("Update Checker: Callback threw exception: {}", e.what());
             } catch (...) {
-                std::cerr << "Update Checker: Callback threw unknown exception" << std::endl;
+                LOG_ERROR("Update Checker: Callback threw unknown exception");
             }
         }
     });
@@ -68,7 +68,7 @@ void UpdateChecker::Cancel() {
     m_stopSource.request_stop();
 
     // jthread automatically joins, so we just need to request stop
-    std::cout << "Update Checker: Cancellation requested" << std::endl;
+    LOG_INFO("Update Checker: Cancellation requested");
 }
 
 bool UpdateChecker::IsChecking() const {
@@ -87,12 +87,12 @@ UpdateInfo UpdateChecker::CheckForUpdatesImpl(std::stop_token stopToken) {
     try {
         std::string jsonResponse = FetchLatestReleaseInfo();
         if (stopToken.stop_requested()) {
-            std::cout << "Update Checker: Check cancelled by user" << std::endl;
+            LOG_INFO("Update Checker: Check cancelled by user");
             return info;
         }
 
         if (jsonResponse.empty()) {
-            std::cerr << "Update Checker: Empty response from server" << std::endl;
+            LOG_ERROR("Update Checker: Empty response from server");
             return info;
         }
 
@@ -105,23 +105,21 @@ UpdateInfo UpdateChecker::CheckForUpdatesImpl(std::stop_token stopToken) {
             info.updateAvailable = (cmp < 0);
 
             if (info.updateAvailable) {
-                std::cout << "Update Checker: Update available - " << info.currentVersion << " -> "
-                          << info.latestVersion << std::endl;
+                LOG_INFO("Update Checker: Update available - {} -> {}", info.currentVersion, info.latestVersion);
             } else {
-                std::cout << "Update Checker: No update available (current: " << info.currentVersion << ")"
-                          << std::endl;
+                LOG_INFO("Update Checker: No update available (current: {})", info.currentVersion);
             }
         } else {
-            std::cerr << "Update Checker: Could not parse latest version from response" << std::endl;
+            LOG_ERROR("Update Checker: Could not parse latest version from response");
         }
     } catch (const std::bad_alloc& e) {
-        std::cerr << "Update Checker: Memory allocation failed: " << e.what() << std::endl;
+        LOG_ERROR("Update Checker: Memory allocation failed: {}", e.what());
         info.updateAvailable = false;
     } catch (const std::exception& e) {
-        std::cerr << "Update Checker: Check failed: " << e.what() << std::endl;
+        LOG_ERROR("Update Checker: Check failed: {}", e.what());
         info.updateAvailable = false;
     } catch (...) {
-        std::cerr << "Update Checker: Unknown error during update check" << std::endl;
+        LOG_ERROR("Update Checker: Unknown error during update check");
         info.updateAvailable = false;
     }
 
@@ -145,7 +143,7 @@ std::string UpdateChecker::FetchLatestReleaseInfo() {
 
     std::string url = "https://api.github.com/repos/" + m_repoOwner + "/" + m_repoName + "/releases/latest";
 
-    std::cout << "Update Checker: Requesting URL: " << url << std::endl;
+    LOG_INFO("Update Checker: Requesting URL: {}", url);
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -159,14 +157,13 @@ std::string UpdateChecker::FetchLatestReleaseInfo() {
     CURLcode res = curl_easy_perform(curl);
 
     if (res != CURLE_OK) {
-        std::cout << "Update Checker: Request failed: " << curl_easy_strerror(res) << std::endl;
+        LOG_ERROR("Update Checker: Request failed: {}", curl_easy_strerror(res));
         result.clear();
     }
 
     curl_easy_cleanup(curl);
 
-    std::cout << "Update Checker: Response received (" << result.size() << " bytes):" << std::endl;
-    std::cout << result << std::endl;
+    LOG_INFO("Update Checker: Response received ({} bytes)", result.size());
 
     return result;
 }
@@ -175,7 +172,7 @@ UpdateInfo UpdateChecker::ParseReleaseInfo(const std::string& jsonResponse) {
     UpdateInfo info;
 
     if (jsonResponse.empty()) {
-        std::cerr << "Update Checker: Empty JSON response" << std::endl;
+        LOG_ERROR("Update Checker: Empty JSON response");
         return info;
     }
 
@@ -188,21 +185,21 @@ UpdateInfo UpdateChecker::ParseReleaseInfo(const std::string& jsonResponse) {
             std::string tag = j["tag_name"].get<std::string>();
             // Remove 'v' prefix if present
             info.latestVersion = (!tag.empty() && tag[0] == 'v') ? tag.substr(1) : tag;
-            std::cout << "Update Checker: Parsed version: " << info.latestVersion << std::endl;
+            LOG_INFO("Update Checker: Parsed version: {}", info.latestVersion);
         } else {
-            std::cerr << "Update Checker: No tag_name in response" << std::endl;
+            LOG_ERROR("Update Checker: No tag_name in response");
         }
 
         // Extract html_url
         if (j.contains("html_url") && j["html_url"].is_string()) {
             info.releaseUrl = j["html_url"].get<std::string>();
-            std::cout << "Update Checker: Release URL: " << info.releaseUrl << std::endl;
+            LOG_INFO("Update Checker: Release URL: {}", info.releaseUrl);
         }
 
         // Extract body (release notes)
         if (j.contains("body") && j["body"].is_string()) {
             info.releaseNotes = j["body"].get<std::string>();
-            std::cout << "Update Checker: Release notes: " << info.releaseNotes.length() << " chars" << std::endl;
+            LOG_INFO("Update Checker: Release notes: {} chars", info.releaseNotes.length());
         }
 
         // Extract download_url (if available)
@@ -214,12 +211,11 @@ UpdateInfo UpdateChecker::ParseReleaseInfo(const std::string& jsonResponse) {
         }
 
     } catch (const nlohmann::json::parse_error& e) {
-        std::cerr << "Update Checker: JSON parse error: " << e.what() << std::endl;
-        std::cerr << "Update Checker: Error at byte " << e.byte << std::endl;
+        LOG_ERROR("Update Checker: JSON parse error: {} at byte {}", e.what(), e.byte);
     } catch (const nlohmann::json::type_error& e) {
-        std::cerr << "Update Checker: JSON type error: " << e.what() << std::endl;
+        LOG_ERROR("Update Checker: JSON type error: {}", e.what());
     } catch (const std::exception& e) {
-        std::cerr << "Update Checker: Unexpected error parsing JSON: " << e.what() << std::endl;
+        LOG_ERROR("Update Checker: Unexpected error parsing JSON: {}", e.what());
     }
 
     return info;

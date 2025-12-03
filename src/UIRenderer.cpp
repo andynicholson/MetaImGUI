@@ -428,7 +428,8 @@ void UIRenderer::RenderISSTrackerWindow(bool& showISSTracker, ISSTracker* issTra
     }
 
     ImGui::SetNextWindowSize(ImVec2(900, 700), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("ISS Tracker", &showISSTracker)) {
+    bool windowOpen = true;
+    if (ImGui::Begin("ISS Tracker", &windowOpen)) {
         // Get current position
         ISSPosition currentPos = issTracker->GetCurrentPosition();
 
@@ -447,17 +448,6 @@ void UIRenderer::RenderISSTrackerWindow(bool& showISSTracker, ISSTracker* issTra
                 if (ImGui::Button("Start Tracking")) {
                     issTracker->StartTracking();
                 }
-            }
-
-            ImGui::SameLine();
-            if (ImGui::Button("Fetch Now")) {
-                // Launch a quick one-time fetch in a separate thread to avoid blocking UI
-                std::thread([issTracker]() {
-                    ISSPosition pos = issTracker->FetchPositionSync();
-                    if (pos.valid) {
-                        // Position will be automatically stored
-                    }
-                }).detach();
             }
 
             ImGui::Separator();
@@ -531,6 +521,14 @@ void UIRenderer::RenderISSTrackerWindow(bool& showISSTracker, ISSTracker* issTra
         }
     }
     ImGui::End();
+
+    // If window was closed, stop tracking and update flag
+    if (!windowOpen) {
+        if (issTracker->IsTracking()) {
+            issTracker->StopTracking();
+        }
+        showISSTracker = false;
+    }
 }
 
 void UIRenderer::HelpMarker(const char* desc) {

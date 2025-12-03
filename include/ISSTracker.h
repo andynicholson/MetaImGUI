@@ -99,8 +99,9 @@ private:
     std::stop_source m_stopSource;
     mutable std::mutex m_threadMutex;
 
-    // Callback
+    // Callback (protected by m_callbackMutex)
     std::function<void(const ISSPosition&)> m_callback;
+    mutable std::mutex m_callbackMutex;
 
     // Internal methods
     void TrackingLoop(std::stop_token stopToken);
