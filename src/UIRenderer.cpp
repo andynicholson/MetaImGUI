@@ -428,8 +428,7 @@ void UIRenderer::RenderISSTrackerWindow(bool& showISSTracker, ISSTracker* issTra
     }
 
     ImGui::SetNextWindowSize(ImVec2(900, 700), ImGuiCond_FirstUseEver);
-    bool windowOpen = true;
-    if (ImGui::Begin("ISS Tracker", &windowOpen)) {
+    if (ImGui::Begin("ISS Tracker", &showISSTracker)) {
         // Get current position
         ISSPosition currentPos = issTracker->GetCurrentPosition();
 
@@ -522,12 +521,9 @@ void UIRenderer::RenderISSTrackerWindow(bool& showISSTracker, ISSTracker* issTra
     }
     ImGui::End();
 
-    // If window was closed, stop tracking and update flag
-    if (!windowOpen) {
-        if (issTracker->IsTracking()) {
-            issTracker->StopTracking();
-        }
-        showISSTracker = false;
+    // If window was closed, stop tracking
+    if (!showISSTracker && issTracker->IsTracking()) {
+        issTracker->StopTracking();
     }
 }
 
