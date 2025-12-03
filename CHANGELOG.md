@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [1.1.0] - 2025-12-03
+
+### Added
+-  add ISS Tracker with ImPlot visualization
+-  add input dialog with localization and single source of truth for translations
+
+### Fixed
+-  remove continuous focus stealing from About window
+-  fix main window stealing focus and inconsistent button behavior
+-  add platform-specific math library linking for ImPlot
+- UIRenderer): fix ISS Tracker window disappearing unexpectedly
+- ISSTracker): fix stop token not being respected by thread
+
+### Changed
+-  enabled screenshots in README
+-  enabled screenshots in README
+-  enabled screenshots in README
+-  Updates for correctness, screenshots
+-  convert all remaining source files to use Logger
+-  convert ISSTracker and UpdateChecker to use Logger
+
 ## [1.0.21] - 2025-11-25
 
 ### Changed
