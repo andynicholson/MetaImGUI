@@ -307,7 +307,6 @@ void UIRenderer::RenderAboutWindow(bool& showAboutWindow) {
 
     ImGui::SetNextWindowSize(ImVec2(UILayout::ABOUT_WINDOW_WIDTH, UILayout::ABOUT_WINDOW_HEIGHT),
                              ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowFocus();
     if (ImGui::Begin("About MetaImGUI", &showAboutWindow, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("MetaImGUI v%s", Version::VERSION);
         ImGui::TextDisabled("Build: %s", Version::VERSION_FULL);
