@@ -222,7 +222,7 @@ void Application::Render() {
 
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
                                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
-                                    ImGuiWindowFlags_MenuBar;
+                                    ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -237,7 +237,7 @@ void Application::Render() {
 
         // Render main window content
         m_uiRenderer->RenderMainWindow([this]() { this->OnShowAboutRequested(); },
-                                       [this]() { this->OnToggleDemoWindow(); },
+                                       [this]() { m_showDemoWindow = true; },
                                        [this]() { this->OnShowInputDialogRequested(); });
 
         // Render status bar
