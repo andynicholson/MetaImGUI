@@ -96,7 +96,8 @@ void UIRenderer::EndFrame() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::function<void()> onShowDemo) {
+void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::function<void()> onShowDemo,
+                                  std::function<void()> onShowInputDialog) {
     auto& loc = Localization::Instance();
 
     // Calculate heights
@@ -126,6 +127,14 @@ void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::functi
         if (ImGui::Button(loc.Tr("button.show_demo").c_str())) {
             if (onShowDemo) {
                 onShowDemo();
+            }
+        }
+
+        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN,
+                                   UILayout::TOP_MARGIN + UILayout::LINE_SPACING * 2 + UILayout::BUTTON_SPACING * 3));
+        if (ImGui::Button(loc.Tr("button.show_input").c_str())) {
+            if (onShowInputDialog) {
+                onShowInputDialog();
             }
         }
     }

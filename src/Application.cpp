@@ -227,7 +227,8 @@ void Application::Render() {
 
         // Render main window content
         m_uiRenderer->RenderMainWindow([this]() { this->OnShowAboutRequested(); },
-                                       [this]() { this->OnToggleDemoWindow(); });
+                                       [this]() { this->OnToggleDemoWindow(); },
+                                       [this]() { this->OnShowInputDialogRequested(); });
 
         // Render status bar
         m_uiRenderer->RenderStatusBar(m_statusMessage, m_lastFrameTime, Version::VERSION, m_updateCheckInProgress);
@@ -303,6 +304,22 @@ void Application::OnCheckUpdatesRequested() {
 
 void Application::OnShowAboutRequested() {
     m_showAboutWindow = true;
+}
+
+void Application::OnShowInputDialogRequested() {
+    if (m_dialogManager) {
+        auto& loc = Localization::Instance();
+        m_dialogManager->ShowInputDialog(loc.Tr("input_dialog.title"), loc.Tr("input_dialog.prompt"), "",
+                                         [this](const std::string& result) {
+                                             auto& loc = Localization::Instance();
+                                             if (!result.empty()) {
+                                                 m_statusMessage = loc.Tr("status.input_received") + " " + result;
+                                                 LOG_INFO("User input: {}", result);
+                                             } else {
+                                                 m_statusMessage = loc.Tr("status.input_cancelled");
+                                             }
+                                         });
+    }
 }
 
 // Input Callbacks

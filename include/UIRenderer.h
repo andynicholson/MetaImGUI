@@ -55,8 +55,10 @@ public:
      * @brief Render the main application window
      * @param onShowAbout Callback when "Show About" is clicked
      * @param onShowDemo Callback when "Show Demo" is clicked
+     * @param onShowInputDialog Callback when "Show Input Dialog" is clicked
      */
-    void RenderMainWindow(std::function<void()> onShowAbout, std::function<void()> onShowDemo);
+    void RenderMainWindow(std::function<void()> onShowAbout, std::function<void()> onShowDemo,
+                          std::function<void()> onShowInputDialog = nullptr);
 
     /**
      * @brief Render the menu bar

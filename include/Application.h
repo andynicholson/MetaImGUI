@@ -153,6 +153,7 @@ private:
     void OnToggleDemoWindow();
     void OnCheckUpdatesRequested();
     void OnShowAboutRequested();
+    void OnShowInputDialogRequested();
 
     // Window size constants
     static constexpr int DEFAULT_WIDTH = 1200;

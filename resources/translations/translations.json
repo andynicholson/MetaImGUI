@@ -23,7 +23,12 @@
     "button.retry": "Retry",
     "button.close": "Close",
     "button.show_about": "Show About Dialog",
-    "button.show_demo": "Show ImGui Demo Window"
+    "button.show_demo": "Show ImGui Demo Window",
+    "button.show_input": "Show Input Dialog",
+    "input_dialog.title": "User Input",
+    "input_dialog.prompt": "Please enter your name:",
+    "status.input_received": "You entered:",
+    "status.input_cancelled": "Input cancelled"
   },
   "es": {
     "app.title": "MetaImGUI - Plantilla de Aplicación ImGui",
@@ -49,7 +54,12 @@
     "button.retry": "Reintentar",
     "button.close": "Cerrar",
     "button.show_about": "Mostrar Diálogo Acerca de",
-    "button.show_demo": "Mostrar Ventana Demo de ImGui"
+    "button.show_demo": "Mostrar Ventana Demo de ImGui",
+    "button.show_input": "Mostrar Diálogo de Entrada",
+    "input_dialog.title": "Entrada de Usuario",
+    "input_dialog.prompt": "Por favor, ingrese su nombre:",
+    "status.input_received": "Has ingresado:",
+    "status.input_cancelled": "Entrada cancelada"
   },
   "fr": {
     "app.title": "MetaImGUI - Modèle d'Application ImGui",
@@ -75,7 +85,12 @@
     "button.retry": "Réessayer",
     "button.close": "Fermer",
     "button.show_about": "Afficher la Boîte À Propos",
-    "button.show_demo": "Afficher la Fenêtre Démo ImGui"
+    "button.show_demo": "Afficher la Fenêtre Démo ImGui",
+    "button.show_input": "Afficher la Boîte de Saisie",
+    "input_dialog.title": "Saisie Utilisateur",
+    "input_dialog.prompt": "Veuillez entrer votre nom:",
+    "status.input_received": "Vous avez entré:",
+    "status.input_cancelled": "Saisie annulée"
   },
   "de": {
     "app.title": "MetaImGUI - ImGui Anwendungsvorlage",
@@ -101,7 +116,12 @@
     "button.retry": "Wiederholen",
     "button.close": "Schließen",
     "button.show_about": "Über-Dialog anzeigen",
-    "button.show_demo": "ImGui Demo-Fenster anzeigen"
+    "button.show_demo": "ImGui Demo-Fenster anzeigen",
+    "button.show_input": "Eingabedialog anzeigen",
+    "input_dialog.title": "Benutzereingabe",
+    "input_dialog.prompt": "Bitte geben Sie Ihren Namen ein:",
+    "status.input_received": "Sie haben eingegeben:",
+    "status.input_cancelled": "Eingabe abgebrochen"
   }
 }
 
