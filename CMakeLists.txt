@@ -113,6 +113,13 @@ if(EXISTS ${IMPLOT_DIR})
     )
     target_link_libraries(implot PUBLIC imgui)
 
+    # Link math library on Unix systems (required for sin, cos, sqrt, etc.)
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(implot PUBLIC m stdc++)
+    elseif(APPLE)
+        target_link_libraries(implot PUBLIC stdc++)
+    endif()
+
     # Disable warnings for ImPlot (external library)
     if(MSVC)
         target_compile_options(implot PRIVATE /w)  # Disable all warnings for MSVC
