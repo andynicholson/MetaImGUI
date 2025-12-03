@@ -27,7 +27,7 @@ MetaImGUI provides the structure for building ImGui desktop applications. Includ
 ![Dialogs](screenshots/dialogs.png)
 
 ### About System
-![About](screenshots/about-dialogs.png)
+![About](screenshots/about-dialog.png)
 
 ### Menu System
 ![Menu](screenshots/menu-system.png)
