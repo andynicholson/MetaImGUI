@@ -14,7 +14,7 @@ A C++20 template for ImGui desktop applications. Includes build system, CI/CD, a
 ## Overview
 
 MetaImGUI provides the structure for building ImGui desktop applications. Includes build infrastructure, dependency management, and CI/CD automation.
-Designed for efficient development in AI-assisted editors like Cursor.
+Designed for efficient development in AI-assisted editors like Cursor, Antigravity, Claude.
 
 ## Screenshots
 
