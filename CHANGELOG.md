@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [1.1.1] - 2025-12-04
+
+### Fixed
+-  Update ImPlot from v0.16 to v0.17 for ImGui 1.92.4 compatibility
+-  Restore 'with:' section in release.yml for fetch-depth
+-  Remove empty 'with:' sections from workflow files
+-  Remove implot submodule and handle it like other dependencies
+-  Convert implot from submodule to regular files
+
 ## [1.1.0] - 2025-12-03
 
 ### Added
