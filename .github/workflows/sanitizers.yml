@@ -108,8 +108,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
-      with:
-        # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
     - name: Install dependencies
       run: |
@@ -189,8 +187,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
-      with:
-        # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
     - name: Install dependencies
       run: |

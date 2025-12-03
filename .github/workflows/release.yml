@@ -23,7 +23,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
-      with:
         fetch-depth: 0
 
     - name: Get version from tag
@@ -74,8 +73,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
-      with:
-        # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
     - name: Install dependencies
       run: |
@@ -283,8 +280,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
-      with:
-        # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -412,8 +407,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
-      with:
-        # submodules: recursive (no longer needed - dependencies cloned in setup steps)
 
     - name: Install dependencies
       run: |
