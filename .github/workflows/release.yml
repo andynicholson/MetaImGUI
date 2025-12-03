@@ -301,7 +301,8 @@ jobs:
         path: |
           external/imgui
           external/json
-        key: release-deps-imgui-1.92.4-json-3.11.3
+          external/implot
+        key: release-deps-imgui-1.92.4-json-3.11.3-implot-0.17
         restore-keys: |
           release-deps-
 
@@ -354,6 +355,15 @@ jobs:
           mkdir -p external
           cd external
           git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+        fi
+      shell: bash
+
+    - name: Setup ImPlot
+      run: |
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
         fi
       shell: bash
 
