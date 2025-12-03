@@ -96,7 +96,7 @@ jobs:
           external/imgui
           external/json
           external/implot
-        key: release-deps-imgui-1.92.4-json-3.11.3-implot-0.16
+        key: release-deps-imgui-1.92.4-json-3.11.3-implot-0.17
         restore-keys: |
           release-deps-
 
@@ -121,7 +121,7 @@ jobs:
         if [ ! -d "external/implot" ]; then
           mkdir -p external
           cd external
-          git clone --branch v0.16 --depth 1 https://github.com/epezent/implot.git
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
         fi
 
     - name: Build
@@ -428,7 +428,7 @@ jobs:
           external/imgui
           external/json
           external/implot
-        key: release-deps-imgui-1.92.4-json-3.11.3-implot-0.16
+        key: release-deps-imgui-1.92.4-json-3.11.3-implot-0.17
         restore-keys: |
           release-deps-
 
@@ -453,7 +453,7 @@ jobs:
         if [ ! -d "external/implot" ]; then
           mkdir -p external
           cd external
-          git clone --branch v0.16 --depth 1 https://github.com/epezent/implot.git
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
         fi
 
     - name: Build
@@ -522,11 +522,11 @@ jobs:
     - name: Bundle Dynamic Libraries
       run: |
         echo "Bundling dynamic libraries into app bundle..."
-        
+
         # Get LLVM path for finding @rpath dependencies
         LLVM_PATH=$(brew --prefix llvm)
         echo "LLVM path: $LLVM_PATH"
-        
+
         # List ALL LLVM C++ runtime libraries that we need to bundle
         # These form a dependency chain: libc++ -> libc++abi -> libunwind
         # Note: Homebrew LLVM puts libunwind in lib/ not lib/c++/
@@ -535,7 +535,7 @@ jobs:
           "$LLVM_PATH/lib/c++/libc++abi.1.dylib"
           "$LLVM_PATH/lib/libunwind.1.dylib"
         )
-        
+
         echo "LLVM C++ libraries to bundle:"
         for lib in "${LLVM_LIBS[@]}"; do
           if [ -f "$lib" ]; then
@@ -558,13 +558,13 @@ jobs:
             echo "  Copying $lib_name"
             cp "$llvm_lib" MetaImGUI.app/Contents/Frameworks/
             chmod +w "MetaImGUI.app/Contents/Frameworks/$lib_name"
-            
+
             # Set the library's install name to use @executable_path
             install_name_tool -id "@executable_path/../Frameworks/$lib_name" \
               "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
           fi
         done
-        
+
         # Fix @rpath dependencies WITHIN the LLVM libraries
         echo "  Fixing LLVM library inter-dependencies..."
         for llvm_lib in "${LLVM_LIBS[@]}"; do
@@ -573,7 +573,7 @@ jobs:
             # Get dependencies and fix @rpath references
             otool -L "MetaImGUI.app/Contents/Frameworks/$lib_name" | grep "@rpath" | awk '{print $1}' | while read -r dep; do
               dep_name=$(basename "$dep")
-              
+
               # First check if we already bundled it
               if [ -f "MetaImGUI.app/Contents/Frameworks/$dep_name" ]; then
                 echo "    $lib_name: $dep -> @executable_path/../Frameworks/$dep_name"
@@ -640,14 +640,14 @@ jobs:
           if [[ "$lib" == *"MetaImGUI"* ]] && [[ "$lib" != *".dylib" ]]; then
             continue
           fi
-          
+
           # Handle @rpath references (LLVM libraries already bundled in Step 1)
           if [[ "$lib" == @rpath/* ]]; then
             lib_name=$(basename "$lib")
             echo "  Fixing @rpath: $lib -> @executable_path/../Frameworks/$lib_name"
             install_name_tool -change "$lib" "@executable_path/../Frameworks/$lib_name" \
               MetaImGUI.app/Contents/MacOS/MetaImGUI || true
-              
+
           # Handle absolute paths (e.g., /opt/homebrew/lib/libglfw.dylib)
           elif [[ ! "$lib" == /System/* ]] && [[ ! "$lib" == /usr/lib/* ]] && [[ ! "$lib" == @executable_path/* ]]; then
             if [ -f "$lib" ]; then

@@ -106,7 +106,7 @@ jobs:
         if [ ! -d "external/implot" ]; then
           mkdir -p external
           cd external
-          git clone --branch v0.16 --depth 1 https://github.com/epezent/implot.git
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
         fi
       shell: bash
 
@@ -165,7 +165,7 @@ jobs:
           external/imgui
           external/json
           external/implot
-        key: ${{ runner.os }}-lint-deps-imgui-1.92.4-json-3.11.3-implot-0.16
+        key: ${{ runner.os }}-lint-deps-imgui-1.92.4-json-3.11.3-implot-0.17
         restore-keys: |
           ${{ runner.os }}-lint-deps-
 
@@ -197,7 +197,7 @@ jobs:
         if [ ! -d "external/implot" ]; then
           mkdir -p external
           cd external
-          git clone --branch v0.16 --depth 1 https://github.com/epezent/implot.git
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
           cd ..
         fi
 

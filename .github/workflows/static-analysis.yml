@@ -60,7 +60,7 @@ jobs:
         if [ ! -d "external/implot" ]; then
           mkdir -p external
           cd external
-          git clone --branch v0.16 --depth 1 https://github.com/epezent/implot.git
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
         fi
 
     - name: Configure CMake

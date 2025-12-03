@@ -50,7 +50,7 @@ if [ ! -d "external/implot" ]; then
     cd external
     git clone https://github.com/epezent/implot.git
     cd implot
-    git checkout v0.16
+    git checkout v0.17
     cd ../..
     echo "ImPlot downloaded successfully"
 else
