@@ -10,6 +10,7 @@ class UIRenderer;
 class UpdateChecker;
 class ConfigManager;
 class DialogManager;
+class ISSTracker;
 struct UpdateInfo;
 } // namespace MetaImGUI
 
@@ -121,6 +122,7 @@ private:
     std::unique_ptr<UpdateChecker> m_updateChecker;
     std::unique_ptr<ConfigManager> m_configManager;
     std::unique_ptr<DialogManager> m_dialogManager;
+    std::unique_ptr<ISSTracker> m_issTracker;
 
     // Application state
     bool m_initialized;
@@ -129,6 +131,7 @@ private:
     bool m_showUpdateNotification;
     bool m_updateCheckInProgress;
     bool m_showExitDialog;
+    bool m_showISSTracker;
 
     // Update checking
     std::unique_ptr<UpdateInfo> m_latestUpdateInfo;
@@ -154,6 +157,7 @@ private:
     void OnCheckUpdatesRequested();
     void OnShowAboutRequested();
     void OnShowInputDialogRequested();
+    void OnToggleISSTracker();
 
     // Window size constants
     static constexpr int DEFAULT_WIDTH = 1200;

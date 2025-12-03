@@ -2,6 +2,7 @@
 
 #include "ConfigManager.h"
 #include "DialogManager.h"
+#include "ISSTracker.h"
 #include "Localization.h"
 #include "Logger.h"
 #include "UIRenderer.h"
@@ -19,9 +20,9 @@ namespace MetaImGUI {
 
 Application::Application()
     : m_windowManager(nullptr), m_uiRenderer(nullptr), m_updateChecker(nullptr), m_configManager(nullptr),
-      m_dialogManager(nullptr), m_initialized(false), m_showAboutWindow(false), m_showDemoWindow(false),
-      m_showUpdateNotification(false), m_updateCheckInProgress(false), m_showExitDialog(false),
-      m_latestUpdateInfo(nullptr), m_statusMessage("Ready"), m_lastFrameTime(0.0f) {}
+      m_dialogManager(nullptr), m_issTracker(nullptr), m_initialized(false), m_showAboutWindow(false),
+      m_showDemoWindow(false), m_showUpdateNotification(false), m_updateCheckInProgress(false), m_showExitDialog(false),
+      m_showISSTracker(false), m_latestUpdateInfo(nullptr), m_statusMessage("Ready"), m_lastFrameTime(0.0f) {}
 
 Application::~Application() {
     Shutdown();
@@ -129,6 +130,10 @@ bool Application::Initialize() {
     m_updateChecker = std::make_unique<UpdateChecker>("andynicholson", "MetaImGUI");
     LOG_INFO("Update checker initialized");
 
+    // Initialize ISS tracker
+    m_issTracker = std::make_unique<ISSTracker>();
+    LOG_INFO("ISS tracker initialized");
+
     // Check for updates asynchronously
     CheckForUpdates();
 
@@ -168,6 +173,10 @@ void Application::Shutdown() {
     }
 
     // Shutdown subsystems in reverse order of initialization
+    if (m_issTracker) {
+        m_issTracker->StopTracking();
+    }
+    m_issTracker.reset();
     m_updateChecker.reset();
     m_dialogManager.reset();
     m_uiRenderer.reset();
@@ -223,7 +232,8 @@ void Application::Render() {
         // Render menu bar
         m_uiRenderer->RenderMenuBar([this]() { this->OnExitRequested(); }, [this]() { this->OnToggleDemoWindow(); },
                                     [this]() { this->OnCheckUpdatesRequested(); },
-                                    [this]() { this->OnShowAboutRequested(); }, m_showDemoWindow);
+                                    [this]() { this->OnShowAboutRequested(); }, m_showDemoWindow,
+                                    [this]() { this->OnToggleISSTracker(); }, m_showISSTracker);
 
         // Render main window content
         m_uiRenderer->RenderMainWindow([this]() { this->OnShowAboutRequested(); },
@@ -248,6 +258,10 @@ void Application::Render() {
 
     if (m_showUpdateNotification) {
         m_uiRenderer->RenderUpdateNotification(m_showUpdateNotification, m_latestUpdateInfo.get());
+    }
+
+    if (m_showISSTracker) {
+        m_uiRenderer->RenderISSTrackerWindow(m_showISSTracker, m_issTracker.get());
     }
 
     // Render exit confirmation dialog
@@ -320,6 +334,10 @@ void Application::OnShowInputDialogRequested() {
                                              }
                                          });
     }
+}
+
+void Application::OnToggleISSTracker() {
+    m_showISSTracker = !m_showISSTracker;
 }
 
 // Input Callbacks

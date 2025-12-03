@@ -44,6 +44,19 @@ else
     echo "nlohmann/json already exists"
 fi
 
+# Download and setup ImPlot
+if [ ! -d "external/implot" ]; then
+    echo "Downloading ImPlot..."
+    cd external
+    git clone https://github.com/epezent/implot.git
+    cd implot
+    git checkout v0.16
+    cd ../..
+    echo "ImPlot downloaded successfully"
+else
+    echo "ImPlot already exists"
+fi
+
 # Install required system packages (Ubuntu/Debian)
 if command -v apt-get &> /dev/null; then
     echo "Installing system dependencies (Ubuntu/Debian)..."

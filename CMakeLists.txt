@@ -100,6 +100,29 @@ else()
     message(FATAL_ERROR "ImGui not found. Run setup_dependencies.sh first.")
 endif()
 
+# Setup ImPlot
+set(IMPLOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/implot)
+if(EXISTS ${IMPLOT_DIR})
+    file(GLOB IMPLOT_SOURCES
+        ${IMPLOT_DIR}/*.cpp
+    )
+
+    add_library(implot STATIC ${IMPLOT_SOURCES})
+    target_include_directories(implot PUBLIC
+        ${IMPLOT_DIR}
+    )
+    target_link_libraries(implot PUBLIC imgui)
+
+    # Disable warnings for ImPlot (external library)
+    if(MSVC)
+        target_compile_options(implot PRIVATE /w)  # Disable all warnings for MSVC
+    else()
+        target_compile_options(implot PRIVATE -w)  # Disable all warnings for GCC/Clang
+    endif()
+else()
+    message(FATAL_ERROR "ImPlot not found. Run setup_dependencies.sh first.")
+endif()
+
 # Setup nlohmann/json (header-only library)
 set(JSON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/json)
 if(EXISTS ${JSON_DIR})
@@ -129,6 +152,7 @@ if(APPLE)
         src/Logger.cpp
         src/DialogManager.cpp
         src/Localization.cpp
+        src/ISSTracker.cpp
     )
 
     # Set bundle properties
@@ -152,6 +176,7 @@ else()
         src/Logger.cpp
         src/DialogManager.cpp
         src/Localization.cpp
+        src/ISSTracker.cpp
     )
 endif()
 
@@ -164,6 +189,7 @@ target_include_directories(MetaImGUI PRIVATE
 # Link libraries
 target_link_libraries(MetaImGUI PRIVATE
     imgui
+    implot
     OpenGL::GL
     ${GLFW_LIBRARIES}
 )

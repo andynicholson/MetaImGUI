@@ -11,6 +11,7 @@ namespace MetaImGUI {
 
 // Forward declarations
 struct UpdateInfo;
+class ISSTracker;
 
 /**
  * @brief Handles all ImGui rendering operations
@@ -67,9 +68,12 @@ public:
      * @param onCheckUpdates Callback when update check is requested
      * @param onShowAbout Callback when about is requested
      * @param showDemoWindow Current state of demo window visibility
+     * @param onToggleISSTracker Callback when ISS tracker is toggled
+     * @param showISSTracker Current state of ISS tracker window visibility
      */
     void RenderMenuBar(std::function<void()> onExit, std::function<void()> onToggleDemo,
-                       std::function<void()> onCheckUpdates, std::function<void()> onShowAbout, bool showDemoWindow);
+                       std::function<void()> onCheckUpdates, std::function<void()> onShowAbout, bool showDemoWindow,
+                       std::function<void()> onToggleISSTracker = nullptr, bool showISSTracker = false);
 
     /**
      * @brief Render the status bar
@@ -98,6 +102,13 @@ public:
      * @param showDemoWindow Reference to visibility flag
      */
     void ShowDemoWindow(bool& showDemoWindow);
+
+    /**
+     * @brief Render the ISS tracker window
+     * @param showISSTracker Reference to visibility flag
+     * @param issTracker Pointer to ISSTracker instance
+     */
+    void RenderISSTrackerWindow(bool& showISSTracker, ISSTracker* issTracker);
 
     /**
      * @brief Helper to show tooltip with question mark

@@ -43,6 +43,19 @@ if not exist "external\json" (
     echo nlohmann/json already exists
 )
 
+REM Download and setup ImPlot
+if not exist "external\implot" (
+    echo Downloading ImPlot...
+    cd external
+    git clone https://github.com/epezent/implot.git
+    cd implot
+    git checkout v0.16
+    cd ..\..
+    echo ImPlot downloaded successfully
+) else (
+    echo ImPlot already exists
+)
+
 REM Create build directory
 if not exist "build" mkdir build
 

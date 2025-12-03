@@ -1,5 +1,6 @@
 #include "UIRenderer.h"
 
+#include "ISSTracker.h"
 #include "Localization.h"
 #include "ThemeManager.h"
 #include "UpdateChecker.h"
@@ -9,6 +10,7 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <implot.h>
 
 namespace MetaImGUI {
 
@@ -65,6 +67,9 @@ bool UIRenderer::Initialize(GLFWwindow* window) {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
+    // Setup ImPlot context
+    ImPlot::CreateContext();
+
     // Setup ImGui style
     ThemeManager::Apply(ThemeManager::Theme::Modern);
 
@@ -80,6 +85,7 @@ void UIRenderer::Shutdown() {
     if (m_initialized) {
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
+        ImPlot::DestroyContext();
         ImGui::DestroyContext();
         m_initialized = false;
     }
@@ -143,7 +149,7 @@ void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::functi
 
 void UIRenderer::RenderMenuBar(std::function<void()> onExit, std::function<void()> onToggleDemo,
                                std::function<void()> onCheckUpdates, std::function<void()> onShowAbout,
-                               bool showDemoWindow) {
+                               bool showDemoWindow, std::function<void()> onToggleISSTracker, bool showISSTracker) {
     auto& loc = Localization::Instance();
 
     if (ImGui::BeginMenuBar()) {
@@ -160,6 +166,12 @@ void UIRenderer::RenderMenuBar(std::function<void()> onExit, std::function<void(
             if (ImGui::MenuItem(loc.Tr("menu.demo_window").c_str(), nullptr, showDemoWindow)) {
                 if (onToggleDemo) {
                     onToggleDemo();
+                }
+            }
+
+            if (ImGui::MenuItem("ISS Tracker", nullptr, showISSTracker)) {
+                if (onToggleISSTracker) {
+                    onToggleISSTracker();
                 }
             }
 
@@ -408,6 +420,117 @@ void UIRenderer::ShowDemoWindow(bool& showDemoWindow) {
     if (showDemoWindow) {
         ImGui::ShowDemoWindow(&showDemoWindow);
     }
+}
+
+void UIRenderer::RenderISSTrackerWindow(bool& showISSTracker, ISSTracker* issTracker) {
+    if (!showISSTracker || !issTracker) {
+        return;
+    }
+
+    ImGui::SetNextWindowSize(ImVec2(900, 700), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("ISS Tracker", &showISSTracker)) {
+        // Get current position
+        ISSPosition currentPos = issTracker->GetCurrentPosition();
+
+        // Control panel
+        ImGui::BeginGroup();
+        {
+            ImGui::Text("ISS Position Tracker");
+            ImGui::Separator();
+
+            // Control buttons
+            if (issTracker->IsTracking()) {
+                if (ImGui::Button("Stop Tracking")) {
+                    issTracker->StopTracking();
+                }
+            } else {
+                if (ImGui::Button("Start Tracking")) {
+                    issTracker->StartTracking();
+                }
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Fetch Now")) {
+                // Launch a quick one-time fetch in a separate thread to avoid blocking UI
+                std::thread([issTracker]() {
+                    ISSPosition pos = issTracker->FetchPositionSync();
+                    if (pos.valid) {
+                        // Position will be automatically stored
+                    }
+                }).detach();
+            }
+
+            ImGui::Separator();
+
+            // Display current position info
+            if (currentPos.valid) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.8f, 0.4f, 1.0f));
+                ImGui::Text("Status: Active");
+                ImGui::PopStyleColor();
+
+                ImGui::Spacing();
+                ImGui::Text("Latitude:  %.4f°", currentPos.latitude);
+                ImGui::Text("Longitude: %.4f°", currentPos.longitude);
+                ImGui::Text("Altitude:  %.2f km", currentPos.altitude);
+                ImGui::Text("Velocity:  %.2f km/h", currentPos.velocity);
+
+                // Convert Unix timestamp to readable time
+                if (currentPos.timestamp > 0) {
+                    time_t time = static_cast<time_t>(currentPos.timestamp);
+                    struct tm* timeinfo = gmtime(&time);
+                    char buffer[80];
+                    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S UTC", timeinfo);
+                    ImGui::Text("Time: %s", buffer);
+                }
+            } else {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.4f, 0.4f, 1.0f));
+                ImGui::Text("Status: No data");
+                ImGui::PopStyleColor();
+                ImGui::TextWrapped("Click 'Start Tracking' or 'Fetch Now' to get ISS position data.");
+            }
+        }
+        ImGui::EndGroup();
+
+        ImGui::Separator();
+
+        // Get position history
+        std::vector<double> latitudes, longitudes;
+        issTracker->GetPositionHistory(latitudes, longitudes);
+
+        // Plot area
+        if (ImPlot::BeginPlot("ISS Orbit", ImVec2(-1, -1))) {
+            // Set axis limits for Earth coordinates
+            ImPlot::SetupAxes("Longitude (°)", "Latitude (°)");
+            ImPlot::SetupAxisLimits(ImAxis_X1, -180, 180, ImGuiCond_Always);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, -90, 90, ImGuiCond_Always);
+
+            // Plot orbit trail if we have data
+            if (!latitudes.empty() && !longitudes.empty()) {
+                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f);
+                ImPlot::PlotLine("Orbit Trail", longitudes.data(), latitudes.data(),
+                                 static_cast<int>(longitudes.size()));
+            }
+
+            // Plot current position as a larger marker
+            if (currentPos.valid) {
+                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 10.0f, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+                ImPlot::PlotScatter("Current Position", &currentPos.longitude, &currentPos.latitude, 1);
+            }
+
+            // Add grid reference lines
+            ImPlot::SetNextLineStyle(ImVec4(0.5f, 0.5f, 0.5f, 0.3f));
+            double xRange[] = {-180.0, 180.0};
+            double yZero[] = {0.0, 0.0};
+            ImPlot::PlotLine("Equator", xRange, yZero, 2);
+
+            double xZero[] = {0.0, 0.0};
+            double yRange[] = {-90.0, 90.0};
+            ImPlot::PlotLine("Prime Meridian", xZero, yRange, 2);
+
+            ImPlot::EndPlot();
+        }
+    }
+    ImGui::End();
 }
 
 void UIRenderer::HelpMarker(const char* desc) {
