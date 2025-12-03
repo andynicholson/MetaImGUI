@@ -202,5 +202,5 @@ If you have questions about this security policy, please contact: intothemist@gm
 
 ---
 
-Last updated: 2024-11-18
+Last updated: 2025-12-03
 

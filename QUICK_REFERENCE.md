@@ -284,7 +284,8 @@ git status
 |-------|----------|
 | Meta-features | [META_FEATURES.md](META_FEATURES.md) |
 | Setup guide | [SETUP_GUIDE.md](SETUP_GUIDE.md) |
-| Implementation | [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) |
+| GitHub Actions | [GITHUB_ACTIONS_GUIDE.md](GITHUB_ACTIONS_GUIDE.md) |
+| Contributing | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | ImGui docs | https://github.com/ocornut/imgui |
 | CMake docs | https://cmake.org/documentation/ |
 | GitHub Actions | https://docs.github.com/en/actions |

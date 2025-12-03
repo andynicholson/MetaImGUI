@@ -71,24 +71,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 -  Fix macOS app crash by bundling dynamic libraries and setting correct deployment target
 
-### Changed
--  release vy
-
-## [y] - 2025-11-24
-
-### Fixed
--  Fix macOS app crash by bundling dynamic libraries and setting correct deployment target
-
-## [y] - 2025-11-24
-
-### Fixed
--  Fix macOS app crash by bundling dynamic libraries and setting correct deployment target
-
-## [1.0.4] - 2025-11-24
-
-### Fixed
--  Fix macOS app crash by bundling dynamic libraries and setting correct deployment target
-
 ## [1.0.3] - 2025-11-24
 
 ### Fixed
@@ -107,19 +89,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 -  monitoring script fixes
 
-
-### Added
-
-### Changed
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
-
 ---
 
 ## [1.0.0] - 2025-11-19
@@ -130,7 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive CI/CD with GitHub Actions
 - Automated code coverage tracking (Codecov)
 - Memory safety checks (ASan, UBSan, TSan)
-- Static analysis (clang-tidy, cppcheck) 
+- Static analysis (clang-tidy, cppcheck)
 - Security scanning (CodeQL)
 - Performance benchmarks (Google Benchmark)
 - Professional packaging (AppImage, .deb, NSIS, DMG)

@@ -288,5 +288,5 @@ gh auth login
 
 ---
 
-*Last Updated: November 20, 2025*
+*Last Updated: December 3, 2025*
 

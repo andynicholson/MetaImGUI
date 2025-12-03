@@ -15,6 +15,27 @@ A C++20 template for ImGui desktop applications. Includes build system, CI/CD, a
 
 MetaImGUI provides the structure for building ImGui desktop applications. Includes build infrastructure, dependency management, and CI/CD automation.
 
+## Screenshots
+
+> **Note**: Screenshots will be added after capturing the running application. To generate screenshots, build and run the application, then capture images of:
+> - Main application window with default UI
+> - Theme variations (Dark, Light, Classic, Modern)
+> - Dialog system examples
+> - About dialog and menu system
+>
+> See [`screenshots/README.md`](screenshots/README.md) for detailed guidelines.
+
+<!-- Once screenshots are captured, uncomment and use this format:
+### Main Application Window
+![Main Window](screenshots/main-window.png)
+
+### Theme Variations
+![Themes](screenshots/themes.png)
+
+### Dialog System
+![Dialogs](screenshots/dialogs.png)
+-->
+
 ## Features
 
 ### Core Application
