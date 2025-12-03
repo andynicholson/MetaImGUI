@@ -17,15 +17,6 @@ MetaImGUI provides the structure for building ImGui desktop applications. Includ
 
 ## Screenshots
 
-> **Note**: Screenshots will be added after capturing the running application. To generate screenshots, build and run the application, then capture images of:
-> - Main application window with default UI
-> - Theme variations (Dark, Light, Classic, Modern)
-> - Dialog system examples
-> - About dialog and menu system
->
-> See [`screenshots/README.md`](screenshots/README.md) for detailed guidelines.
-
-<!-- Once screenshots are captured, uncomment and use this format:
 ### Main Application Window
 ![Main Window](screenshots/main-window.png)
 
@@ -34,7 +25,13 @@ MetaImGUI provides the structure for building ImGui desktop applications. Includ
 
 ### Dialog System
 ![Dialogs](screenshots/dialogs.png)
--->
+
+### About System
+![About](screenshots/about-dialogs.png)
+
+### Menu System
+![Menu](screenshots/menu-system.png)
+
 
 ## Features
 
