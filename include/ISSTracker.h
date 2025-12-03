@@ -96,7 +96,6 @@ private:
     // Threading
     std::atomic<bool> m_tracking;
     std::jthread m_trackingThread;
-    std::stop_source m_stopSource;
     mutable std::mutex m_threadMutex;
 
     // Callback (protected by m_callbackMutex)

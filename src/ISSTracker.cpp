@@ -35,7 +35,7 @@ void ISSTracker::StartTracking(std::function<void(const ISSPosition&)> callback)
     }
 
     // C++20: std::jthread with stop_token for clean cancellation
-    m_stopSource = std::stop_source();
+    // jthread creates its own stop_source internally
     m_trackingThread = std::jthread([this](std::stop_token stopToken) { TrackingLoop(stopToken); });
 
     LOG_INFO("ISS Tracker: Started tracking");
@@ -48,8 +48,8 @@ void ISSTracker::StopTracking() {
         return;
     }
 
-    // Request stop using stop_source
-    m_stopSource.request_stop();
+    // Request stop using jthread's internal stop_source
+    m_trackingThread.request_stop();
     m_tracking = false;
 
     LOG_INFO("ISS Tracker: Stopped tracking");
