@@ -127,8 +127,9 @@ jobs:
         path: |
           external/imgui
           external/json
+          external/implot
           external/catch2
-        key: sanitizer-deps-imgui-1.92.4-json-3.11.3-catch2-3.4.0
+        key: sanitizer-deps-imgui-1.92.4-json-3.11.3-implot-0.17-catch2-3.4.0
         restore-keys: |
           sanitizer-deps-
 
@@ -147,6 +148,14 @@ jobs:
           mkdir -p external
           cd external
           git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+          cd ..
+        fi
+
+        # Setup ImPlot
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
           cd ..
         fi
 
@@ -206,8 +215,9 @@ jobs:
         path: |
           external/imgui
           external/json
+          external/implot
           external/catch2
-        key: sanitizer-deps-imgui-1.92.4-json-3.11.3-catch2-3.4.0
+        key: sanitizer-deps-imgui-1.92.4-json-3.11.3-implot-0.17-catch2-3.4.0
         restore-keys: |
           sanitizer-deps-
 
@@ -226,6 +236,14 @@ jobs:
           mkdir -p external
           cd external
           git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+          cd ..
+        fi
+
+        # Setup ImPlot
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
           cd ..
         fi
 
