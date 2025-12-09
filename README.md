@@ -65,7 +65,7 @@ MetaImGUI is a project starter built for AI-assisted development. This template 
 - ✅ Catch2 tests
 - 🧪 Code coverage tracking (Codecov)
 - 🛡️ Sanitizers (AddressSanitizer, UndefinedBehaviorSanitizer, ThreadSanitizer)
-- 🔍 Static analysis (clang-tidy with 189+ checks, cppcheck) - enforced on every push/PR
+- 🔍 Static analysis (clang-tidy with 400+ checks, cppcheck) - enforced on every push/PR
 - 🔒 Security scanning (CodeQL)
 - 📊 Performance benchmarks (Google Benchmark)
 - 📋 Packaging (AppImage, .deb, NSIS installer, DMG)
@@ -372,7 +372,7 @@ GitHub Actions workflows:
 - **CI Build** - Builds and tests on Linux, Windows, macOS
 - **Code Coverage** - Coverage tracking via Codecov
 - **Sanitizers** - AddressSanitizer, UndefinedBehaviorSanitizer, ThreadSanitizer
-- **Static Analysis** - clang-tidy with 189+ checks, cppcheck (blocks PRs on issues)
+- **Static Analysis** - clang-tidy with 400+ checks, cppcheck (blocks PRs on issues)
 - **Security Analysis** - CodeQL scanning
 - **Benchmarks** - Google Benchmark
 - **Release** - Builds installers on tag push
