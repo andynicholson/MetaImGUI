@@ -323,6 +323,7 @@ void UIRenderer::RenderAboutWindow(bool& showAboutWindow) {
 
         ImGui::Text("Built with:");
         ImGui::BulletText("ImGui v1.92.4");
+        ImGui::BulletText("ImPlot v0.17");
         ImGui::BulletText("GLFW");
         ImGui::BulletText("OpenGL 3.3");
         ImGui::BulletText("C++20");

@@ -53,6 +53,7 @@ MetaImGUI is a project starter built for AI-assisted development. This template 
 - 📝 Thread-safe logging (console and file)
 - 💬 Dialog system (message boxes, confirmation, input, progress)
 - 🌍 Localization (English, Spanish, French, German)
+- 🛰️ ISS Tracker demo (real-time plotting with ImPlot)
 
 ### Build & Infrastructure
 - ⚡ CI/CD workflows (builds on every push)
@@ -102,7 +103,8 @@ MetaImGUI/
 │   ├── ConfigManager.cpp      # Settings persistence
 │   ├── Logger.cpp             # Logging system
 │   ├── DialogManager.cpp      # Dialog system
-│   └── Localization.cpp       # Localization/translations
+│   ├── Localization.cpp       # Localization/translations
+│   └── ISSTracker.cpp         # ISS position tracking
 │
 ├── include/                    # Header files
 │   ├── Application.h          # Application header
@@ -114,6 +116,7 @@ MetaImGUI/
 │   ├── Logger.h               # Logger header
 │   ├── DialogManager.h        # Dialog manager header
 │   ├── Localization.h         # Localization header
+│   ├── ISSTracker.h           # ISS tracker header
 │   └── version.h.in           # Version template
 │
 ├── tests/                      # Test suite (Catch2)
@@ -205,6 +208,7 @@ MetaImGUI/
 │
 ├── external/                   # External dependencies (generated)
 │   ├── imgui/                 # ImGui library
+│   ├── implot/                # ImPlot library
 │   ├── json/                  # nlohmann/json
 │   └── catch2/                # Catch2 testing framework
 │
@@ -336,6 +340,7 @@ Modular structure:
 - **Logger** - Thread-safe logging (file and console)
 - **DialogManager** - Reusable dialogs (message boxes, input, progress, lists)
 - **Localization** - Runtime language switching
+- **ISSTracker** - Real-time ISS position tracking and plotting
 
 ### Adding New Features
 
@@ -420,7 +425,7 @@ doxygen Doxyfile
 
 ### Core Dependencies
 - 🎨 ImGui v1.92.4
-- 📊 ImPlot (for plotting and data visualization)
+- 📊 ImPlot v0.17
 - 🪟 GLFW 3.x
 - 🎮 OpenGL 3.3
 - 🌐 libcurl (update checking)
@@ -428,7 +433,7 @@ doxygen Doxyfile
 
 ### Build & Development
 - 🔨 CMake 3.16+
-- ✅ Catch2 v3.x
+- ✅ Catch2 v3.4.0
 - 🛠️ C++20 compiler (GCC 10+, Clang 10+, MSVC 2019 16.11+)
 
 ## Platform Support
