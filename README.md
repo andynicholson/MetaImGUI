@@ -1,6 +1,7 @@
 # MetaImGUI
 
 [![CI Build](https://github.com/andynicholson/MetaImGUI/actions/workflows/ci.yml/badge.svg)](https://github.com/andynicholson/MetaImGUI/actions/workflows/ci.yml)
+[![Static Analysis](https://github.com/andynicholson/MetaImGUI/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/andynicholson/MetaImGUI/actions/workflows/static-analysis.yml)
 [![Release Build](https://github.com/andynicholson/MetaImGUI/actions/workflows/release.yml/badge.svg)](https://github.com/andynicholson/MetaImGUI/actions/workflows/release.yml)
 [![codecov](https://codecov.io/gh/andynicholson/MetaImGUI/branch/main/graph/badge.svg)](https://codecov.io/gh/andynicholson/MetaImGUI)
 [![Latest Release](https://img.shields.io/github/v/release/andynicholson/MetaImGUI)](https://github.com/andynicholson/MetaImGUI/releases/latest)
@@ -64,7 +65,7 @@ MetaImGUI is a project starter built for AI-assisted development. This template 
 - ✅ Catch2 tests
 - 🧪 Code coverage tracking (Codecov)
 - 🛡️ Sanitizers (AddressSanitizer, UndefinedBehaviorSanitizer, ThreadSanitizer)
-- 🔍 Static analysis (clang-tidy, cppcheck)
+- 🔍 Static analysis (clang-tidy with 189+ checks, cppcheck) - enforced on every push/PR
 - 🔒 Security scanning (CodeQL)
 - 📊 Performance benchmarks (Google Benchmark)
 - 📋 Packaging (AppImage, .deb, NSIS installer, DMG)
@@ -371,7 +372,7 @@ GitHub Actions workflows:
 - **CI Build** - Builds and tests on Linux, Windows, macOS
 - **Code Coverage** - Coverage tracking via Codecov
 - **Sanitizers** - AddressSanitizer, UndefinedBehaviorSanitizer, ThreadSanitizer
-- **Static Analysis** - clang-tidy, cppcheck
+- **Static Analysis** - clang-tidy with 189+ checks, cppcheck (blocks PRs on issues)
 - **Security Analysis** - CodeQL scanning
 - **Benchmarks** - Google Benchmark
 - **Release** - Builds installers on tag push
