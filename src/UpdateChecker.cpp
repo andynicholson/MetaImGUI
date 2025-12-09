@@ -238,7 +238,7 @@ int UpdateChecker::CompareVersions(const std::string& v1, const std::string& v2)
             // Extract numeric part only
             std::string numStr;
             for (const char c : part) {
-                if (std::isdigit(c)) {
+                if (std::isdigit(c) != 0) {
                     numStr += c;
                 } else {
                     break;
