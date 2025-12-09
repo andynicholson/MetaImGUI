@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [1.2.0] - 2025-12-10
+
+### Added
+-  show dialog for update checks with no updates found
+
+### Fixed
+-  explicit bool conversion for std::isdigit in UpdateChecker
+-  resolve all static analysis warnings and enable CI enforcement
+-  implement automatic OpenGL context recovery and address critical bugs
+
+### Changed
+-  replace std::endl with '\n' and initialize tm_buf
+-  apply comprehensive linter fixes and modernize C++ code
+-  update project structure and library versions in README
+-  updated README with a new tagline
+-  cleanup unused docs
+-  cleanup unused docs
+- (deps): bump Apple-Actions/import-codesign-certs from 5 to 6
+
 ## [1.1.3] - 2025-12-04
 
 ### Fixed
