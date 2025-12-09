@@ -22,8 +22,14 @@ struct UpdateInfo {
 
 class UpdateChecker {
 public:
-    UpdateChecker(const std::string& repoOwner, const std::string& repoName);
+    UpdateChecker(std::string repoOwner, std::string repoName);
     ~UpdateChecker();
+
+    // Delete copy and move
+    UpdateChecker(const UpdateChecker&) = delete;
+    UpdateChecker& operator=(const UpdateChecker&) = delete;
+    UpdateChecker(UpdateChecker&&) = delete;
+    UpdateChecker& operator=(UpdateChecker&&) = delete;
 
     // Check for updates asynchronously
     void CheckForUpdatesAsync(std::function<void(const UpdateInfo&)> callback);
@@ -35,7 +41,7 @@ public:
     void Cancel();
 
     // Check if a check is in progress
-    bool IsChecking() const;
+    [[nodiscard]] bool IsChecking() const;
 
     // Compare versions (returns: -1 if v1 < v2, 0 if equal, 1 if v1 > v2)
     static int CompareVersions(const std::string& v1, const std::string& v2);
@@ -51,7 +57,7 @@ private:
     std::mutex m_threadMutex; // Protects thread operations
 
     // Internal implementation
-    UpdateInfo CheckForUpdatesImpl(std::stop_token stopToken);
+    UpdateInfo CheckForUpdatesImpl(const std::stop_token& stopToken);
     std::string FetchLatestReleaseInfo();
     UpdateInfo ParseReleaseInfo(const std::string& jsonResponse);
 };

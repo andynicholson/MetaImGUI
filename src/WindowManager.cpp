@@ -6,9 +6,8 @@
 
 namespace MetaImGUI {
 
-WindowManager::WindowManager(const std::string& title, int width, int height)
-    : m_window(nullptr), m_title(title), m_width(width), m_height(height), m_initialized(false),
-      m_contextRecoveryAttempts(0) {}
+WindowManager::WindowManager(std::string title, int width, int height)
+    : m_title(std::move(title)), m_width(width), m_height(height) {}
 
 WindowManager::~WindowManager() {
     Shutdown();
@@ -21,7 +20,7 @@ bool WindowManager::Initialize() {
 
     // Initialize GLFW
     glfwSetErrorCallback(ErrorCallback);
-    if (!glfwInit()) {
+    if (glfwInit() == GLFW_FALSE) {
         LOG_ERROR("Failed to initialize GLFW");
         return false;
     }
@@ -54,19 +53,19 @@ bool WindowManager::Initialize() {
     const GLubyte* vendor = glGetString(GL_VENDOR);
     const GLubyte* renderer = glGetString(GL_RENDERER);
 
-    if (version) {
+    if (version != nullptr) {
         LOG_INFO("OpenGL version: {}", reinterpret_cast<const char*>(version));
     } else {
         LOG_ERROR("Failed to get OpenGL version");
     }
 
-    if (vendor) {
+    if (vendor != nullptr) {
         LOG_INFO("OpenGL vendor: {}", reinterpret_cast<const char*>(vendor));
     } else {
         LOG_ERROR("Failed to get OpenGL vendor");
     }
 
-    if (renderer) {
+    if (renderer != nullptr) {
         LOG_INFO("OpenGL renderer: {}", reinterpret_cast<const char*>(renderer));
     } else {
         LOG_ERROR("Failed to get OpenGL renderer");
@@ -93,7 +92,7 @@ void WindowManager::Shutdown() {
 }
 
 bool WindowManager::ShouldClose() const {
-    return m_window == nullptr || glfwWindowShouldClose(m_window);
+    return m_window == nullptr || (glfwWindowShouldClose(m_window) == GLFW_TRUE);
 }
 
 void WindowManager::PollEvents() {
@@ -112,7 +111,8 @@ void WindowManager::BeginFrame() {
         return;
     }
 
-    int width, height;
+    int width = 0;
+    int height = 0;
     glfwGetFramebufferSize(m_window, &width, &height);
     m_width = width;
     m_height = height;
@@ -122,7 +122,7 @@ void WindowManager::BeginFrame() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Check for errors after rendering operations
-    GLenum error = glGetError();
+    const GLenum error = glGetError();
     if (error == GL_CONTEXT_LOST || error == GL_OUT_OF_MEMORY) {
         LOG_WARNING("OpenGL error during clear (0x{:X}) - will attempt recovery next frame", error);
         // Don't attempt immediate recovery here - let ValidateContext handle it next frame
@@ -219,7 +219,7 @@ bool WindowManager::ValidateContext() {
     }
 
     // Check for OpenGL errors that indicate context loss
-    GLenum error = glGetError();
+    const GLenum error = glGetError();
     if (error == GL_CONTEXT_LOST || error == GL_OUT_OF_MEMORY) {
         LOG_WARNING("OpenGL context lost (error: 0x{:X}) - attempting recovery", error);
         return RecreateContext();

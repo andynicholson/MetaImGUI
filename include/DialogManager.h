@@ -44,9 +44,11 @@ public:
     DialogManager();
     ~DialogManager();
 
-    // Prevent copying
+    // Prevent copying and moving
     DialogManager(const DialogManager&) = delete;
     DialogManager& operator=(const DialogManager&) = delete;
+    DialogManager(DialogManager&&) = delete;
+    DialogManager& operator=(DialogManager&&) = delete;
 
     /**
      * @brief Render all active dialogs
@@ -124,7 +126,7 @@ public:
     /**
      * @brief Check if any dialog is currently open
      */
-    bool HasOpenDialog() const;
+    [[nodiscard]] bool HasOpenDialog() const;
 
     /**
      * @brief Close all dialogs

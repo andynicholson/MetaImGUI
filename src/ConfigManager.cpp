@@ -347,23 +347,23 @@ std::filesystem::path ConfigManager::GetConfigDirectory() {
     // Linux: ~/.config/MetaImGUI
     // NOLINTNEXTLINE(concurrency-mt-unsafe) - Safe: called during single-threaded initialization
     const char* xdgConfig = getenv("XDG_CONFIG_HOME");
-    if (xdgConfig) {
+    if (xdgConfig != nullptr) {
         return std::filesystem::path(xdgConfig) / "MetaImGUI";
     }
 
     // NOLINTNEXTLINE(concurrency-mt-unsafe) - Safe: called during single-threaded initialization
     const char* home = getenv("HOME");
-    if (home) {
+    if (home != nullptr) {
         return std::filesystem::path(home) / ".config" / "MetaImGUI";
     }
 
-    return std::filesystem::path("./config");
+    return {"./config"};
 #endif
 }
 
 bool ConfigManager::EnsureConfigDirectoryExists() {
     try {
-        std::filesystem::path dir = GetConfigDirectory();
+        const std::filesystem::path dir = GetConfigDirectory();
         if (!std::filesystem::exists(dir)) {
             return std::filesystem::create_directories(dir);
         }

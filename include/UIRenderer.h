@@ -117,7 +117,7 @@ public:
     static void HelpMarker(const char* desc);
 
 private:
-    bool m_initialized;
+    bool m_initialized = false;
 };
 
 } // namespace MetaImGUI

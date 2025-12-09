@@ -17,6 +17,8 @@ echo "Config file: $CONFIG_FILE"
 cd "$SOURCE_DIR"
 
 # Find all .cpp and .h files in src and include directories
+# Only show warnings from src/ and include/ directories (not external/)
 find src include -type f \( -name "*.cpp" -o -name "*.h" \) \
-    -exec "$CLANG_TIDY" -p "$BUILD_DIR" --config-file="$CONFIG_FILE" {} +
+    -exec "$CLANG_TIDY" -p "$BUILD_DIR" --config-file="$CONFIG_FILE" \
+    --header-filter="$SOURCE_DIR/(src|include)/.*" {} + 2>&1 | grep -v "warnings generated"
 

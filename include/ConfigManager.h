@@ -51,52 +51,52 @@ public:
     /**
      * @brief Check if configuration file exists
      */
-    bool ConfigFileExists() const;
+    [[nodiscard]] bool ConfigFileExists() const;
 
     /**
      * @brief Get configuration file path
      */
-    std::filesystem::path GetConfigPath() const;
+    [[nodiscard]] std::filesystem::path GetConfigPath() const;
 
     // Window settings
     void SetWindowPosition(int x, int y);
     void SetWindowSize(int width, int height);
-    std::optional<std::pair<int, int>> GetWindowPosition() const;
-    std::optional<std::pair<int, int>> GetWindowSize() const;
+    [[nodiscard]] std::optional<std::pair<int, int>> GetWindowPosition() const;
+    [[nodiscard]] std::optional<std::pair<int, int>> GetWindowSize() const;
     void SetWindowMaximized(bool maximized);
-    bool GetWindowMaximized() const;
+    [[nodiscard]] bool GetWindowMaximized() const;
 
     // Theme settings
     void SetTheme(const std::string& theme);
-    std::string GetTheme() const;
+    [[nodiscard]] std::string GetTheme() const;
 
     // Recent files
     void AddRecentFile(const std::string& filepath);
-    std::vector<std::string> GetRecentFiles() const;
+    [[nodiscard]] std::vector<std::string> GetRecentFiles() const;
     void ClearRecentFiles();
     void SetMaxRecentFiles(size_t max);
 
     // Generic settings (string key-value pairs)
     void SetString(const std::string& key, const std::string& value);
-    std::optional<std::string> GetString(const std::string& key) const;
+    [[nodiscard]] std::optional<std::string> GetString(const std::string& key) const;
 
     void SetInt(const std::string& key, int value);
-    std::optional<int> GetInt(const std::string& key) const;
+    [[nodiscard]] std::optional<int> GetInt(const std::string& key) const;
 
     void SetBool(const std::string& key, bool value);
-    std::optional<bool> GetBool(const std::string& key) const;
+    [[nodiscard]] std::optional<bool> GetBool(const std::string& key) const;
 
     void SetFloat(const std::string& key, float value);
-    std::optional<float> GetFloat(const std::string& key) const;
+    [[nodiscard]] std::optional<float> GetFloat(const std::string& key) const;
 
     // Check if key exists
-    bool HasKey(const std::string& key) const;
+    [[nodiscard]] bool HasKey(const std::string& key) const;
 
     // Remove key
     void RemoveKey(const std::string& key);
 
     // Get all keys
-    std::vector<std::string> GetAllKeys() const;
+    [[nodiscard]] std::vector<std::string> GetAllKeys() const;
 
 private:
     struct Impl;

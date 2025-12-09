@@ -17,11 +17,7 @@
 
 namespace MetaImGUI {
 
-Application::Application()
-    : m_windowManager(nullptr), m_uiRenderer(nullptr), m_updateChecker(nullptr), m_configManager(nullptr),
-      m_dialogManager(nullptr), m_issTracker(nullptr), m_initialized(false), m_showAboutWindow(false),
-      m_showDemoWindow(false), m_showUpdateNotification(false), m_updateCheckInProgress(false), m_showExitDialog(false),
-      m_showISSTracker(false), m_latestUpdateInfo(nullptr), m_statusMessage("Ready"), m_lastFrameTime(0.0f) {}
+Application::Application() : m_statusMessage("Ready") {}
 
 Application::~Application() {
     Shutdown();
@@ -54,8 +50,9 @@ bool Application::Initialize() {
     // Check if running from AppImage (METAIMGUI_APPDIR set by custom AppRun)
     // NOLINTNEXTLINE(concurrency-mt-unsafe) - Safe: called during single-threaded initialization
     const char* appdir = std::getenv("METAIMGUI_APPDIR");
-    if (appdir) {
-        std::string appdir_path = std::string(appdir) + "/usr/share/MetaImGUI/resources/translations/translations.json";
+    if (appdir != nullptr) {
+        const std::string appdir_path =
+            std::string(appdir) + "/usr/share/MetaImGUI/resources/translations/translations.json";
         translationPaths.insert(translationPaths.begin(), appdir_path); // Try AppImage location first
     }
 
@@ -94,13 +91,13 @@ bool Application::Initialize() {
         LOG_ERROR("========================================");
     }
 
-    std::string language = m_configManager->GetString("language").value_or("en");
+    const std::string language = m_configManager->GetString("language").value_or("en");
     Localization::Instance().SetLanguage(language);
 
     // Create and initialize window manager
     auto windowSize = m_configManager->GetWindowSize();
-    int width = windowSize ? windowSize->first : DEFAULT_WIDTH;
-    int height = windowSize ? windowSize->second : DEFAULT_HEIGHT;
+    const int width = windowSize ? windowSize->first : DEFAULT_WIDTH;
+    const int height = windowSize ? windowSize->second : DEFAULT_HEIGHT;
 
     m_windowManager = std::make_unique<WindowManager>(WINDOW_TITLE, width, height);
     if (!m_windowManager->Initialize()) {
@@ -162,7 +159,8 @@ void Application::Shutdown() {
     // Save configuration before shutdown
     if (m_configManager && m_windowManager) {
         // Save window size
-        int width, height;
+        int width = 0;
+        int height = 0;
         m_windowManager->GetWindowSize(width, height);
         m_configManager->SetWindowSize(width, height);
         LOG_INFO("Saving window size: {}x{}", width, height);
@@ -209,7 +207,7 @@ void Application::Render() {
     }
 
     // Get frame time for FPS calculation
-    ImGuiIO& io = ImGui::GetIO();
+    const ImGuiIO& io = ImGui::GetIO();
     m_lastFrameTime = io.Framerate;
 
     // Prepare window for rendering
@@ -223,9 +221,9 @@ void Application::Render() {
     ImGui::SetNextWindowPos(viewport->Pos);
     ImGui::SetNextWindowSize(viewport->Size);
 
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
-                                    ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
+    const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+                                          ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
+                                          ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -270,8 +268,8 @@ void Application::Render() {
     // Render exit confirmation dialog
     if (m_showExitDialog) {
         auto& loc = Localization::Instance();
-        std::string title = loc.Tr("exit.title");
-        std::string message = loc.Tr("exit.message");
+        const std::string title = loc.Tr("exit.title");
+        const std::string message = loc.Tr("exit.message");
 
         m_dialogManager->ShowConfirmation(title, message, [this](bool confirmed) {
             if (confirmed && m_windowManager) {
@@ -361,13 +359,13 @@ void Application::OnKeyPressed(int key, int scancode, int action, int mods) {
                 OnExitRequested();
                 break;
             case GLFW_KEY_A:
-                if (mods & GLFW_MOD_CONTROL) {
+                if ((mods & GLFW_MOD_CONTROL) != 0) {
                     OnShowAboutRequested();
                 }
                 break;
             case GLFW_KEY_F9:
                 // DEBUG: Simulate context loss for testing
-                if (mods & GLFW_MOD_SHIFT) {
+                if ((mods & GLFW_MOD_SHIFT) != 0) {
                     LOG_WARNING("DEBUG: User triggered context loss simulation via Shift+F9");
                     if (OnContextLoss()) {
                         m_statusMessage = "DEBUG: Context recovery successful";

@@ -97,6 +97,7 @@ void DialogManager::ShowInputDialog(const std::string& title, const std::string&
     // Copy default value to buffer
     auto& buffer = m_impl->inputDialog->inputBuffer;
     strncpy(std::data(buffer), defaultValue.c_str(), std::size(buffer) - 1);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     buffer[std::size(buffer) - 1] = '\0';
 }
 
@@ -175,7 +176,7 @@ void DialogManager::RenderMessageBox() {
     if (ImGui::BeginPopupModal(mb->title.c_str(), &mb->open,
                                ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
         // Icon and message
-        const char* iconText = "";
+        const char* iconText = nullptr;
         ImVec4 iconColor = ImVec4(1, 1, 1, 1);
         switch (mb->icon) {
             case MessageBoxIcon::Info:
@@ -287,7 +288,7 @@ void DialogManager::RenderInputDialog() {
     }
 
     ImGui::OpenPopup(id->title.c_str());
-    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
     std::string result;
@@ -343,9 +344,9 @@ void DialogManager::RenderProgressDialogs() {
             continue;
         }
 
-        std::string popupId = pd.title + "##" + std::to_string(pd.id);
+        const std::string popupId = pd.title + "##" + std::to_string(pd.id);
         ImGui::OpenPopup(popupId.c_str());
-        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
         if (ImGui::BeginPopupModal(popupId.c_str(), nullptr,
@@ -375,7 +376,7 @@ void DialogManager::RenderListDialog() {
     }
 
     ImGui::OpenPopup(ld->title.c_str());
-    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
     int selectedIndex = -1;
@@ -385,10 +386,12 @@ void DialogManager::RenderListDialog() {
                                ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
         ImGui::BeginChild("ListBox", ImVec2(300, 200), ImGuiChildFlags_Border);
 
-        for (size_t i = 0; i < ld->items.size(); ++i) {
-            bool isSelected = (static_cast<int>(i) == ld->selectedIndex);
-            if (ImGui::Selectable(ld->items[i].c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick)) {
-                ld->selectedIndex = static_cast<int>(i);
+        const auto itemCount = static_cast<int>(ld->items.size());
+        for (int i = 0; i < itemCount; ++i) {
+            const bool isSelected = (i == ld->selectedIndex);
+            if (ImGui::Selectable(ld->items[static_cast<size_t>(i)].c_str(), isSelected,
+                                  ImGuiSelectableFlags_AllowDoubleClick)) {
+                ld->selectedIndex = i;
                 if (ImGui::IsMouseDoubleClicked(0)) {
                     confirmed = true;
                     selectedIndex = ld->selectedIndex;

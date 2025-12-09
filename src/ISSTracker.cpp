@@ -20,7 +20,7 @@ ISSTracker::~ISSTracker() {
 }
 
 void ISSTracker::StartTracking(std::function<void(const ISSPosition&)> callback) {
-    std::lock_guard<std::mutex> lock(m_threadMutex);
+    const std::lock_guard<std::mutex> lock(m_threadMutex);
 
     if (m_tracking) {
         LOG_INFO("ISS Tracker: Already tracking, skipping");
@@ -31,7 +31,7 @@ void ISSTracker::StartTracking(std::function<void(const ISSPosition&)> callback)
 
     // Store callback under lock protection
     {
-        std::lock_guard<std::mutex> callbackLock(m_callbackMutex);
+        const std::lock_guard<std::mutex> callbackLock(m_callbackMutex);
         m_callback = callback;
     }
 
@@ -43,7 +43,7 @@ void ISSTracker::StartTracking(std::function<void(const ISSPosition&)> callback)
 }
 
 void ISSTracker::StopTracking() {
-    std::lock_guard<std::mutex> lock(m_threadMutex);
+    const std::lock_guard<std::mutex> lock(m_threadMutex);
 
     if (!m_tracking) {
         return;
@@ -61,12 +61,12 @@ bool ISSTracker::IsTracking() const {
 }
 
 ISSPosition ISSTracker::GetCurrentPosition() const {
-    std::lock_guard<std::mutex> lock(m_dataMutex);
+    const std::lock_guard<std::mutex> lock(m_dataMutex);
     return m_currentPosition;
 }
 
 void ISSTracker::GetPositionHistory(std::vector<double>& latitudes, std::vector<double>& longitudes) const {
-    std::lock_guard<std::mutex> lock(m_dataMutex);
+    const std::lock_guard<std::mutex> lock(m_dataMutex);
 
     latitudes.clear();
     longitudes.clear();
@@ -88,7 +88,7 @@ ISSPosition ISSTracker::FetchPositionSync() {
 void ISSTracker::TrackingLoop(const std::stop_token& stopToken) {
     while (!stopToken.stop_requested()) {
         try {
-            ISSPosition position = FetchPositionImpl();
+            const ISSPosition position = FetchPositionImpl();
 
             // Check if stop was requested after fetch (important for slow networks)
             if (stopToken.stop_requested()) {
@@ -99,7 +99,7 @@ void ISSTracker::TrackingLoop(const std::stop_token& stopToken) {
             if (position.valid) {
                 // Update current position and add to history
                 {
-                    std::lock_guard<std::mutex> lock(m_dataMutex);
+                    const std::lock_guard<std::mutex> lock(m_dataMutex);
                     m_currentPosition = position;
                     AddToHistory(position);
                 }
@@ -107,7 +107,7 @@ void ISSTracker::TrackingLoop(const std::stop_token& stopToken) {
                 // Invoke callback if set (copy under lock to avoid data race)
                 std::function<void(const ISSPosition&)> callback;
                 {
-                    std::lock_guard<std::mutex> lock(m_callbackMutex);
+                    const std::lock_guard<std::mutex> lock(m_callbackMutex);
                     callback = m_callback;
                 }
 
@@ -150,7 +150,7 @@ ISSPosition ISSTracker::FetchPositionImpl() {
     position.valid = false;
 
     try {
-        std::string jsonResponse = FetchJSON(ISS_API_URL);
+        const std::string jsonResponse = FetchJSON(ISS_API_URL);
         if (jsonResponse.empty()) {
             LOG_ERROR("ISS Tracker: Empty response from server");
             return position;
@@ -171,7 +171,7 @@ ISSPosition ISSTracker::FetchPositionImpl() {
 namespace {
 // Callback for libcurl to write response data
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
-    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    static_cast<std::string*>(userp)->append(static_cast<char*>(contents), size * nmemb);
     return size * nmemb;
 }
 } // namespace
@@ -180,7 +180,7 @@ std::string ISSTracker::FetchJSON(const std::string& url) {
     std::string result;
 
     CURL* curl = curl_easy_init();
-    if (!curl) {
+    if (curl == nullptr) {
         LOG_ERROR("ISS Tracker: Failed to initialize CURL");
         return result;
     }
@@ -194,7 +194,7 @@ std::string ISSTracker::FetchJSON(const std::string& url) {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 
-    CURLcode res = curl_easy_perform(curl);
+    const CURLcode res = curl_easy_perform(curl);
 
     if (res != CURLE_OK) {
         LOG_ERROR("ISS Tracker: Request failed: {}", curl_easy_strerror(res));

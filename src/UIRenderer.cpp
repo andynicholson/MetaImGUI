@@ -56,7 +56,7 @@ constexpr float VERTICAL_SPACING_SMALL = 10.0f;
 constexpr float TEXT_WRAP_POS_MULTIPLIER = 35.0f;
 } // namespace UILayout
 
-UIRenderer::UIRenderer() : m_initialized(false) {}
+UIRenderer::UIRenderer() = default;
 
 UIRenderer::~UIRenderer() {
     Shutdown();
@@ -116,34 +116,34 @@ void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::functi
     const float contentHeight = ImGui::GetContentRegionAvail().y - UILayout::STATUS_BAR_HEIGHT;
 
     // Main content area
-    if (ImGui::BeginChild("MainContent", ImVec2(0, contentHeight), false, 0)) {
+    if (ImGui::BeginChild("MainContent", ImVec2(0, contentHeight), ImGuiChildFlags_None, ImGuiWindowFlags_None)) {
         ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN, UILayout::TOP_MARGIN));
         ImGui::Text("Welcome to MetaImGUI!");
 
         ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN, UILayout::TOP_MARGIN + UILayout::LINE_SPACING));
         ImGui::Text("This is a template for creating ImGui-based applications.");
 
-        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN, UILayout::TOP_MARGIN + UILayout::LINE_SPACING * 2));
+        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN, UILayout::TOP_MARGIN + (UILayout::LINE_SPACING * 2)));
         ImGui::Text("Use the menu bar above to access the About dialog.");
 
         ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN,
-                                   UILayout::TOP_MARGIN + UILayout::LINE_SPACING * 2 + UILayout::BUTTON_SPACING));
+                                   UILayout::TOP_MARGIN + (UILayout::LINE_SPACING * 2) + UILayout::BUTTON_SPACING));
         if (ImGui::Button(loc.Tr("button.show_about").c_str())) {
             if (onShowAbout) {
                 onShowAbout();
             }
         }
 
-        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN,
-                                   UILayout::TOP_MARGIN + UILayout::LINE_SPACING * 2 + UILayout::BUTTON_SPACING * 2));
+        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN, UILayout::TOP_MARGIN + (UILayout::LINE_SPACING * 2) +
+                                                              (UILayout::BUTTON_SPACING * 2)));
         if (ImGui::Button(loc.Tr("button.show_demo").c_str())) {
             if (onShowDemo) {
                 onShowDemo();
             }
         }
 
-        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN,
-                                   UILayout::TOP_MARGIN + UILayout::LINE_SPACING * 2 + UILayout::BUTTON_SPACING * 3));
+        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN, UILayout::TOP_MARGIN + (UILayout::LINE_SPACING * 2) +
+                                                              (UILayout::BUTTON_SPACING * 3)));
         if (ImGui::Button(loc.Tr("button.show_input").c_str())) {
             if (onShowInputDialog) {
                 onShowInputDialog();
@@ -241,9 +241,9 @@ void UIRenderer::RenderMenuBar(std::function<void()> onExit, std::function<void(
 void UIRenderer::RenderStatusBar(const std::string& statusMessage, float fps, const char* version,
                                  bool updateInProgress) {
     // Status bar styling - theme-aware background
-    ImVec4 windowBg = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
-    ImVec4 statusBarBg = ImVec4(windowBg.x * 0.85f, // Slightly darker/lighter than window
-                                windowBg.y * 0.85f, windowBg.z * 0.85f, 1.0f);
+    const ImVec4 windowBg = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
+    const ImVec4 statusBarBg = ImVec4(windowBg.x * 0.85f, // Slightly darker/lighter than window
+                                      windowBg.y * 0.85f, windowBg.z * 0.85f, 1.0f);
 
     ImGui::PushStyleColor(ImGuiCol_ChildBg, statusBarBg);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(UILayout::WINDOW_PADDING_X, UILayout::WINDOW_PADDING_Y));
@@ -251,27 +251,28 @@ void UIRenderer::RenderStatusBar(const std::string& statusMessage, float fps, co
 
     // Draw subtle top separator line - theme-aware
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-    ImVec2 statusBarPos = ImGui::GetCursorScreenPos();
-    ImVec2 lineEnd = ImVec2(statusBarPos.x + ImGui::GetContentRegionAvail().x, statusBarPos.y);
-    ImVec4 separatorColor = ImGui::GetStyle().Colors[ImGuiCol_Separator];
+    const ImVec2 statusBarPos = ImGui::GetCursorScreenPos();
+    const ImVec2 lineEnd = ImVec2(statusBarPos.x + ImGui::GetContentRegionAvail().x, statusBarPos.y);
+    const ImVec4 separatorColor = ImGui::GetStyle().Colors[ImGuiCol_Separator];
     drawList->AddLine(statusBarPos, lineEnd, ImGui::ColorConvertFloat4ToU32(separatorColor), 1.0f);
 
-    if (ImGui::BeginChild("StatusBar", ImVec2(0, UILayout::STATUS_BAR_HEIGHT), false,
+    if (ImGui::BeginChild("StatusBar", ImVec2(0, UILayout::STATUS_BAR_HEIGHT), ImGuiChildFlags_None,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
         // Left side - Status message with indicator
 
         // Reserve space for the circle and get aligned position
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + UILayout::STATUS_CIRCLE_RADIUS * 2 +
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (UILayout::STATUS_CIRCLE_RADIUS * 2) +
                              UILayout::STATUS_CIRCLE_PADDING);
         ImGui::AlignTextToFramePadding();
 
         // Draw status indicator circle aligned with text
         drawList = ImGui::GetWindowDrawList();
-        ImVec2 textPos = ImGui::GetCursorScreenPos();
-        ImVec2 circleCenter = ImVec2(textPos.x - UILayout::STATUS_CIRCLE_RADIUS - UILayout::STATUS_CIRCLE_PADDING / 2,
-                                     textPos.y + ImGui::GetFrameHeight() * 0.5f);
+        const ImVec2 textPos = ImGui::GetCursorScreenPos();
+        const ImVec2 circleCenter =
+            ImVec2(textPos.x - UILayout::STATUS_CIRCLE_RADIUS - (UILayout::STATUS_CIRCLE_PADDING / 2),
+                   textPos.y + (ImGui::GetFrameHeight() * 0.5f));
 
-        ImU32 indicatorColor;
+        ImU32 indicatorColor = IM_COL32(50, 200, 50, 255); // Green by default
         if (updateInProgress) {
             indicatorColor = IM_COL32(255, 200, 50, 255); // Yellow for in-progress
         } else {
@@ -352,7 +353,7 @@ void UIRenderer::RenderAboutWindow(bool& showAboutWindow) {
 }
 
 void UIRenderer::RenderUpdateNotification(bool& showUpdateNotification, UpdateInfo* updateInfo) {
-    if (!updateInfo) {
+    if (updateInfo == nullptr) {
         showUpdateNotification = false;
         return;
     }
@@ -383,7 +384,7 @@ void UIRenderer::RenderUpdateNotification(bool& showUpdateNotification, UpdateIn
 
             if (!updateInfo->releaseNotes.empty()) {
                 ImGui::Text("Release Notes:");
-                ImGui::BeginChild("ReleaseNotes", ImVec2(0, UILayout::RELEASE_NOTES_HEIGHT), true);
+                ImGui::BeginChild("ReleaseNotes", ImVec2(0, UILayout::RELEASE_NOTES_HEIGHT), ImGuiChildFlags_Border);
                 ImGui::TextWrapped("%s", updateInfo->releaseNotes.c_str());
                 ImGui::EndChild();
             }
@@ -399,18 +400,18 @@ void UIRenderer::RenderUpdateNotification(bool& showUpdateNotification, UpdateIn
             if (ImGui::Button("Open Release Page",
                               ImVec2(UILayout::BUTTON_OPEN_RELEASE_WIDTH, UILayout::BUTTON_HEIGHT))) {
                 // Open URL in browser
-                std::string url = updateInfo->releaseUrl;
+                const std::string url = updateInfo->releaseUrl;
 
                 // Security: Validate URL before opening to prevent command injection
                 // Only allow https:// URLs from github.com
                 bool isValidUrl = false;
-                if (url.length() >= 8 && url.substr(0, 8) == "https://") {
+                if (url.starts_with("https://")) {
                     // Check if it contains github.com (the expected domain)
                     if (url.find("github.com") != std::string::npos) {
                         // Check for shell metacharacters that could be used for injection
                         const std::string dangerousChars = ";|&$`\n<>(){}[]'\"\\";
                         bool hasDangerousChars = false;
-                        for (char c : dangerousChars) {
+                        for (const char c : dangerousChars) {
                             if (url.find(c) != std::string::npos) {
                                 hasDangerousChars = true;
                                 break;
@@ -426,12 +427,13 @@ void UIRenderer::RenderUpdateNotification(bool& showUpdateNotification, UpdateIn
                     ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
 #elif __APPLE__
                     // macOS: Use system() but with validated/escaped URL
-                    std::string cmd = "open \"" + url + "\"";
-                    [[maybe_unused]] int result = system(cmd.c_str());
+                    const std::string cmd = "open \"" + url + "\"";
+                    [[maybe_unused]] const int result = system(cmd.c_str());
 #else
                     // Linux: Use system() but with validated/escaped URL
-                    std::string cmd = "xdg-open \"" + url + "\"";
-                    [[maybe_unused]] int result = system(cmd.c_str());
+                    const std::string cmd = "xdg-open \"" + url + "\"";
+                    // NOLINTNEXTLINE(concurrency-mt-unsafe) - Safe: URL validated, single-threaded UI context
+                    [[maybe_unused]] const int result = system(cmd.c_str());
 #endif
                 } else {
                     LOG_ERROR("Rejected potentially malicious URL: {}", url);
@@ -476,8 +478,8 @@ void UIRenderer::RenderUpdateNotification(bool& showUpdateNotification, UpdateIn
             ImGui::Spacing();
 
             // Center the OK button
-            float buttonWidth = 100.0f;
-            float windowWidth = ImGui::GetWindowSize().x;
+            const float buttonWidth = 100.0f;
+            const float windowWidth = ImGui::GetWindowSize().x;
             ImGui::SetCursorPosX((windowWidth - buttonWidth) * 0.5f);
 
             if (ImGui::Button("OK", ImVec2(buttonWidth, UILayout::BUTTON_HEIGHT))) {
@@ -495,14 +497,14 @@ void UIRenderer::ShowDemoWindow(bool& showDemoWindow) {
 }
 
 void UIRenderer::RenderISSTrackerWindow(bool& showISSTracker, ISSTracker* issTracker) {
-    if (!showISSTracker || !issTracker) {
+    if (!showISSTracker || issTracker == nullptr) {
         return;
     }
 
     ImGui::SetNextWindowSize(ImVec2(900, 700), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("ISS Tracker", &showISSTracker)) {
         // Get current position
-        ISSPosition currentPos = issTracker->GetCurrentPosition();
+        const ISSPosition currentPos = issTracker->GetCurrentPosition();
 
         // Control panel
         ImGui::BeginGroup();
@@ -537,22 +539,22 @@ void UIRenderer::RenderISSTrackerWindow(bool& showISSTracker, ISSTracker* issTra
 
                 // Convert Unix timestamp to readable time
                 if (currentPos.timestamp > 0) {
-                    time_t time = static_cast<time_t>(currentPos.timestamp);
-                    struct tm timeinfo;
-                    char buffer[80];
+                    const auto time = static_cast<time_t>(currentPos.timestamp);
+                    struct tm timeinfo = {};
+                    std::array<char, 80> buffer{};
 
                     // Use thread-safe versions of gmtime
 #ifdef _WIN32
                     if (gmtime_s(&timeinfo, &time) == 0) {
-                        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S UTC", &timeinfo);
-                        ImGui::Text("Time: %s", buffer);
+                        strftime(buffer.data(), buffer.size(), "%Y-%m-%d %H:%M:%S UTC", &timeinfo);
+                        ImGui::Text("Time: %s", buffer.data());
                     } else {
                         ImGui::Text("Time: (error converting timestamp)");
                     }
 #else
                     if (gmtime_r(&time, &timeinfo) != nullptr) {
-                        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S UTC", &timeinfo);
-                        ImGui::Text("Time: %s", buffer);
+                        strftime(buffer.data(), buffer.size(), "%Y-%m-%d %H:%M:%S UTC", &timeinfo);
+                        ImGui::Text("Time: %s", buffer.data());
                     } else {
                         ImGui::Text("Time: (error converting timestamp)");
                     }
@@ -595,13 +597,13 @@ void UIRenderer::RenderISSTrackerWindow(bool& showISSTracker, ISSTracker* issTra
 
             // Add grid reference lines
             ImPlot::SetNextLineStyle(ImVec4(0.5f, 0.5f, 0.5f, 0.3f));
-            double xRange[] = {-180.0, 180.0};
-            double yZero[] = {0.0, 0.0};
-            ImPlot::PlotLine("Equator", xRange, yZero, 2);
+            std::array<double, 2> xRange = {-180.0, 180.0};
+            std::array<double, 2> yZero = {0.0, 0.0};
+            ImPlot::PlotLine("Equator", xRange.data(), yZero.data(), 2);
 
-            double xZero[] = {0.0, 0.0};
-            double yRange[] = {-90.0, 90.0};
-            ImPlot::PlotLine("Prime Meridian", xZero, yRange, 2);
+            std::array<double, 2> xZero = {0.0, 0.0};
+            std::array<double, 2> yRange = {-90.0, 90.0};
+            ImPlot::PlotLine("Prime Meridian", xZero.data(), yRange.data(), 2);
 
             ImPlot::EndPlot();
         }

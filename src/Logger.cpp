@@ -7,7 +7,7 @@
 
 namespace MetaImGUI {
 
-Logger::Logger() : m_minLevel(LogLevel::Info), m_consoleOutput(true), m_fileOutput(false) {}
+Logger::Logger() = default;
 
 Logger::~Logger() {
     Shutdown();
@@ -19,7 +19,7 @@ Logger& Logger::Instance() {
 }
 
 void Logger::Initialize(const std::filesystem::path& logFilePath, LogLevel minLevel) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    const std::lock_guard<std::mutex> lock(m_mutex);
 
     m_minLevel = minLevel;
     m_logFilePath = logFilePath;
@@ -48,7 +48,7 @@ void Logger::Initialize(const std::filesystem::path& logFilePath, LogLevel minLe
 }
 
 void Logger::Shutdown() {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    const std::lock_guard<std::mutex> lock(m_mutex);
 
     if (m_logFile.is_open()) {
         m_logFile << "========== Log Session Ended: " << GetTimestamp() << " ==========\n\n";
@@ -57,27 +57,27 @@ void Logger::Shutdown() {
 }
 
 void Logger::SetLevel(LogLevel level) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    const std::lock_guard<std::mutex> lock(m_mutex);
     m_minLevel = level;
 }
 
 LogLevel Logger::GetLevel() const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    const std::lock_guard<std::mutex> lock(m_mutex);
     return m_minLevel;
 }
 
 void Logger::SetConsoleOutput(bool enable) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    const std::lock_guard<std::mutex> lock(m_mutex);
     m_consoleOutput = enable;
 }
 
 void Logger::SetFileOutput(bool enable) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    const std::lock_guard<std::mutex> lock(m_mutex);
     m_fileOutput = enable && m_logFile.is_open();
 }
 
 void Logger::Flush() {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    const std::lock_guard<std::mutex> lock(m_mutex);
     if (m_logFile.is_open()) {
         m_logFile.flush();
     }
@@ -86,16 +86,16 @@ void Logger::Flush() {
 }
 
 std::filesystem::path Logger::GetLogFilePath() const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    const std::lock_guard<std::mutex> lock(m_mutex);
     return m_logFilePath;
 }
 
 void Logger::LogMessage(LogLevel level, const std::string& message) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    const std::lock_guard<std::mutex> lock(m_mutex);
 
-    std::string timestamp = GetTimestamp();
-    std::string levelStr = LevelToString(level);
-    std::string formattedMessage = "[" + timestamp + "] [" + levelStr + "] " + message;
+    const std::string timestamp = GetTimestamp();
+    const std::string levelStr = LevelToString(level);
+    const std::string formattedMessage = "[" + timestamp + "] [" + levelStr + "] " + message;
 
     // Console output with colors
     if (m_consoleOutput) {

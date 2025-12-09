@@ -54,31 +54,47 @@ fi
 cd "$PROJECT_ROOT"
 
 # Run clang-tidy
+TIDY_FAILED=false
 if [ "$CLANG_TIDY_AVAILABLE" = true ]; then
     echo ""
     echo "🔍 Running clang-tidy..."
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-    CLANG_TIDY_FAILED=false
-    find src include -name '*.cpp' -o -name '*.h' | while read -r file; do
-        echo "  Analyzing: $file"
-        if ! $CLANG_TIDY -p "$BUILD_DIR" \
-            --config-file=.clang-tidy \
-            --header-filter='(include|src)/.*' \
-            --quiet \
-            "$file"; then
-            CLANG_TIDY_FAILED=true
-        fi
-    done
+    FILE_COUNT=$(find src include -name '*.cpp' -o -name '*.h' | wc -l)
+    echo "  Analyzing $FILE_COUNT files (ignoring external headers)"
+    echo ""
 
-    if [ "$CLANG_TIDY_FAILED" = true ]; then
-        echo "❌ clang-tidy found issues"
+    # Create temporary file to store clang-tidy output
+    TIDY_OUTPUT=$(mktemp)
+
+    # Run clang-tidy ONLY on your source files, suppress external warnings
+    find src include -name '*.cpp' -o -name '*.h' | while read -r file; do
+        $CLANG_TIDY -p "$BUILD_DIR" \
+            --config-file=.clang-tidy \
+            --header-filter="$PROJECT_ROOT/(src|include)/.*" \
+            "$file" 2>&1 | \
+            grep -v "warnings generated" | \
+            grep --color=never -E "^($PROJECT_ROOT/)?(src|include)/" || true
+    done | tee "$TIDY_OUTPUT"
+
+    # Count warnings and errors
+    WARNING_COUNT=$(grep -c "warning:" "$TIDY_OUTPUT" || true)
+    ERROR_COUNT=$(grep -c "error:" "$TIDY_OUTPUT" || true)
+
+    # Clean up temp file
+    rm -f "$TIDY_OUTPUT"
+
+    echo ""
+    if [ "$ERROR_COUNT" -gt 0 ] || [ "$WARNING_COUNT" -gt 0 ]; then
+        echo "❌ clang-tidy found issues: $ERROR_COUNT error(s), $WARNING_COUNT warning(s)"
+        TIDY_FAILED=true
     else
-        echo "✅ clang-tidy passed"
+        echo "✅ clang-tidy analysis complete - no issues found"
     fi
 fi
 
 # Run cppcheck
+CPPCHECK_FAILED=false
 if [ "$CPPCHECK_AVAILABLE" = true ]; then
     echo ""
     echo "🔍 Running cppcheck..."
@@ -104,16 +120,28 @@ if [ "$CPPCHECK_AVAILABLE" = true ]; then
         echo "✅ cppcheck passed"
     else
         echo "❌ cppcheck found issues"
+        CPPCHECK_FAILED=true
     fi
 fi
 
 echo ""
 echo "=== Static Analysis Complete ===="
 echo ""
-echo "To fix issues:"
-echo "  1. Review the warnings/errors above"
-echo "  2. Fix the code or add suppressions if needed"
-echo "  3. Run this script again to verify fixes"
-echo ""
-echo "For CI enforcement, these checks run automatically on push/PR"
+
+# Exit with error if any tool found issues
+if [ "$TIDY_FAILED" = true ] || [ "$CPPCHECK_FAILED" = true ]; then
+    echo "❌ Static analysis found issues that need to be fixed"
+    echo ""
+    echo "To fix issues:"
+    echo "  1. Review the warnings/errors above"
+    echo "  2. Fix the code or add suppressions if needed"
+    echo "  3. Run this script again to verify fixes"
+    echo ""
+    exit 1
+else
+    echo "✅ All static analysis checks passed!"
+    echo ""
+    echo "For CI enforcement, these checks run automatically on push/PR"
+    exit 0
+fi
 

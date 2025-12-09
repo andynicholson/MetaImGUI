@@ -113,7 +113,7 @@ public:
      * @brief Check if the application should close
      * @return true if the application should close
      */
-    bool ShouldClose() const;
+    [[nodiscard]] bool ShouldClose() const;
 
 private:
     // Subsystem managers
@@ -125,20 +125,20 @@ private:
     std::unique_ptr<ISSTracker> m_issTracker;
 
     // Application state
-    bool m_initialized;
-    bool m_showAboutWindow;
-    bool m_showDemoWindow;
-    bool m_showUpdateNotification;
-    bool m_updateCheckInProgress;
-    bool m_showExitDialog;
-    bool m_showISSTracker;
+    bool m_initialized = false;
+    bool m_showAboutWindow = false;
+    bool m_showDemoWindow = false;
+    bool m_showUpdateNotification = false;
+    bool m_updateCheckInProgress = false;
+    bool m_showExitDialog = false;
+    bool m_showISSTracker = false;
 
     // Update checking
     std::unique_ptr<UpdateInfo> m_latestUpdateInfo;
 
     // Status bar state
     std::string m_statusMessage;
-    float m_lastFrameTime;
+    float m_lastFrameTime = 0.0f;
 
     // Private methods
     void ProcessInput();

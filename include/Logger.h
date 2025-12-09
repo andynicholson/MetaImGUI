@@ -145,7 +145,7 @@ private:
             return;
         }
 
-        std::string message = Format(format, std::forward<Args>(args)...);
+        const std::string message = Format(format, std::forward<Args>(args)...);
         LogMessage(level, message);
     }
 
@@ -168,9 +168,9 @@ private:
 
     template <typename T, typename... Args>
     void FormatImpl(std::ostringstream& oss, std::string_view format, T&& first, Args&&... rest) {
-        size_t pos = format.find("{}");
+        const size_t pos = format.find("{}");
         if (pos != std::string_view::npos) {
-            oss << format.substr(0, pos) << first;
+            oss << format.substr(0, pos) << std::forward<T>(first);
             FormatImpl(oss, format.substr(pos + 2), std::forward<Args>(rest)...);
         } else {
             oss << format;
@@ -185,9 +185,9 @@ private:
     std::string LevelToString(LogLevel level) const;
     const char* LevelToColor(LogLevel level) const;
 
-    LogLevel m_minLevel;
-    bool m_consoleOutput;
-    bool m_fileOutput;
+    LogLevel m_minLevel = LogLevel::Info;
+    bool m_consoleOutput = true;
+    bool m_fileOutput = false;
     std::filesystem::path m_logFilePath;
     std::ofstream m_logFile;
     mutable std::mutex m_mutex;

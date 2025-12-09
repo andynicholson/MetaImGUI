@@ -25,6 +25,8 @@ public:
     // Delete copy and move
     Localization(const Localization&) = delete;
     Localization& operator=(const Localization&) = delete;
+    Localization(Localization&&) = delete;
+    Localization& operator=(Localization&&) = delete;
 
     /**
      * @brief Set current language
@@ -35,19 +37,19 @@ public:
     /**
      * @brief Get current language code
      */
-    std::string GetCurrentLanguage() const;
+    [[nodiscard]] std::string GetCurrentLanguage() const;
 
     /**
      * @brief Get list of available languages
      */
-    std::vector<std::string> GetAvailableLanguages() const;
+    [[nodiscard]] std::vector<std::string> GetAvailableLanguages() const;
 
     /**
      * @brief Get translated string
      * @param key Translation key
      * @return Translated string (or key if not found)
      */
-    std::string Tr(const std::string& key) const;
+    [[nodiscard]] std::string Tr(const std::string& key) const;
 
     /**
      * @brief Add translation for a language

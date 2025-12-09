@@ -14,8 +14,8 @@
 
 namespace MetaImGUI {
 
-UpdateChecker::UpdateChecker(const std::string& repoOwner, const std::string& repoName)
-    : m_repoOwner(repoOwner), m_repoName(repoName), m_checking(false) {}
+UpdateChecker::UpdateChecker(std::string repoOwner, std::string repoName)
+    : m_repoOwner(std::move(repoOwner)), m_repoName(std::move(repoName)), m_checking(false) {}
 
 UpdateChecker::~UpdateChecker() {
     // C++20: std::jthread automatically joins on destruction
@@ -23,7 +23,7 @@ UpdateChecker::~UpdateChecker() {
 }
 
 void UpdateChecker::CheckForUpdatesAsync(std::function<void(const UpdateInfo&)> callback) {
-    std::lock_guard<std::mutex> lock(m_threadMutex);
+    const std::lock_guard<std::mutex> lock(m_threadMutex);
 
     if (m_checking) {
         LOG_INFO("Update Checker: Check already in progress, skipping");
@@ -34,8 +34,8 @@ void UpdateChecker::CheckForUpdatesAsync(std::function<void(const UpdateInfo&)> 
 
     // C++20: std::jthread with stop_token for clean cancellation
     m_stopSource = std::stop_source();
-    m_checkThread = std::jthread([this, callback](std::stop_token stopToken) {
-        UpdateInfo info = CheckForUpdatesImpl(stopToken);
+    m_checkThread = std::jthread([this, callback](const std::stop_token& stopToken) {
+        const UpdateInfo info = CheckForUpdatesImpl(stopToken);
 
         m_checking = false;
 
@@ -62,7 +62,7 @@ UpdateInfo UpdateChecker::CheckForUpdates() {
 }
 
 void UpdateChecker::Cancel() {
-    std::lock_guard<std::mutex> lock(m_threadMutex);
+    const std::lock_guard<std::mutex> lock(m_threadMutex);
 
     // C++20: Request stop using stop_source
     m_stopSource.request_stop();
@@ -75,7 +75,7 @@ bool UpdateChecker::IsChecking() const {
     return m_checking;
 }
 
-UpdateInfo UpdateChecker::CheckForUpdatesImpl(std::stop_token stopToken) {
+UpdateInfo UpdateChecker::CheckForUpdatesImpl(const std::stop_token& stopToken) {
     // C++20: Using designated initializers for clear initialization
     UpdateInfo info{.updateAvailable = false,
                     .latestVersion = "",
@@ -85,7 +85,7 @@ UpdateInfo UpdateChecker::CheckForUpdatesImpl(std::stop_token stopToken) {
                     .downloadUrl = ""};
 
     try {
-        std::string jsonResponse = FetchLatestReleaseInfo();
+        const std::string jsonResponse = FetchLatestReleaseInfo();
         if (stopToken.stop_requested()) {
             LOG_INFO("Update Checker: Check cancelled by user");
             return info;
@@ -101,7 +101,7 @@ UpdateInfo UpdateChecker::CheckForUpdatesImpl(std::stop_token stopToken) {
 
         // Compare versions
         if (!info.latestVersion.empty()) {
-            int cmp = CompareVersions(info.currentVersion, info.latestVersion);
+            const int cmp = CompareVersions(info.currentVersion, info.latestVersion);
             info.updateAvailable = (cmp < 0);
 
             if (info.updateAvailable) {
@@ -130,7 +130,7 @@ UpdateInfo UpdateChecker::CheckForUpdatesImpl(std::stop_token stopToken) {
 
 namespace {
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
-    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    static_cast<std::string*>(userp)->append(static_cast<char*>(contents), size * nmemb);
     return size * nmemb;
 }
 } // namespace
@@ -139,11 +139,11 @@ std::string UpdateChecker::FetchLatestReleaseInfo() {
     std::string result;
 
     CURL* curl = curl_easy_init();
-    if (!curl) {
+    if (curl == nullptr) {
         return result;
     }
 
-    std::string url = "https://api.github.com/repos/" + m_repoOwner + "/" + m_repoName + "/releases/latest";
+    const std::string url = "https://api.github.com/repos/" + m_repoOwner + "/" + m_repoName + "/releases/latest";
 
     LOG_INFO("Update Checker: Requesting URL: {}", url);
 
@@ -156,7 +156,7 @@ std::string UpdateChecker::FetchLatestReleaseInfo() {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 
-    CURLcode res = curl_easy_perform(curl);
+    const CURLcode res = curl_easy_perform(curl);
 
     if (res != CURLE_OK) {
         LOG_ERROR("Update Checker: Request failed: {}", curl_easy_strerror(res));
@@ -237,7 +237,7 @@ int UpdateChecker::CompareVersions(const std::string& v1, const std::string& v2)
         while (std::getline(ss, part, '.')) {
             // Extract numeric part only
             std::string numStr;
-            for (char c : part) {
+            for (const char c : part) {
                 if (std::isdigit(c)) {
                     numStr += c;
                 } else {
@@ -261,10 +261,12 @@ int UpdateChecker::CompareVersions(const std::string& v1, const std::string& v2)
     auto parts2 = parseVersion(v2);
 
     for (size_t i = 0; i < (std::min)(parts1.size(), parts2.size()); ++i) {
-        if (parts1[i] < parts2[i])
+        if (parts1[i] < parts2[i]) {
             return -1;
-        if (parts1[i] > parts2[i])
+        }
+        if (parts1[i] > parts2[i]) {
             return 1;
+        }
     }
 
     return 0;

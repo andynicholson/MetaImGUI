@@ -22,7 +22,7 @@ public:
      * @param width Initial window width
      * @param height Initial window height
      */
-    WindowManager(const std::string& title, int width, int height);
+    WindowManager(std::string title, int width, int height);
     ~WindowManager();
 
     // Disable copy and move
@@ -46,7 +46,7 @@ public:
      * @brief Check if the window should close
      * @return true if the window should close
      */
-    bool ShouldClose() const;
+    [[nodiscard]] bool ShouldClose() const;
 
     /**
      * @brief Poll for input events
@@ -81,7 +81,7 @@ public:
      * @brief Get the GLFW window pointer (for ImGui integration)
      * @return GLFWwindow pointer
      */
-    GLFWwindow* GetNativeWindow() const {
+    [[nodiscard]] GLFWwindow* GetNativeWindow() const {
         return m_window;
     }
 
@@ -138,14 +138,14 @@ private:
     static void KeyCallbackInternal(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void WindowCloseCallbackInternal(GLFWwindow* window);
 
-    GLFWwindow* m_window;
+    GLFWwindow* m_window = nullptr;
     std::string m_title;
     int m_width;
     int m_height;
-    bool m_initialized;
+    bool m_initialized = false;
 
     // Context recovery
-    int m_contextRecoveryAttempts;
+    int m_contextRecoveryAttempts = 0;
     static constexpr int MAX_RECOVERY_ATTEMPTS = 3;
 
     // Callbacks
