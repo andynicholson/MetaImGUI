@@ -37,13 +37,13 @@ void Logger::Initialize(const std::filesystem::path& logFilePath, LogLevel minLe
             m_logFile << "\n========== Log Session Started: " << GetTimestamp() << " ==========\n";
             m_logFile.flush();
         } else {
-            std::cerr << "Failed to open log file: " << logFilePath << std::endl;
+            std::cerr << "Failed to open log file: " << logFilePath << '\n';
             m_fileOutput = false;
         }
     }
 
     if (m_consoleOutput) {
-        std::cout << "Logger initialized (Level: " << LevelToString(minLevel) << ")" << std::endl;
+        std::cout << "Logger initialized (Level: " << LevelToString(minLevel) << ")" << '\n';
     }
 }
 
@@ -103,12 +103,12 @@ void Logger::LogMessage(LogLevel level, const std::string& message) {
         const char* reset = "\033[0m";
 
         std::ostream& out = (level >= LogLevel::Error) ? std::cerr : std::cout;
-        out << color << formattedMessage << reset << std::endl;
+        out << color << formattedMessage << reset << '\n';
     }
 
     // File output without colors
     if (m_fileOutput && m_logFile.is_open()) {
-        m_logFile << formattedMessage << std::endl;
+        m_logFile << formattedMessage << '\n';
 
         // Auto-flush for errors and above
         if (level >= LogLevel::Error) {
@@ -122,7 +122,7 @@ std::string Logger::GetTimestamp() const {
     auto time = std::chrono::system_clock::to_time_t(now);
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
-    std::tm tm_buf;
+    std::tm tm_buf{};
 #ifdef _WIN32
     localtime_s(&tm_buf, &time);
 #else
