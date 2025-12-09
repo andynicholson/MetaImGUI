@@ -113,6 +113,7 @@ bool Application::Initialize() {
     m_windowManager->SetKeyCallback(
         [this](int key, int scancode, int action, int mods) { this->OnKeyPressed(key, scancode, action, mods); });
     m_windowManager->SetWindowCloseCallback([this]() { this->OnWindowCloseRequested(); });
+    m_windowManager->SetContextLossCallback([this]() { return this->OnContextLoss(); });
 
     // Create and initialize UI renderer
     m_uiRenderer = std::make_unique<UIRenderer>();
@@ -362,6 +363,17 @@ void Application::OnKeyPressed(int key, int scancode, int action, int mods) {
                     OnShowAboutRequested();
                 }
                 break;
+            case GLFW_KEY_F9:
+                // DEBUG: Simulate context loss for testing
+                if (mods & GLFW_MOD_SHIFT) {
+                    LOG_WARNING("DEBUG: User triggered context loss simulation via Shift+F9");
+                    if (OnContextLoss()) {
+                        m_statusMessage = "DEBUG: Context recovery successful";
+                    } else {
+                        m_statusMessage = "DEBUG: Context recovery failed";
+                    }
+                }
+                break;
         }
     }
 }
@@ -393,6 +405,26 @@ void Application::OnUpdateCheckComplete(const UpdateInfo& updateInfo) {
         m_statusMessage = "Ready";
         LOG_INFO("No updates available (current version: v{})", updateInfo.currentVersion);
     }
+}
+
+bool Application::OnContextLoss() {
+    LOG_WARNING("Application handling context loss - attempting to recreate UI renderer");
+
+    // Shutdown UI renderer (this destroys ImGui/ImPlot contexts)
+    if (m_uiRenderer) {
+        m_uiRenderer->Shutdown();
+    }
+
+    // Recreate UI renderer with new contexts
+    if (!m_uiRenderer->Initialize(m_windowManager->GetNativeWindow())) {
+        LOG_ERROR("Failed to reinitialize UI renderer after context loss");
+        m_statusMessage = "ERROR: Failed to recover from context loss";
+        return false;
+    }
+
+    LOG_INFO("UI renderer successfully reinitialized after context loss");
+    m_statusMessage = "Recovered from display context loss";
+    return true;
 }
 
 } // namespace MetaImGUI

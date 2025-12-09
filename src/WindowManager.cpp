@@ -7,7 +7,8 @@
 namespace MetaImGUI {
 
 WindowManager::WindowManager(const std::string& title, int width, int height)
-    : m_window(nullptr), m_title(title), m_width(width), m_height(height), m_initialized(false) {}
+    : m_window(nullptr), m_title(title), m_width(width), m_height(height), m_initialized(false),
+      m_contextRecoveryAttempts(0) {}
 
 WindowManager::~WindowManager() {
     Shutdown();
@@ -49,9 +50,28 @@ bool WindowManager::Initialize() {
     glfwSwapInterval(1); // Enable vsync
 
     // Print OpenGL information
-    LOG_INFO("OpenGL version: {}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
-    LOG_INFO("OpenGL vendor: {}", reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
-    LOG_INFO("OpenGL renderer: {}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+    const GLubyte* version = glGetString(GL_VERSION);
+    const GLubyte* vendor = glGetString(GL_VENDOR);
+    const GLubyte* renderer = glGetString(GL_RENDERER);
+
+    if (version) {
+        LOG_INFO("OpenGL version: {}", reinterpret_cast<const char*>(version));
+    } else {
+        LOG_ERROR("Failed to get OpenGL version");
+    }
+
+    if (vendor) {
+        LOG_INFO("OpenGL vendor: {}", reinterpret_cast<const char*>(vendor));
+    } else {
+        LOG_ERROR("Failed to get OpenGL vendor");
+    }
+
+    if (renderer) {
+        LOG_INFO("OpenGL renderer: {}", reinterpret_cast<const char*>(renderer));
+    } else {
+        LOG_ERROR("Failed to get OpenGL renderer");
+    }
+
     LOG_INFO("OpenGL context ready");
 
     m_initialized = true;
@@ -81,6 +101,17 @@ void WindowManager::PollEvents() {
 }
 
 void WindowManager::BeginFrame() {
+    if (m_window == nullptr) {
+        LOG_ERROR("BeginFrame called with null window");
+        return;
+    }
+
+    // Validate context and attempt recovery if needed
+    if (!ValidateContext()) {
+        LOG_ERROR("BeginFrame: Context validation failed - skipping frame");
+        return;
+    }
+
     int width, height;
     glfwGetFramebufferSize(m_window, &width, &height);
     m_width = width;
@@ -89,9 +120,27 @@ void WindowManager::BeginFrame() {
     glViewport(0, 0, m_width, m_height);
     glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    // Check for errors after rendering operations
+    GLenum error = glGetError();
+    if (error == GL_CONTEXT_LOST || error == GL_OUT_OF_MEMORY) {
+        LOG_WARNING("OpenGL error during clear (0x{:X}) - will attempt recovery next frame", error);
+        // Don't attempt immediate recovery here - let ValidateContext handle it next frame
+    }
 }
 
 void WindowManager::EndFrame() {
+    if (m_window == nullptr) {
+        LOG_ERROR("EndFrame called with null window");
+        return;
+    }
+
+    // Validate context before swapping (final check for this frame)
+    if (!ValidateContext()) {
+        LOG_ERROR("EndFrame: Context validation failed - skipping swap");
+        return;
+    }
+
     glfwSwapBuffers(m_window);
 }
 
@@ -144,6 +193,82 @@ void WindowManager::CancelClose() {
     if (m_window != nullptr) {
         glfwSetWindowShouldClose(m_window, GLFW_FALSE);
     }
+}
+
+void WindowManager::SetContextLossCallback(std::function<bool()> callback) {
+    m_contextLossCallback = callback;
+}
+
+bool WindowManager::ValidateContext() {
+    if (m_window == nullptr) {
+        return false;
+    }
+
+    // DEBUG: Simulate context loss for testing
+    // Uncomment these lines to force context loss after 100 frames
+    // static int frameCount = 0;
+    // if (++frameCount == 100) {
+    //     LOG_WARNING("DEBUG: Simulating context loss for testing");
+    //     return RecreateContext();
+    // }
+
+    // Check if context is still valid
+    if (glfwGetCurrentContext() != m_window) {
+        LOG_WARNING("OpenGL context is no longer valid - attempting recovery");
+        return RecreateContext();
+    }
+
+    // Check for OpenGL errors that indicate context loss
+    GLenum error = glGetError();
+    if (error == GL_CONTEXT_LOST || error == GL_OUT_OF_MEMORY) {
+        LOG_WARNING("OpenGL context lost (error: 0x{:X}) - attempting recovery", error);
+        return RecreateContext();
+    }
+
+    // Context is valid
+    m_contextRecoveryAttempts = 0; // Reset on success
+    return true;
+}
+
+bool WindowManager::RecreateContext() {
+    m_contextRecoveryAttempts++;
+
+    if (m_contextRecoveryAttempts > MAX_RECOVERY_ATTEMPTS) {
+        LOG_ERROR("Failed to recover OpenGL context after {} attempts - requesting window close",
+                  MAX_RECOVERY_ATTEMPTS);
+        glfwSetWindowShouldClose(m_window, GLFW_TRUE);
+        return false;
+    }
+
+    LOG_INFO("Attempting to recreate OpenGL context (attempt {}/{})", m_contextRecoveryAttempts, MAX_RECOVERY_ATTEMPTS);
+
+    // Make context current again (might have been lost)
+    glfwMakeContextCurrent(m_window);
+
+    // Check if making it current worked
+    if (glfwGetCurrentContext() != m_window) {
+        LOG_ERROR("Failed to make context current");
+        return false;
+    }
+
+    // Clear any OpenGL errors
+    while (glGetError() != GL_NO_ERROR) {
+        // Drain error queue
+    }
+
+    // Call application-level recovery callback if set
+    // This allows Application to recreate ImGui/ImPlot contexts
+    if (m_contextLossCallback) {
+        LOG_INFO("Calling context loss callback for application-level recovery");
+        if (!m_contextLossCallback()) {
+            LOG_ERROR("Application-level context recovery failed");
+            return false;
+        }
+    }
+
+    LOG_INFO("OpenGL context successfully recovered");
+    m_contextRecoveryAttempts = 0; // Reset on successful recovery
+    return true;
 }
 
 // Static callbacks

@@ -146,6 +146,9 @@ private:
     void CheckForUpdates();
     void OnUpdateCheckComplete(const UpdateInfo& updateInfo);
 
+    // Context recovery
+    bool OnContextLoss();
+
     // Input callbacks
     void OnFramebufferSizeChanged(int width, int height);
     void OnKeyPressed(int key, int scancode, int action, int mods);

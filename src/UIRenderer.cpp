@@ -2,6 +2,7 @@
 
 #include "ISSTracker.h"
 #include "Localization.h"
+#include "Logger.h"
 #include "ThemeManager.h"
 #include "UpdateChecker.h"
 #include "version.h"
@@ -11,6 +12,11 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <implot.h>
+
+#ifdef _WIN32
+#include <shellapi.h>
+#include <windows.h>
+#endif
 
 namespace MetaImGUI {
 
@@ -389,15 +395,42 @@ void UIRenderer::RenderUpdateNotification(bool& showUpdateNotification, UpdateIn
         if (ImGui::Button("Open Release Page", ImVec2(UILayout::BUTTON_OPEN_RELEASE_WIDTH, UILayout::BUTTON_HEIGHT))) {
             // Open URL in browser
             std::string url = updateInfo->releaseUrl;
+
+            // Security: Validate URL before opening to prevent command injection
+            // Only allow https:// URLs from github.com
+            bool isValidUrl = false;
+            if (url.length() >= 8 && url.substr(0, 8) == "https://") {
+                // Check if it contains github.com (the expected domain)
+                if (url.find("github.com") != std::string::npos) {
+                    // Check for shell metacharacters that could be used for injection
+                    const std::string dangerousChars = ";|&$`\n<>(){}[]'\"\\";
+                    bool hasDangerousChars = false;
+                    for (char c : dangerousChars) {
+                        if (url.find(c) != std::string::npos) {
+                            hasDangerousChars = true;
+                            break;
+                        }
+                    }
+                    isValidUrl = !hasDangerousChars;
+                }
+            }
+
+            if (isValidUrl) {
 #ifdef _WIN32
-            std::string cmd = "start " + url;
+                // Windows: Use ShellExecuteA for safer URL opening
+                ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
 #elif __APPLE__
-            std::string cmd = "open " + url;
+                // macOS: Use system() but with validated/escaped URL
+                std::string cmd = "open \"" + url + "\"";
+                [[maybe_unused]] int result = system(cmd.c_str());
 #else
-            std::string cmd = "xdg-open " + url;
+                // Linux: Use system() but with validated/escaped URL
+                std::string cmd = "xdg-open \"" + url + "\"";
+                [[maybe_unused]] int result = system(cmd.c_str());
 #endif
-            // Explicitly ignore return value - we're just launching a browser
-            [[maybe_unused]] int result = system(cmd.c_str());
+            } else {
+                LOG_ERROR("Rejected potentially malicious URL: {}", url);
+            }
         }
 
         ImGui::SameLine();
@@ -465,10 +498,25 @@ void UIRenderer::RenderISSTrackerWindow(bool& showISSTracker, ISSTracker* issTra
                 // Convert Unix timestamp to readable time
                 if (currentPos.timestamp > 0) {
                     time_t time = static_cast<time_t>(currentPos.timestamp);
-                    struct tm* timeinfo = gmtime(&time);
+                    struct tm timeinfo;
                     char buffer[80];
-                    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S UTC", timeinfo);
-                    ImGui::Text("Time: %s", buffer);
+
+                    // Use thread-safe versions of gmtime
+#ifdef _WIN32
+                    if (gmtime_s(&timeinfo, &time) == 0) {
+                        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S UTC", &timeinfo);
+                        ImGui::Text("Time: %s", buffer);
+                    } else {
+                        ImGui::Text("Time: (error converting timestamp)");
+                    }
+#else
+                    if (gmtime_r(&time, &timeinfo) != nullptr) {
+                        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S UTC", &timeinfo);
+                        ImGui::Text("Time: %s", buffer);
+                    } else {
+                        ImGui::Text("Time: (error converting timestamp)");
+                    }
+#endif
                 }
             } else {
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.4f, 0.4f, 1.0f));

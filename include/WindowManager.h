@@ -113,7 +113,25 @@ public:
      */
     void CancelClose();
 
+    /**
+     * @brief Set context loss callback
+     * @param callback Function to call when OpenGL context is lost (for recovery)
+     * @return true if context was successfully recreated
+     */
+    void SetContextLossCallback(std::function<bool()> callback);
+
+    /**
+     * @brief Check if context is valid and attempt recovery if not
+     * @return true if context is valid or was successfully recovered
+     */
+    bool ValidateContext();
+
 private:
+    /**
+     * @brief Attempt to recreate the OpenGL context
+     * @return true if context was successfully recreated
+     */
+    bool RecreateContext();
     // GLFW callbacks (static because GLFW is C API)
     static void ErrorCallback(int error, const char* description);
     static void FramebufferSizeCallbackInternal(GLFWwindow* window, int width, int height);
@@ -126,10 +144,15 @@ private:
     int m_height;
     bool m_initialized;
 
+    // Context recovery
+    int m_contextRecoveryAttempts;
+    static constexpr int MAX_RECOVERY_ATTEMPTS = 3;
+
     // Callbacks
     std::function<void(int, int)> m_framebufferSizeCallback;
     std::function<void(int, int, int, int)> m_keyCallback;
     std::function<void()> m_windowCloseCallback;
+    std::function<bool()> m_contextLossCallback;
 };
 
 } // namespace MetaImGUI

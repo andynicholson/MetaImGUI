@@ -1,0 +1,43 @@
+╔════════════════════════════════════════════════════════════╗
+║          QUICK TEST: Context Recovery                      ║
+╠════════════════════════════════════════════════════════════╣
+║                                                            ║
+║  🎮 NEW FEATURE: Debug Hotkey Added!                      ║
+║                                                            ║
+║  1. Start the app:                                         ║
+║     ./build/MetaImGUI                                      ║
+║                                                            ║
+║  2. Press this key combination:                            ║
+║                                                            ║
+║     ╔═══════╗   ╔═══╗                                     ║
+║     ║ Shift ║ + ║F9 ║                                     ║
+║     ╚═══════╝   ╚═══╝                                     ║
+║                                                            ║
+║  3. Watch for:                                             ║
+║     ✅ Status bar shows recovery message                  ║
+║     ✅ App continues running normally                     ║
+║     ✅ No crash or exit                                   ║
+║                                                            ║
+║  4. Check logs:                                            ║
+║     grep "DEBUG.*context" logs/metaimgui.log              ║
+║                                                            ║
+╠════════════════════════════════════════════════════════════╣
+║  Alternative: Real-world test                              ║
+║                                                            ║
+║  Terminal 1:                                               ║
+║  ./build/MetaImGUI 2>&1 | tee test.log                    ║
+║                                                            ║
+║  Terminal 2:                                               ║
+║  sleep 5 && xset dpms force off                           ║
+║  (then move mouse to wake display)                        ║
+║                                                            ║
+╠════════════════════════════════════════════════════════════╣
+║  Success looks like:                                       ║
+║  • Brief pause (~20ms)                                     ║
+║  • Status: "Recovered from display context loss"          ║
+║  • Log: "OpenGL context successfully recovered"           ║
+║  • App keeps running                                       ║
+║                                                            ║
+╚════════════════════════════════════════════════════════════╝
+
+Full details: See TESTING_CONTEXT_RECOVERY.md

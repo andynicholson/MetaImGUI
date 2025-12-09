@@ -317,9 +317,12 @@ std::vector<std::string> ConfigManager::GetAllKeys() const {
 std::filesystem::path ConfigManager::GetConfigDirectory() {
 #ifdef _WIN32
     // Windows: %APPDATA%/MetaImGUI
-    char path[MAX_PATH];
-    if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, path))) {
-        return std::filesystem::path(path) / "MetaImGUI";
+    // Use SHGetKnownFolderPath for long path support (not limited to MAX_PATH)
+    PWSTR path = nullptr;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, NULL, &path))) {
+        std::filesystem::path result(path);
+        CoTaskMemFree(path); // Must free the allocated string
+        return result / "MetaImGUI";
     }
     return std::filesystem::path("./config");
 #elif defined(__APPLE__)
