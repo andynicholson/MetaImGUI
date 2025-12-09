@@ -103,7 +103,7 @@ private:
     mutable std::mutex m_callbackMutex;
 
     // Internal methods
-    void TrackingLoop(std::stop_token stopToken);
+    void TrackingLoop(const std::stop_token& stopToken);
     ISSPosition FetchPositionImpl();
     std::string FetchJSON(const std::string& url);
     ISSPosition ParseJSON(const std::string& jsonResponse);

@@ -589,7 +589,7 @@ void UIRenderer::RenderISSTrackerWindow(bool& showISSTracker, ISSTracker* issTra
 
             // Plot current position as a larger marker
             if (currentPos.valid) {
-                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 10.0f, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 5.0f, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
                 ImPlot::PlotScatter("Current Position", &currentPos.longitude, &currentPos.latitude, 1);
             }
 

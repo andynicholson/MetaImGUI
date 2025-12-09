@@ -5,6 +5,8 @@
 #include <imgui.h>
 
 #include <algorithm>
+#include <array>
+#include <iterator>
 #include <map>
 
 namespace MetaImGUI {
@@ -13,8 +15,8 @@ namespace MetaImGUI {
 struct MessageBoxState {
     std::string title;
     std::string message;
-    MessageBoxButtons buttons;
-    MessageBoxIcon icon;
+    MessageBoxButtons buttons = MessageBoxButtons::OK;
+    MessageBoxIcon icon = MessageBoxIcon::Info;
     std::function<void(MessageBoxResult)> callback;
     bool open = true;
 };
@@ -22,13 +24,13 @@ struct MessageBoxState {
 struct InputDialogState {
     std::string title;
     std::string prompt;
-    char inputBuffer[256] = {};
+    std::array<char, 256> inputBuffer{};
     std::function<void(const std::string&)> callback;
     bool open = true;
 };
 
 struct ProgressDialogState {
-    int id;
+    int id = 0;
     std::string title;
     std::string message;
     float progress = 0.0f;
@@ -93,12 +95,13 @@ void DialogManager::ShowInputDialog(const std::string& title, const std::string&
     m_impl->inputDialog->open = true;
 
     // Copy default value to buffer
-    strncpy(m_impl->inputDialog->inputBuffer, defaultValue.c_str(), sizeof(m_impl->inputDialog->inputBuffer) - 1);
-    m_impl->inputDialog->inputBuffer[sizeof(m_impl->inputDialog->inputBuffer) - 1] = '\0';
+    auto& buffer = m_impl->inputDialog->inputBuffer;
+    strncpy(std::data(buffer), defaultValue.c_str(), std::size(buffer) - 1);
+    buffer[std::size(buffer) - 1] = '\0';
 }
 
 int DialogManager::ShowProgressDialog(const std::string& title, const std::string& message) {
-    int id = m_impl->nextProgressId++;
+    const int id = m_impl->nextProgressId++;
     ProgressDialogState state;
     state.id = id;
     state.title = title;
@@ -159,11 +162,12 @@ void DialogManager::CloseAll() {
 
 void DialogManager::RenderMessageBox() {
     auto& mb = m_impl->messageBox;
-    if (!mb || !mb->open)
+    if (!mb || !mb->open) {
         return;
+    }
 
     ImGui::OpenPopup(mb->title.c_str());
-    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
     MessageBoxResult result = MessageBoxResult::None;
@@ -201,7 +205,7 @@ void DialogManager::RenderMessageBox() {
 
         // Buttons (translated)
         auto& loc = Localization::Instance();
-        float buttonWidth = 100.0f;
+        const float buttonWidth = 100.0f;
         switch (mb->buttons) {
             case MessageBoxButtons::OK:
                 if (ImGui::Button(loc.Tr("button.ok").c_str(), ImVec2(buttonWidth, 0))) {
@@ -278,8 +282,9 @@ void DialogManager::RenderMessageBox() {
 
 void DialogManager::RenderInputDialog() {
     auto& id = m_impl->inputDialog;
-    if (!id || !id->open)
+    if (!id || !id->open) {
         return;
+    }
 
     ImGui::OpenPopup(id->title.c_str());
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -294,10 +299,10 @@ void DialogManager::RenderInputDialog() {
         ImGui::Spacing();
 
         ImGui::SetNextItemWidth(300.0f);
-        if (ImGui::InputText("##input", id->inputBuffer, sizeof(id->inputBuffer),
+        if (ImGui::InputText("##input", id->inputBuffer.data(), id->inputBuffer.size(),
                              ImGuiInputTextFlags_EnterReturnsTrue)) {
             submitted = true;
-            result = id->inputBuffer;
+            result = id->inputBuffer.data();
             id->open = false;
         }
 
@@ -308,7 +313,7 @@ void DialogManager::RenderInputDialog() {
         auto& loc = Localization::Instance();
         if (ImGui::Button(loc.Tr("button.ok").c_str(), ImVec2(100, 0))) {
             submitted = true;
-            result = id->inputBuffer;
+            result = id->inputBuffer.data();
             id->open = false;
         }
         ImGui::SameLine();
@@ -365,8 +370,9 @@ void DialogManager::RenderProgressDialogs() {
 
 void DialogManager::RenderListDialog() {
     auto& ld = m_impl->listDialog;
-    if (!ld || !ld->open)
+    if (!ld || !ld->open) {
         return;
+    }
 
     ImGui::OpenPopup(ld->title.c_str());
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();

@@ -14,7 +14,6 @@
 #include <imgui.h>
 
 #include <cstdlib> // for std::getenv
-#include <iostream>
 
 namespace MetaImGUI {
 
@@ -53,6 +52,7 @@ bool Application::Initialize() {
     };
 
     // Check if running from AppImage (METAIMGUI_APPDIR set by custom AppRun)
+    // NOLINTNEXTLINE(concurrency-mt-unsafe) - Safe: called during single-threaded initialization
     const char* appdir = std::getenv("METAIMGUI_APPDIR");
     if (appdir) {
         std::string appdir_path = std::string(appdir) + "/usr/share/MetaImGUI/resources/translations/translations.json";
@@ -63,14 +63,16 @@ bool Application::Initialize() {
     // macOS bundle resources path
     translationPaths.insert(translationPaths.begin() + 1,
                             "../Resources/resources/translations/translations.json"); // Relative to Contents/MacOS/
-    translationPaths.push_back("MetaImGUI.app/Contents/Resources/resources/translations/translations.json");
+    translationPaths.emplace_back("MetaImGUI.app/Contents/Resources/resources/translations/translations.json");
 #endif
 
     // Add system installation paths
-    translationPaths.push_back(
+    translationPaths.emplace_back(
         "../share/MetaImGUI/resources/translations/translations.json"); // Installed (relative to bin)
-    translationPaths.push_back("/usr/share/MetaImGUI/resources/translations/translations.json"); // System-wide install
-    translationPaths.push_back("/usr/local/share/MetaImGUI/resources/translations/translations.json"); // Local install
+    translationPaths.emplace_back(
+        "/usr/share/MetaImGUI/resources/translations/translations.json"); // System-wide install
+    translationPaths.emplace_back(
+        "/usr/local/share/MetaImGUI/resources/translations/translations.json"); // Local install
 
     bool translationsLoaded = false;
     for (const auto& path : translationPaths) {
@@ -373,6 +375,9 @@ void Application::OnKeyPressed(int key, int scancode, int action, int mods) {
                         m_statusMessage = "DEBUG: Context recovery failed";
                     }
                 }
+                break;
+            default:
+                // Ignore other keys
                 break;
         }
     }

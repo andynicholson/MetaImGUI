@@ -2,6 +2,8 @@
 
 #include <imgui.h>
 
+#include <iterator>
+
 namespace MetaImGUI {
 
 // Initialize static member
@@ -35,7 +37,7 @@ void ThemeManager::ApplyModernTheme() {
 
     // Customize for modern clean look
     ImGuiStyle& style = ImGui::GetStyle();
-    ImVec4* colors = style.Colors;
+    ImVec4* colors = std::data(style.Colors);
 
     // Clean light modern colors
     colors[ImGuiCol_Text] = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);

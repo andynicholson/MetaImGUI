@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 
 #include <chrono>
+#include <stop_token>
 #include <thread>
 
 // HTTP requests using libcurl (cross-platform)
@@ -36,7 +37,7 @@ void ISSTracker::StartTracking(std::function<void(const ISSPosition&)> callback)
 
     // C++20: std::jthread with stop_token for clean cancellation
     // jthread creates its own stop_source internally
-    m_trackingThread = std::jthread([this](std::stop_token stopToken) { TrackingLoop(stopToken); });
+    m_trackingThread = std::jthread([this](const std::stop_token& stopToken) { TrackingLoop(stopToken); });
 
     LOG_INFO("ISS Tracker: Started tracking");
 }
@@ -84,7 +85,7 @@ ISSPosition ISSTracker::FetchPositionSync() {
     return FetchPositionImpl();
 }
 
-void ISSTracker::TrackingLoop(std::stop_token stopToken) {
+void ISSTracker::TrackingLoop(const std::stop_token& stopToken) {
     while (!stopToken.stop_requested()) {
         try {
             ISSPosition position = FetchPositionImpl();
@@ -167,11 +168,13 @@ ISSPosition ISSTracker::FetchPositionImpl() {
     return position;
 }
 
+namespace {
 // Callback for libcurl to write response data
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
+size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
     ((std::string*)userp)->append((char*)contents, size * nmemb);
     return size * nmemb;
 }
+} // namespace
 
 std::string ISSTracker::FetchJSON(const std::string& url) {
     std::string result;

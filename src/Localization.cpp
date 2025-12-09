@@ -37,7 +37,7 @@ Localization& Localization::Instance() {
 }
 
 void Localization::SetLanguage(const std::string& languageCode) {
-    if (m_translations.find(languageCode) != m_translations.end()) {
+    if (m_translations.contains(languageCode)) {
         m_currentLanguage = languageCode;
         LOG_INFO("Language set to: {}", languageCode);
     } else {
@@ -51,6 +51,7 @@ std::string Localization::GetCurrentLanguage() const {
 
 std::vector<std::string> Localization::GetAvailableLanguages() const {
     std::vector<std::string> languages;
+    languages.reserve(m_translations.size());
     for (const auto& pair : m_translations) {
         languages.push_back(pair.first);
     }
@@ -96,8 +97,8 @@ bool Localization::LoadTranslations(const std::string& filepath) {
 
         json j = json::parse(file);
 
-        for (auto& [languageCode, translations] : j.items()) {
-            for (auto& [key, value] : translations.items()) {
+        for (const auto& [languageCode, translations] : j.items()) {
+            for (const auto& [key, value] : translations.items()) {
                 AddTranslation(languageCode, key, value.get<std::string>());
             }
         }

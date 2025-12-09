@@ -125,7 +125,8 @@ std::optional<std::pair<int, int>> ConfigManager::GetWindowPosition() const {
             m_impl->config["window"].contains("y")) {
             return std::make_pair(m_impl->config["window"]["x"].get<int>(), m_impl->config["window"]["y"].get<int>());
         }
-    } catch (const json::exception&) {
+    } catch (const json::exception& e) {
+        LOG_WARNING("Failed to get window position from config: {}", e.what());
     }
     return std::nullopt;
 }
@@ -137,7 +138,8 @@ std::optional<std::pair<int, int>> ConfigManager::GetWindowSize() const {
             return std::make_pair(m_impl->config["window"]["width"].get<int>(),
                                   m_impl->config["window"]["height"].get<int>());
         }
-    } catch (const json::exception&) {
+    } catch (const json::exception& e) {
+        LOG_WARNING("Failed to get window size from config: {}", e.what());
     }
     return std::nullopt;
 }
@@ -151,7 +153,8 @@ bool ConfigManager::GetWindowMaximized() const {
         if (m_impl->config.contains("window") && m_impl->config["window"].contains("maximized")) {
             return m_impl->config["window"]["maximized"].get<bool>();
         }
-    } catch (const json::exception&) {
+    } catch (const json::exception& e) {
+        LOG_WARNING("Failed to get window maximized state from config: {}", e.what());
     }
     return false;
 }
@@ -167,7 +170,8 @@ std::string ConfigManager::GetTheme() const {
         if (m_impl->config.contains("theme")) {
             return m_impl->config["theme"].get<std::string>();
         }
-    } catch (const json::exception&) {
+    } catch (const json::exception& e) {
+        LOG_WARNING("Failed to get theme from config: {}", e.what());
     }
     return Impl::DEFAULT_THEME;
 }
@@ -206,7 +210,8 @@ std::vector<std::string> ConfigManager::GetRecentFiles() const {
                 result.push_back(file.get<std::string>());
             }
         }
-    } catch (const json::exception&) {
+    } catch (const json::exception& e) {
+        LOG_WARNING("Failed to get recent files from config: {}", e.what());
     }
     return result;
 }
@@ -233,7 +238,8 @@ std::optional<std::string> ConfigManager::GetString(const std::string& key) cons
         if (m_impl->config.contains("settings") && m_impl->config["settings"].contains(key)) {
             return m_impl->config["settings"][key].get<std::string>();
         }
-    } catch (const json::exception&) {
+    } catch (const json::exception& e) {
+        LOG_WARNING("Failed to get string '{}' from config: {}", key, e.what());
     }
     return std::nullopt;
 }
@@ -250,7 +256,8 @@ std::optional<int> ConfigManager::GetInt(const std::string& key) const {
         if (m_impl->config.contains("settings") && m_impl->config["settings"].contains(key)) {
             return m_impl->config["settings"][key].get<int>();
         }
-    } catch (const json::exception&) {
+    } catch (const json::exception& e) {
+        LOG_WARNING("Failed to get int '{}' from config: {}", key, e.what());
     }
     return std::nullopt;
 }
@@ -267,7 +274,8 @@ std::optional<bool> ConfigManager::GetBool(const std::string& key) const {
         if (m_impl->config.contains("settings") && m_impl->config["settings"].contains(key)) {
             return m_impl->config["settings"][key].get<bool>();
         }
-    } catch (const json::exception&) {
+    } catch (const json::exception& e) {
+        LOG_WARNING("Failed to get bool '{}' from config: {}", key, e.what());
     }
     return std::nullopt;
 }
@@ -284,7 +292,8 @@ std::optional<float> ConfigManager::GetFloat(const std::string& key) const {
         if (m_impl->config.contains("settings") && m_impl->config["settings"].contains(key)) {
             return m_impl->config["settings"][key].get<float>();
         }
-    } catch (const json::exception&) {
+    } catch (const json::exception& e) {
+        LOG_WARNING("Failed to get float '{}' from config: {}", key, e.what());
     }
     return std::nullopt;
 }
@@ -307,7 +316,8 @@ std::vector<std::string> ConfigManager::GetAllKeys() const {
                 keys.push_back(it.key());
             }
         }
-    } catch (const json::exception&) {
+    } catch (const json::exception& e) {
+        LOG_WARNING("Failed to get all keys from config: {}", e.what());
     }
     return keys;
 }
@@ -327,6 +337,7 @@ std::filesystem::path ConfigManager::GetConfigDirectory() {
     return std::filesystem::path("./config");
 #elif defined(__APPLE__)
     // macOS: ~/Library/Application Support/MetaImGUI
+    // NOLINTNEXTLINE(concurrency-mt-unsafe) - Safe: called during single-threaded initialization
     const char* home = getenv("HOME");
     if (home) {
         return std::filesystem::path(home) / "Library" / "Application Support" / "MetaImGUI";
@@ -334,11 +345,13 @@ std::filesystem::path ConfigManager::GetConfigDirectory() {
     return std::filesystem::path("./config");
 #else
     // Linux: ~/.config/MetaImGUI
+    // NOLINTNEXTLINE(concurrency-mt-unsafe) - Safe: called during single-threaded initialization
     const char* xdgConfig = getenv("XDG_CONFIG_HOME");
     if (xdgConfig) {
         return std::filesystem::path(xdgConfig) / "MetaImGUI";
     }
 
+    // NOLINTNEXTLINE(concurrency-mt-unsafe) - Safe: called during single-threaded initialization
     const char* home = getenv("HOME");
     if (home) {
         return std::filesystem::path(home) / ".config" / "MetaImGUI";
