@@ -80,3 +80,4 @@ Currently supported languages:
 
 To add a new language, add a new language section to the JSON file and update the language menu in UIRenderer.cpp.
 
+

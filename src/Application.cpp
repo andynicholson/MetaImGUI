@@ -395,11 +395,12 @@ void Application::CheckForUpdates() {
 void Application::OnUpdateCheckComplete(const UpdateInfo& updateInfo) {
     m_updateCheckInProgress = false;
 
-    if (updateInfo.updateAvailable) {
-        m_latestUpdateInfo = std::make_unique<UpdateInfo>(updateInfo);
-        m_showUpdateNotification = true;
-        m_statusMessage = "Update available: v" + updateInfo.latestVersion;
+    // Always store the update info and show the dialog for better UX
+    m_latestUpdateInfo = std::make_unique<UpdateInfo>(updateInfo);
+    m_showUpdateNotification = true;
 
+    if (updateInfo.updateAvailable) {
+        m_statusMessage = "Update available: v" + updateInfo.latestVersion;
         LOG_INFO("Update available: v{} (current: v{})", updateInfo.latestVersion, updateInfo.currentVersion);
     } else {
         m_statusMessage = "Ready";

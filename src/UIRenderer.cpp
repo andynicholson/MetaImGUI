@@ -360,89 +360,128 @@ void UIRenderer::RenderUpdateNotification(bool& showUpdateNotification, UpdateIn
                              ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-    if (ImGui::Begin("Update Available", &showUpdateNotification, ImGuiWindowFlags_NoCollapse)) {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
-        ImGui::Text("A new version is available!");
-        ImGui::PopStyleColor();
+    const char* windowTitle = updateInfo->updateAvailable ? "Update Available" : "No Updates Available";
+    if (ImGui::Begin(windowTitle, &showUpdateNotification, ImGuiWindowFlags_NoCollapse)) {
+        if (updateInfo->updateAvailable) {
+            // Update available UI
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
+            ImGui::Text("A new version is available!");
+            ImGui::PopStyleColor();
 
-        ImGui::Separator();
-        ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
 
-        ImGui::Text("Current version: v%s", updateInfo->currentVersion.c_str());
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.8f, 1.0f, 1.0f));
-        ImGui::Text("Latest version:  v%s", updateInfo->latestVersion.c_str());
-        ImGui::PopStyleColor();
+            ImGui::Text("Current version: v%s", updateInfo->currentVersion.c_str());
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.8f, 1.0f, 1.0f));
+            ImGui::Text("Latest version:  v%s", updateInfo->latestVersion.c_str());
+            ImGui::PopStyleColor();
 
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
 
-        if (!updateInfo->releaseNotes.empty()) {
-            ImGui::Text("Release Notes:");
-            ImGui::BeginChild("ReleaseNotes", ImVec2(0, UILayout::RELEASE_NOTES_HEIGHT), true);
-            ImGui::TextWrapped("%s", updateInfo->releaseNotes.c_str());
-            ImGui::EndChild();
-        }
+            if (!updateInfo->releaseNotes.empty()) {
+                ImGui::Text("Release Notes:");
+                ImGui::BeginChild("ReleaseNotes", ImVec2(0, UILayout::RELEASE_NOTES_HEIGHT), true);
+                ImGui::TextWrapped("%s", updateInfo->releaseNotes.c_str());
+                ImGui::EndChild();
+            }
 
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
 
-        ImGui::Text("Visit the release page to download:");
-        ImGui::Spacing();
+            ImGui::Text("Visit the release page to download:");
+            ImGui::Spacing();
 
-        // Buttons
-        if (ImGui::Button("Open Release Page", ImVec2(UILayout::BUTTON_OPEN_RELEASE_WIDTH, UILayout::BUTTON_HEIGHT))) {
-            // Open URL in browser
-            std::string url = updateInfo->releaseUrl;
+            // Buttons for update available
+            if (ImGui::Button("Open Release Page",
+                              ImVec2(UILayout::BUTTON_OPEN_RELEASE_WIDTH, UILayout::BUTTON_HEIGHT))) {
+                // Open URL in browser
+                std::string url = updateInfo->releaseUrl;
 
-            // Security: Validate URL before opening to prevent command injection
-            // Only allow https:// URLs from github.com
-            bool isValidUrl = false;
-            if (url.length() >= 8 && url.substr(0, 8) == "https://") {
-                // Check if it contains github.com (the expected domain)
-                if (url.find("github.com") != std::string::npos) {
-                    // Check for shell metacharacters that could be used for injection
-                    const std::string dangerousChars = ";|&$`\n<>(){}[]'\"\\";
-                    bool hasDangerousChars = false;
-                    for (char c : dangerousChars) {
-                        if (url.find(c) != std::string::npos) {
-                            hasDangerousChars = true;
-                            break;
+                // Security: Validate URL before opening to prevent command injection
+                // Only allow https:// URLs from github.com
+                bool isValidUrl = false;
+                if (url.length() >= 8 && url.substr(0, 8) == "https://") {
+                    // Check if it contains github.com (the expected domain)
+                    if (url.find("github.com") != std::string::npos) {
+                        // Check for shell metacharacters that could be used for injection
+                        const std::string dangerousChars = ";|&$`\n<>(){}[]'\"\\";
+                        bool hasDangerousChars = false;
+                        for (char c : dangerousChars) {
+                            if (url.find(c) != std::string::npos) {
+                                hasDangerousChars = true;
+                                break;
+                            }
                         }
+                        isValidUrl = !hasDangerousChars;
                     }
-                    isValidUrl = !hasDangerousChars;
+                }
+
+                if (isValidUrl) {
+#ifdef _WIN32
+                    // Windows: Use ShellExecuteA for safer URL opening
+                    ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
+#elif __APPLE__
+                    // macOS: Use system() but with validated/escaped URL
+                    std::string cmd = "open \"" + url + "\"";
+                    [[maybe_unused]] int result = system(cmd.c_str());
+#else
+                    // Linux: Use system() but with validated/escaped URL
+                    std::string cmd = "xdg-open \"" + url + "\"";
+                    [[maybe_unused]] int result = system(cmd.c_str());
+#endif
+                } else {
+                    LOG_ERROR("Rejected potentially malicious URL: {}", url);
                 }
             }
 
-            if (isValidUrl) {
-#ifdef _WIN32
-                // Windows: Use ShellExecuteA for safer URL opening
-                ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
-#elif __APPLE__
-                // macOS: Use system() but with validated/escaped URL
-                std::string cmd = "open \"" + url + "\"";
-                [[maybe_unused]] int result = system(cmd.c_str());
-#else
-                // Linux: Use system() but with validated/escaped URL
-                std::string cmd = "xdg-open \"" + url + "\"";
-                [[maybe_unused]] int result = system(cmd.c_str());
-#endif
-            } else {
-                LOG_ERROR("Rejected potentially malicious URL: {}", url);
+            ImGui::SameLine();
+
+            if (ImGui::Button("Remind Me Later",
+                              ImVec2(UILayout::BUTTON_REMIND_LATER_WIDTH, UILayout::BUTTON_HEIGHT))) {
+                showUpdateNotification = false;
             }
-        }
 
-        ImGui::SameLine();
+            ImGui::SameLine();
 
-        if (ImGui::Button("Remind Me Later", ImVec2(UILayout::BUTTON_REMIND_LATER_WIDTH, UILayout::BUTTON_HEIGHT))) {
-            showUpdateNotification = false;
-        }
+            if (ImGui::Button("Close", ImVec2(UILayout::BUTTON_CLOSE_WIDTH, UILayout::BUTTON_HEIGHT))) {
+                showUpdateNotification = false;
+            }
+        } else {
+            // No update available UI
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.8f, 0.4f, 1.0f));
+            ImGui::Text("You're up to date!");
+            ImGui::PopStyleColor();
 
-        ImGui::SameLine();
+            ImGui::Separator();
+            ImGui::Spacing();
 
-        if (ImGui::Button("Close", ImVec2(UILayout::BUTTON_CLOSE_WIDTH, UILayout::BUTTON_HEIGHT))) {
-            showUpdateNotification = false;
+            ImGui::Text("Current version: v%s", updateInfo->currentVersion.c_str());
+            if (!updateInfo->latestVersion.empty()) {
+                ImGui::Text("Latest version:  v%s", updateInfo->latestVersion.c_str());
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            ImGui::TextWrapped("You are running the latest version of MetaImGUI.");
+            ImGui::TextWrapped("Check back later for updates!");
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            // Center the OK button
+            float buttonWidth = 100.0f;
+            float windowWidth = ImGui::GetWindowSize().x;
+            ImGui::SetCursorPosX((windowWidth - buttonWidth) * 0.5f);
+
+            if (ImGui::Button("OK", ImVec2(buttonWidth, UILayout::BUTTON_HEIGHT))) {
+                showUpdateNotification = false;
+            }
         }
     }
     ImGui::End();

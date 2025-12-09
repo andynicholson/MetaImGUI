@@ -27,16 +27,16 @@ Designed for efficient development in AI-assisted editors like Cursor, Antigravi
 ### Dialog System
 ![Dialogs](screenshots/dialogs.png)
 
-### About 
+### About
 ![About](screenshots/about-dialog.png)
 
 ### Menu System
 ![Menu](screenshots/menu-system.png)
 
-### Localisation 
+### Localisation
 ![Localisation](screenshots/localisation.png)
 
-### Example of Real-Time Plotting, via Threaded Network API JSON fetching. 
+### Example of Real-Time Plotting, via Threaded Network API JSON fetching, using ImPlot.
 ![ISSTracker](screenshots/ISS-Tracker.png)
 
 
@@ -419,6 +419,7 @@ doxygen Doxyfile
 
 ### Core Dependencies
 - 🎨 ImGui v1.92.4
+- 📊 ImPlot (for plotting and data visualization)
 - 🪟 GLFW 3.x
 - 🎮 OpenGL 3.3
 - 🌐 libcurl (update checking)
@@ -520,6 +521,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 ## Acknowledgments
 
 - [ImGui](https://github.com/ocornut/imgui) by Omar Cornut
+- [ImPlot](https://github.com/epezent/implot) by Evan Pezent
 - [GLFW](https://www.glfw.org/)
 - [Catch2](https://github.com/catchorg/Catch2)
 - [nlohmann/json](https://github.com/nlohmann/json) by Niels Lohmann
