@@ -4,6 +4,12 @@
 
 #include <GLFW/glfw3.h>
 
+// GL_CONTEXT_LOST is not available on all platforms (especially macOS OpenGL 3.3)
+// Define it if not available - we'll check for it but it won't be triggered on those platforms
+#ifndef GL_CONTEXT_LOST
+#define GL_CONTEXT_LOST 0x0507
+#endif
+
 namespace MetaImGUI {
 
 WindowManager::WindowManager(std::string title, int width, int height)
