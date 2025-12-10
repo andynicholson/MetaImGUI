@@ -14,12 +14,8 @@
 #include <implot.h>
 
 #include <array>
+#include <cstdlib>
 #include <ctime>
-
-#ifdef _WIN32
-#include <shellapi.h>
-#include <windows.h>
-#endif
 
 namespace MetaImGUI {
 
@@ -426,17 +422,18 @@ void UIRenderer::RenderUpdateNotification(bool& showUpdateNotification, UpdateIn
 
                 if (isValidUrl) {
 #ifdef _WIN32
-                    // Windows: Use ShellExecuteA for safer URL opening
-                    ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
+                    // Windows: Use system() with start command
+                    const std::string cmd = "start \"\" \"" + url + "\"";
+                    [[maybe_unused]] const int result = std::system(cmd.c_str());
 #elif __APPLE__
                     // macOS: Use system() but with validated/escaped URL
                     const std::string cmd = "open \"" + url + "\"";
-                    [[maybe_unused]] const int result = system(cmd.c_str());
+                    [[maybe_unused]] const int result = std::system(cmd.c_str());
 #else
                     // Linux: Use system() but with validated/escaped URL
                     const std::string cmd = "xdg-open \"" + url + "\"";
                     // NOLINTNEXTLINE(concurrency-mt-unsafe) - Safe: URL validated, single-threaded UI context
-                    [[maybe_unused]] const int result = system(cmd.c_str());
+                    [[maybe_unused]] const int result = std::system(cmd.c_str());
 #endif
                 } else {
                     LOG_ERROR("Rejected potentially malicious URL: {}", url);
