@@ -45,6 +45,10 @@ endif()
 if(MSVC)
     add_compile_options(/W4 /WX)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+    # Prevent Windows.h from defining min/max macros that conflict with std::min/max
+    add_compile_definitions(NOMINMAX)
+    # Reduce Windows.h header bloat for faster compilation
+    add_compile_definitions(WIN32_LEAN_AND_MEAN)
     # Enable multi-processor compilation
     add_compile_options(/MP)
 
