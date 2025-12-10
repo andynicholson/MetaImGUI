@@ -134,14 +134,7 @@ Write-Success "Backup created in .template_backup/"
 
 # Update CMakeLists.txt
 Write-Info "Updating CMakeLists.txt..."
-(Get-Content "CMakeLists.txt") -replace "project\(MetaImGUI", "project($Name" | Set-Content "CMakeLists.txt"
-(Get-Content "CMakeLists.txt") -replace "add_executable\(MetaImGUI", "add_executable($Name" | Set-Content "CMakeLists.txt"
-(Get-Content "CMakeLists.txt") -replace "target_include_directories\(MetaImGUI", "target_include_directories($Name" | Set-Content "CMakeLists.txt"
-(Get-Content "CMakeLists.txt") -replace "target_link_libraries\(MetaImGUI", "target_link_libraries($Name" | Set-Content "CMakeLists.txt"
-(Get-Content "CMakeLists.txt") -replace "target_compile_definitions\(MetaImGUI", "target_compile_definitions($Name" | Set-Content "CMakeLists.txt"
-(Get-Content "CMakeLists.txt") -replace "set_target_properties\(MetaImGUI", "set_target_properties($Name" | Set-Content "CMakeLists.txt"
-(Get-Content "CMakeLists.txt") -replace "MetaImGUI_tests", "${Name}_tests" | Set-Content "CMakeLists.txt"
-(Get-Content "CMakeLists.txt") -replace "catch_discover_tests\(MetaImGUI", "catch_discover_tests($Name" | Set-Content "CMakeLists.txt"
+(Get-Content "CMakeLists.txt") -replace "MetaImGUI", $Name | Set-Content "CMakeLists.txt"
 Write-Success "CMakeLists.txt updated"
 
 # Update namespace in source files and tests

@@ -188,14 +188,7 @@ print_success "Backup created in .template_backup/"
 
 # Update CMakeLists.txt
 print_info "Updating CMakeLists.txt..."
-sed -i.bak "s/project(MetaImGUI/project($PROJECT_NAME/" CMakeLists.txt
-sed -i.bak "s/add_executable(MetaImGUI/add_executable($PROJECT_NAME/" CMakeLists.txt
-sed -i.bak "s/target_include_directories(MetaImGUI/target_include_directories($PROJECT_NAME/" CMakeLists.txt
-sed -i.bak "s/target_link_libraries(MetaImGUI/target_link_libraries($PROJECT_NAME/" CMakeLists.txt
-sed -i.bak "s/target_compile_definitions(MetaImGUI/target_compile_definitions($PROJECT_NAME/" CMakeLists.txt
-sed -i.bak "s/set_target_properties(MetaImGUI/set_target_properties($PROJECT_NAME/" CMakeLists.txt
-sed -i.bak "s/MetaImGUI_tests/${PROJECT_NAME}_tests/" CMakeLists.txt
-sed -i.bak "s/catch_discover_tests(MetaImGUI/catch_discover_tests($PROJECT_NAME/" CMakeLists.txt
+sed -i.bak "s/MetaImGUI/$PROJECT_NAME/g" CMakeLists.txt
 rm CMakeLists.txt.bak 2>/dev/null || true
 print_success "CMakeLists.txt updated"
 
