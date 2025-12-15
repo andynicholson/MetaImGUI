@@ -102,7 +102,7 @@ jobs:
         alert-comment-cc-users: '@andynicholson'
 
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: benchmark-results
         path: build/benchmark_results.json
