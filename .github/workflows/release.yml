@@ -90,7 +90,7 @@ jobs:
           wget
 
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           external/imgui
@@ -286,7 +286,7 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1
 
     - name: Cache vcpkg packages
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: C:/vcpkg/installed
         # v3: Using x64-windows-static triplet for static MSVC runtime
@@ -296,7 +296,7 @@ jobs:
           ${{ runner.os }}-vcpkg-static-
 
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           external/imgui
@@ -432,7 +432,7 @@ jobs:
         echo "LDFLAGS=-L$LLVM_PATH/lib/c++ -Wl,-rpath,$LLVM_PATH/lib/c++" >> $GITHUB_ENV
 
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           external/imgui
