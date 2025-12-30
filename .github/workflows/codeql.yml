@@ -61,6 +61,14 @@ jobs:
           git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
         fi
 
+    - name: Setup ImPlot
+      run: |
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
+        fi
+
     # Initialize CodeQL tools for scanning
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4

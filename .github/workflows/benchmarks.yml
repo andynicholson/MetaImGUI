@@ -92,7 +92,7 @@ jobs:
     - name: Store benchmark result
       uses: benchmark-action/github-action-benchmark@v1
       with:
-        tool: 'googlebenchmark'
+        tool: 'googlecpp'
         output-file-path: build/benchmark_results.json
         github-token: ${{ secrets.GITHUB_TOKEN }}
         auto-push: false
