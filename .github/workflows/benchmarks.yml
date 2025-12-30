@@ -91,6 +91,7 @@ jobs:
 
     - name: Store benchmark result
       uses: benchmark-action/github-action-benchmark@v1
+      if: false  # Disabled - requires gh-pages branch setup
       with:
         tool: 'googlecpp'
         output-file-path: build/benchmark_results.json
