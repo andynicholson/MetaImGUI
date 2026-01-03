@@ -1,0 +1,149 @@
+name: Code Coverage
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    name: Generate Coverage Report
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libglfw3-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libcurl4-openssl-dev \
+          xorg-dev \
+          lcov
+
+    - name: Cache dependencies
+      uses: actions/cache@v5
+      with:
+        path: |
+          external/imgui
+          external/json
+          external/implot
+          external/catch2
+        key: coverage-deps-imgui-1.92.4-json-3.11.3-implot-0.17-catch2-3.4.0
+        restore-keys: |
+          coverage-deps-
+
+    - name: Setup ImGui
+      run: |
+        if [ ! -d "external/imgui" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+        fi
+
+    - name: Setup nlohmann/json
+      run: |
+        if [ ! -d "external/json" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+        fi
+
+    - name: Setup ImPlot
+      run: |
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
+        fi
+
+    - name: Setup Catch2
+      run: |
+        if [ ! -d "external/catch2" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.4.0 --depth 1 https://github.com/catchorg/Catch2.git catch2
+        fi
+
+    - name: Configure with coverage enabled
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DENABLE_COVERAGE=ON \
+          -DBUILD_TESTS=ON
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Generate coverage report
+      run: |
+        cd build
+
+        # Zero counters
+        lcov --directory . --zerocounters
+
+        # Run tests
+        ctest --output-on-failure
+
+        # Capture coverage data (ignore missing sources and negative counts from race conditions)
+        lcov --directory . --capture --output-file coverage.info \
+          --ignore-errors source,gcov,negative
+
+        # Remove external and test files
+        lcov --remove coverage.info \
+          '/usr/*' \
+          '*/external/*' \
+          '*/tests/*' \
+          '*/build/*' \
+          '*/catch2/*' \
+          '*/imgui/*' \
+          '*/json/*' \
+          --output-file coverage.info.cleaned \
+          --ignore-errors source,gcov,empty,negative || true
+
+        # Generate summary
+        lcov --list coverage.info.cleaned || true
+
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        files: ./build/coverage.info.cleaned
+        flags: unittests
+        name: codecov-metaimgui
+        fail_ci_if_error: false
+        verbose: true
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Generate HTML report
+      run: |
+        cd build
+        genhtml coverage.info.cleaned --output-directory coverage_html || echo "HTML generation skipped"
+
+    - name: Upload coverage HTML report
+      uses: actions/upload-artifact@v6
+      with:
+        name: coverage-report
+        path: build/coverage_html
+        retention-days: 30
+
+    - name: Coverage Summary
+      run: |
+        cd build
+        echo "## Code Coverage Summary" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        lcov --summary coverage.info.cleaned >> $GITHUB_STEP_SUMMARY 2>&1
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📊 Full HTML report available in artifacts" >> $GITHUB_STEP_SUMMARY
+

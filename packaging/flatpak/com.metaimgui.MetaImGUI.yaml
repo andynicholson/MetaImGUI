@@ -1,0 +1,89 @@
+app-id: com.metaimgui.MetaImGUI
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: MetaImGUI
+
+finish-args:
+  # X11 + XShm access
+  - --share=ipc
+  - --socket=x11
+  # Wayland access
+  - --socket=wayland
+  # OpenGL access
+  - --device=dri
+  # Network access for update checking
+  - --share=network
+  # Access to home directory for config
+  - --filesystem=xdg-config/MetaImGUI:create
+  - --filesystem=xdg-data/MetaImGUI:create
+
+modules:
+  # GLFW
+  - name: glfw
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS:BOOL=ON
+      - -DGLFW_BUILD_EXAMPLES:BOOL=OFF
+      - -DGLFW_BUILD_TESTS:BOOL=OFF
+      - -DGLFW_BUILD_DOCS:BOOL=OFF
+    sources:
+      - type: archive
+        url: https://github.com/glfw/glfw/releases/download/3.3.9/glfw-3.3.9.zip
+        sha256: 55261410f8c3a9cc47ce8303468a90f40a653cd8f25fb968b12440624fb26d08
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+
+  # libcurl (for update checking)
+  - name: curl
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS:BOOL=ON
+      - -DCURL_USE_OPENSSL:BOOL=ON
+      - -DBUILD_CURL_EXE:BOOL=OFF
+      - -DBUILD_TESTING:BOOL=OFF
+    sources:
+      - type: archive
+        url: https://curl.se/download/curl-8.5.0.tar.xz
+        sha256: 42ab8db9e20d8290a3b633e7fbb3cec15db34df65fd1015ef8ac1e4723750eeb
+    cleanup:
+      - /bin
+      - /include
+      - /lib/pkgconfig
+      - /share
+
+  # MetaImGUI
+  - name: metaimgui
+    buildsystem: cmake-ninja
+    build-options:
+      env:
+        PKG_CONFIG_PATH: /app/lib/pkgconfig:/app/share/pkgconfig
+        LDFLAGS: -L/app/lib -lcurl
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_TESTS=OFF
+      - -DCMAKE_EXE_LINKER_FLAGS=-L/app/lib -lcurl
+    sources:
+      - type: dir
+        path: ../..
+
+      # ImGui
+      - type: git
+        url: https://github.com/ocornut/imgui.git
+        tag: v1.92.4
+        dest: external/imgui
+
+      # nlohmann/json
+      - type: git
+        url: https://github.com/nlohmann/json.git
+        tag: v3.11.3
+        dest: external/json
+
+    post-install:
+      - install -Dm644 resources/icons/metaimgui-256.png /app/share/icons/hicolor/256x256/apps/com.metaimgui.MetaImGUI.png
+      - install -Dm644 packaging/flatpak/com.metaimgui.MetaImGUI.desktop /app/share/applications/com.metaimgui.MetaImGUI.desktop
+      - install -Dm644 packaging/flatpak/com.metaimgui.MetaImGUI.metainfo.xml /app/share/metainfo/com.metaimgui.MetaImGUI.metainfo.xml
+

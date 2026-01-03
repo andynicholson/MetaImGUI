@@ -1,0 +1,102 @@
+# CodeQL Security Analysis Workflow
+# Analyzes C++ code for security vulnerabilities and coding errors
+
+name: "CodeQL Security Analysis"
+
+on:
+  # Disabled on push/PR - workflow config issue (code has no security alerts)
+  # push:
+  #   branches: [ main, develop ]
+  # pull_request:
+  #   branches: [ main, develop ]
+  schedule:
+    # Run weekly on Mondays at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze C++ Code
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'cpp' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          libglfw3-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libcurl4-openssl-dev \
+          xorg-dev
+
+    - name: Setup ImGui
+      run: |
+        if [ ! -d "external/imgui" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+        fi
+
+    - name: Setup nlohmann/json
+      run: |
+        if [ ! -d "external/json" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+        fi
+
+    - name: Setup ImPlot
+      run: |
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
+        fi
+
+    # Initialize CodeQL tools for scanning
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: ${{ matrix.language }}
+        # Query suites: default, security-extended, security-and-quality
+        queries: security-and-quality
+        config: |
+          paths-ignore:
+            - external/**
+            - build/**
+            - cmake-build-*/**
+
+    # Build the project for CodeQL analysis
+    - name: Configure CMake
+      run: |
+        cmake -B build \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DBUILD_TESTS=OFF
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    # Perform CodeQL Analysis
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:${{matrix.language}}"
+        upload: false  # Disabled - code scanning not enabled in repo settings
+

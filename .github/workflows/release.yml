@@ -1,0 +1,722 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+# Explicitly define permissions needed for releases
+permissions:
+  contents: write  # Required to create releases and upload assets
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  get-version:
+    name: Get Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      changelog: ${{ steps.changelog.outputs.changelog }}
+      tag: ${{ steps.get_version.outputs.tag }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Get version from tag
+      id: get_version
+      run: |
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        VERSION=${TAG_NAME#v}
+
+        # Validate version format (semantic versioning)
+        if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+          echo "Error: Invalid version format: $VERSION"
+          echo "Expected format: v1.2.3 or v1.2.3-beta.1"
+          exit 1
+        fi
+
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+        echo "Building release for version: $VERSION"
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get previous tag
+        PREV_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
+
+        if [ -z "$PREV_TAG" ]; then
+          echo "No previous tag found, generating changelog from all commits"
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges | head -n 50)
+        else
+          echo "Generating changelog from $PREV_TAG to HEAD"
+          CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+        fi
+
+        # Handle empty changelog
+        if [ -z "$CHANGELOG" ]; then
+          CHANGELOG="- No changes documented"
+        fi
+
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+  build-linux:
+    name: Build Linux Release
+    needs: get-version
+    # C++20 support: ubuntu-latest (GCC 11+)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libglfw3-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libcurl4-openssl-dev \
+          xorg-dev \
+          file \
+          wget
+
+    - name: Cache dependencies
+      uses: actions/cache@v5
+      with:
+        path: |
+          external/imgui
+          external/json
+          external/implot
+        key: release-deps-imgui-1.92.4-json-3.11.3-implot-0.17
+        restore-keys: |
+          release-deps-
+
+    - name: Setup ImGui
+      run: |
+        if [ ! -d "external/imgui" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+        fi
+
+    - name: Setup nlohmann/json
+      run: |
+        if [ ! -d "external/json" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+        fi
+
+    - name: Setup ImPlot
+      run: |
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
+        fi
+
+    - name: Build
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+        cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+
+    - name: Package tarball
+      run: |
+        mkdir -p MetaImGUI-${{ needs.get-version.outputs.version }}-linux
+        cp build/MetaImGUI MetaImGUI-${{ needs.get-version.outputs.version }}-linux/
+        cp README.md MetaImGUI-${{ needs.get-version.outputs.version }}-linux/
+        cp -r resources MetaImGUI-${{ needs.get-version.outputs.version }}-linux/
+        tar -czf MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.tar.gz MetaImGUI-${{ needs.get-version.outputs.version }}-linux
+
+    - name: Build AppImage
+      run: |
+        # Download linuxdeploy
+        wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+        chmod +x linuxdeploy-x86_64.AppImage
+
+        # Create AppDir structure
+        mkdir -p AppDir/usr/bin
+        mkdir -p AppDir/usr/share/applications
+        mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+        mkdir -p AppDir/usr/share/metainfo
+        mkdir -p AppDir/usr/share/MetaImGUI
+
+        # Copy executable
+        cp build/MetaImGUI AppDir/usr/bin/
+
+        # CRITICAL: Copy resources (including translations.json)
+        if [ -d "resources" ]; then
+          cp -r resources AppDir/usr/share/MetaImGUI/
+          echo "✓ Resources copied to AppDir (including translations)"
+        else
+          echo "⚠️  WARNING: resources directory not found!"
+          exit 1
+        fi
+
+        # Create custom AppRun script (sets METAIMGUI_APPDIR for resource path detection)
+        cat > AppDir/AppRun << 'APPRUNEOF'
+        #!/bin/bash
+        # Custom AppRun for MetaImGUI
+        # This sets up the environment so the app can find its resources
+
+        # Get the directory where the AppImage is mounted
+        APPDIR="$(dirname "$(readlink -f "$0")")"
+
+        # Set up resource paths
+        export METAIMGUI_APPDIR="$APPDIR"
+
+        # Change to a writable directory (user's home) for config files
+        cd "$HOME"
+
+        # Run the application
+        exec "$APPDIR/usr/bin/MetaImGUI" "$@"
+        APPRUNEOF
+
+        chmod +x AppDir/AppRun
+        echo "✓ Custom AppRun script created"
+
+        # Create desktop entry
+        cat > AppDir/usr/share/applications/metaimgui.desktop << 'EOF'
+        [Desktop Entry]
+        Type=Application
+        Name=MetaImGUI
+        Comment=ImGui Application Template
+        Exec=MetaImGUI
+        Icon=metaimgui
+        Categories=Development;
+        Terminal=false
+        EOF
+
+        # Copy icon if it exists, otherwise create placeholder
+        if [ -f "resources/icons/metaimgui-256.png" ]; then
+          cp resources/icons/metaimgui-256.png AppDir/usr/share/icons/hicolor/256x256/apps/metaimgui.png
+          echo "✓ Application icon copied"
+        else
+          echo "⚠️  Icon not found, creating placeholder"
+          touch AppDir/usr/share/icons/hicolor/256x256/apps/metaimgui.png
+        fi
+
+        # Build AppImage (skip AppStream validation)
+        export NO_APPSTREAM=1
+        ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
+
+        # Rename to include version
+        mv MetaImGUI-*.AppImage MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage || true
+
+        # Verify resources are in the AppImage
+        if [ -f "MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage" ]; then
+          echo "✓ AppImage created successfully"
+          ./MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage --appimage-extract > /dev/null
+          if [ -f "squashfs-root/usr/share/MetaImGUI/resources/translations/translations.json" ]; then
+            echo "✓ VERIFIED: translations.json is present in AppImage"
+          else
+            echo "❌ ERROR: translations.json NOT found in AppImage!"
+            echo "Expected: squashfs-root/usr/share/MetaImGUI/resources/translations/translations.json"
+            echo "Contents of usr/share/MetaImGUI:"
+            ls -la squashfs-root/usr/share/MetaImGUI/
+            exit 1
+          fi
+          rm -rf squashfs-root
+        fi
+
+    - name: Generate checksums
+      run: |
+        sha256sum MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.tar.gz > MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.tar.gz.sha256
+        if [ -f "MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage" ]; then
+          sha256sum MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage > MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage.sha256
+        fi
+
+    - name: Upload Release Assets
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ needs.get-version.outputs.tag }}
+        draft: false
+        files: |
+          MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.tar.gz
+          MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.tar.gz.sha256
+          MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage
+          MetaImGUI-${{ needs.get-version.outputs.version }}-linux-x64.AppImage.sha256
+        body: |
+          ## Changes in this release
+
+          ${{ needs.get-version.outputs.changelog }}
+
+          ## Downloads
+
+          ### Linux
+          - **Tarball**: `MetaImGUI-*-linux-x64.tar.gz` - Extract and run
+          - **AppImage**: `MetaImGUI-*-linux-x64.AppImage` - Portable, no installation needed
+
+          ### Windows
+          - **Installer**: `MetaImGUI-*-Setup.exe` - Installs to Program Files, creates shortcuts
+          - **Portable**: `MetaImGUI-*-windows-x64-portable.zip` - Extract and run, no installation
+
+          ### macOS
+          - **DMG**: `MetaImGUI-*-macos-x64.dmg` - Drag to Applications folder
+
+          ## Installation
+
+          See the [README](https://github.com/andynicholson/MetaImGUI#readme) for detailed installation instructions.
+
+          ## Checksums
+
+          SHA256 checksums are provided for all artifacts (`.sha256` files).
+        fail_on_unmatched_files: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    name: Build Windows Release
+    needs: get-version
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Cache vcpkg packages
+      uses: actions/cache@v5
+      with:
+        path: C:/vcpkg/installed
+        # v3: Using x64-windows-static triplet for static MSVC runtime
+        # This eliminates MSVCP140.dll and VCRUNTIME140.dll dependencies
+        key: ${{ runner.os }}-vcpkg-static-glfw3-curl-v3
+        restore-keys: |
+          ${{ runner.os }}-vcpkg-static-
+
+    - name: Cache dependencies
+      uses: actions/cache@v5
+      with:
+        path: |
+          external/imgui
+          external/json
+          external/implot
+        key: release-deps-imgui-1.92.4-json-3.11.3-implot-0.17
+        restore-keys: |
+          release-deps-
+
+    - name: Install NSIS
+      run: |
+        choco install nsis -y
+      shell: pwsh
+
+    - name: Validate vcpkg cache (if restored)
+      run: |
+        # Note: x64-windows-static provides .lib files, not .dll files
+        # Validation checks if static libs are present
+        if [ -d "C:/vcpkg/installed/x64-windows-static/lib" ]; then
+          echo "📦 Cache was restored, validating required static libraries..."
+          MISSING=0
+          for LIB in glfw3.lib libcurl.lib zlib.lib; do
+            if [ ! -f "C:/vcpkg/installed/x64-windows-static/lib/$LIB" ]; then
+              echo "❌ $LIB missing from cache - cache is invalid"
+              MISSING=1
+            fi
+          done
+          if [ $MISSING -eq 1 ]; then
+            echo "🔄 Clearing invalid cache..."
+            rm -rf C:/vcpkg/installed
+          else
+            echo "✅ Cache validated - all required static libs present"
+          fi
+        fi
+      shell: bash
+
+    - name: Install dependencies (vcpkg)
+      run: |
+        # Use x64-windows-static to build with static MSVC runtime (/MT)
+        # This eliminates the need for MSVCP140.dll, VCRUNTIME140.dll, etc.
+        vcpkg install glfw3:x64-windows-static curl:x64-windows-static
+      shell: bash
+
+    - name: Setup ImGui
+      run: |
+        if [ ! -d "external/imgui" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+        fi
+      shell: bash
+
+    - name: Setup nlohmann/json
+      run: |
+        if [ ! -d "external/json" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+        fi
+      shell: bash
+
+    - name: Setup ImPlot
+      run: |
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
+        fi
+      shell: bash
+
+    - name: Verify vcpkg static libraries
+      run: |
+        echo "Checking vcpkg static libraries..."
+        echo "Note: Using x64-windows-static - libraries are statically linked into executable"
+        ls -la C:/vcpkg/installed/x64-windows-static/lib/*.lib | head -30 || true
+        echo ""
+        echo "Looking for required static libraries:"
+        ls -la C:/vcpkg/installed/x64-windows-static/lib/glfw3.lib || echo "❌ glfw3.lib NOT FOUND"
+        ls -la C:/vcpkg/installed/x64-windows-static/lib/libcurl.lib || echo "❌ libcurl.lib NOT FOUND"
+        ls -la C:/vcpkg/installed/x64-windows-static/lib/zlib.lib || echo "❌ zlib.lib NOT FOUND"
+      shell: bash
+
+    - name: Build and create packages
+      run: |
+        # Use the packaging script (creates both NSIS installer and portable ZIP)
+        .\packaging\create_windows_installer.ps1 -Version ${{ needs.get-version.outputs.version }}
+      shell: pwsh
+      env:
+        VCPKG_ROOT: C:/vcpkg
+
+    - name: Generate checksums
+      run: |
+        # Generate checksum for portable ZIP
+        $zipHash = (Get-FileHash -Path "packaging\output\MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64-portable.zip" -Algorithm SHA256).Hash
+        "$zipHash  MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64-portable.zip" | Out-File -FilePath "packaging\output\MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64-portable.zip.sha256" -Encoding ASCII
+
+        # Generate checksum for installer
+        $exeHash = (Get-FileHash -Path "packaging\output\MetaImGUI-${{ needs.get-version.outputs.version }}-Setup.exe" -Algorithm SHA256).Hash
+        "$exeHash  MetaImGUI-${{ needs.get-version.outputs.version }}-Setup.exe" | Out-File -FilePath "packaging\output\MetaImGUI-${{ needs.get-version.outputs.version }}-Setup.exe.sha256" -Encoding ASCII
+      shell: pwsh
+
+    - name: Upload Release Assets
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ needs.get-version.outputs.tag }}
+        draft: false
+        files: |
+          packaging/output/MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64-portable.zip
+          packaging/output/MetaImGUI-${{ needs.get-version.outputs.version }}-windows-x64-portable.zip.sha256
+          packaging/output/MetaImGUI-${{ needs.get-version.outputs.version }}-Setup.exe
+          packaging/output/MetaImGUI-${{ needs.get-version.outputs.version }}-Setup.exe.sha256
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos:
+    name: Build macOS Release
+    needs: get-version
+    runs-on: macos-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Install dependencies
+      run: |
+        brew install cmake glfw llvm
+        LLVM_PATH=$(brew --prefix llvm)
+        SDK_PATH=$(xcrun --show-sdk-path)
+        echo "$LLVM_PATH/bin" >> $GITHUB_PATH
+        # Use LLVM compiler for C++20 support, but link against system C++ library
+        # This avoids bundling LLVM's custom libc++ and libunwind dependencies
+        echo "CC=$LLVM_PATH/bin/clang" >> $GITHUB_ENV
+        echo "CXX=$LLVM_PATH/bin/clang++" >> $GITHUB_ENV
+        echo "SDKROOT=$SDK_PATH" >> $GITHUB_ENV
+        echo "CXXFLAGS=-stdlib=libc++" >> $GITHUB_ENV
+        echo "LDFLAGS=-stdlib=libc++" >> $GITHUB_ENV
+
+    - name: Cache dependencies
+      uses: actions/cache@v5
+      with:
+        path: |
+          external/imgui
+          external/json
+          external/implot
+        key: release-deps-imgui-1.92.4-json-3.11.3-implot-0.17
+        restore-keys: |
+          release-deps-
+
+    - name: Setup ImGui
+      run: |
+        if [ ! -d "external/imgui" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+        fi
+
+    - name: Setup nlohmann/json
+      run: |
+        if [ ! -d "external/json" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+        fi
+
+    - name: Setup ImPlot
+      run: |
+        if [ ! -d "external/implot" ]; then
+          mkdir -p external
+          cd external
+          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
+        fi
+
+    - name: Build
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+        cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+
+    - name: Import Code-Signing Certificates
+      uses: Apple-Actions/import-codesign-certs@v6
+      with:
+        p12-file-base64: ${{ secrets.MACOS_CERTIFICATE }}
+        p12-password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+      continue-on-error: true
+
+    - name: Prepare App Bundle
+      run: |
+        # CMake already created MetaImGUI.app because of MACOSX_BUNDLE
+        # Just verify it exists and copy it to the working directory
+        if [ ! -d "build/MetaImGUI.app" ]; then
+          echo "Error: MetaImGUI.app bundle not found!"
+          echo "Looking for bundle in build directory..."
+          ls -la build/
+          exit 1
+        fi
+
+        echo "✓ Found CMake-built bundle at build/MetaImGUI.app"
+
+        # Copy the CMake-built bundle to working directory
+        cp -R build/MetaImGUI.app ./
+
+        # Verify the executable is in the bundle
+        if [ ! -f "MetaImGUI.app/Contents/MacOS/MetaImGUI" ]; then
+          echo "Error: Executable not found in bundle!"
+          ls -la MetaImGUI.app/Contents/MacOS/
+          exit 1
+        fi
+
+        echo "✓ Bundle structure verified"
+
+        # Verify resources are in the bundle
+        if [ ! -f "MetaImGUI.app/Contents/Resources/resources/translations/translations.json" ]; then
+          echo "⚠️  Warning: translations.json not found in bundle!"
+          echo "Bundle contents:"
+          find MetaImGUI.app/Contents/Resources -type f
+        else
+          echo "✓ Resources verified in bundle"
+        fi
+
+        # Update Info.plist with version info
+        /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ needs.get-version.outputs.version }}" MetaImGUI.app/Contents/Info.plist
+        /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ needs.get-version.outputs.version }}" MetaImGUI.app/Contents/Info.plist
+
+        # Try to add icon if available
+        if [ -f "resources/icons/metaimgui.svg" ] && command -v iconutil &> /dev/null; then
+          echo "Generating app icon..."
+          cd resources/icons
+          ./generate_icons.sh || true
+          cd ../..
+          if [ -f "resources/icons/metaimgui.icns" ]; then
+            cp resources/icons/metaimgui.icns MetaImGUI.app/Contents/Resources/
+            echo "✓ Icon added to app bundle"
+          fi
+        fi
+
+    - name: Bundle Dynamic Libraries
+      run: |
+        echo "Bundling dynamic libraries into app bundle..."
+        echo "Using LLVM compiler with system C++ library (avoids libunwind dependency)"
+
+        # Ensure Frameworks directory exists
+        mkdir -p MetaImGUI.app/Contents/Frameworks
+
+        # Function to bundle a library and fix its install name
+        bundle_library() {
+          local lib_path="$1"
+          local lib_name=$(basename "$lib_path")
+
+          # Skip system libraries - they're available on all macOS systems
+          if [[ "$lib_path" == /System/* ]] || [[ "$lib_path" == /usr/lib/* ]]; then
+            return
+          fi
+
+          # Skip if already bundled
+          if [ -f "MetaImGUI.app/Contents/Frameworks/$lib_name" ]; then
+            return
+          fi
+
+          echo "  Bundling: $lib_name"
+          cp "$lib_path" MetaImGUI.app/Contents/Frameworks/
+          chmod +w "MetaImGUI.app/Contents/Frameworks/$lib_name"
+
+          # Fix the library's install name to use @executable_path
+          install_name_tool -id "@executable_path/../Frameworks/$lib_name" \
+            "MetaImGUI.app/Contents/Frameworks/$lib_name" || true
+        }
+
+        # Get all dependencies of the executable
+        echo "Analyzing executable dependencies..."
+        otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI
+        echo ""
+
+        # Bundle non-system libraries (like GLFW from Homebrew)
+        echo "Processing executable dependencies..."
+        otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI | grep -v ":" | awk '{print $1}' | while read -r lib; do
+          # Skip the executable itself
+          if [[ "$lib" == *"MetaImGUI"* ]] && [[ "$lib" != *".dylib" ]]; then
+            continue
+          fi
+
+          # Handle absolute paths to non-system libraries (e.g., /opt/homebrew/lib/libglfw.dylib)
+          # Since we used -stdlib=libc++, we should NOT see LLVM C++ libraries here
+          if [[ ! "$lib" == /System/* ]] && [[ ! "$lib" == /usr/lib/* ]] && [[ ! "$lib" == @executable_path/* ]] && [[ ! "$lib" == @rpath/* ]]; then
+            if [ -f "$lib" ]; then
+              lib_name=$(basename "$lib")
+              # Verify we're not accidentally bundling LLVM C++ libraries
+              if [[ "$lib_name" == "libc++."* ]] || [[ "$lib_name" == "libc++abi."* ]] || [[ "$lib_name" == "libunwind."* ]]; then
+                echo "  ⚠️  WARNING: Found LLVM C++ library $lib_name - this should not happen with -stdlib=libc++"
+                echo "  Skipping (should use system library)"
+                continue
+              fi
+              bundle_library "$lib"
+              echo "  Fixing reference: $lib -> @executable_path/../Frameworks/$lib_name"
+              install_name_tool -change "$lib" "@executable_path/../Frameworks/$lib_name" \
+                MetaImGUI.app/Contents/MacOS/MetaImGUI || true
+            fi
+          fi
+        done
+        echo ""
+
+        echo "Bundled libraries:"
+        if [ -d "MetaImGUI.app/Contents/Frameworks" ] && [ "$(ls -A MetaImGUI.app/Contents/Frameworks)" ]; then
+          ls -lh MetaImGUI.app/Contents/Frameworks/
+        else
+          echo "  (none - using system libraries only)"
+        fi
+        echo ""
+
+        echo "Final executable dependencies:"
+        otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI
+        
+        # Verify we're using system C++ library, not LLVM's
+        if otool -L MetaImGUI.app/Contents/MacOS/MetaImGUI | grep -q "opt/homebrew.*libc++"; then
+          echo ""
+          echo "❌ ERROR: Using Homebrew LLVM libc++ instead of system library!"
+          echo "This will cause libunwind dependency issues."
+          exit 1
+        fi
+        echo ""
+        echo "✓ Verified: Using system C++ standard library"
+
+    - name: Code Sign App Bundle
+      run: |
+        # Note: entitlements.plist already exists in repo
+
+        # Check if we have a Developer ID certificate
+        SIGN_IDENTITY="Developer ID Application"
+        if ! security find-identity -v -p codesigning | grep -q "Developer ID Application"; then
+          echo "⚠️  No Developer ID certificate found, using ad-hoc signing"
+          SIGN_IDENTITY="-"
+        else
+          echo "✓ Found Developer ID certificate"
+        fi
+
+        # Sign all frameworks first
+        # IMPORTANT: We MUST sign these because install_name_tool broke their original signatures
+        if [ -d "MetaImGUI.app/Contents/Frameworks" ]; then
+          echo "Signing frameworks with identity: $SIGN_IDENTITY"
+          for framework in MetaImGUI.app/Contents/Frameworks/*.dylib; do
+            if [ -f "$framework" ]; then
+              echo "Signing $(basename "$framework")"
+              if [ "$SIGN_IDENTITY" = "-" ]; then
+                # Ad-hoc signing (no entitlements, no timestamp)
+                codesign --force --sign "$SIGN_IDENTITY" "$framework"
+              else
+                # Full signing with Developer ID
+                codesign --force --sign "$SIGN_IDENTITY" \
+                  --options runtime \
+                  --timestamp \
+                  "$framework"
+              fi
+              echo "✓ Signed $(basename "$framework")"
+            fi
+          done
+        fi
+
+        # Sign the executable
+        echo "Signing executable with identity: $SIGN_IDENTITY"
+        if [ "$SIGN_IDENTITY" = "-" ]; then
+          # Ad-hoc signing (no entitlements, no timestamp)
+          codesign --force --sign "$SIGN_IDENTITY" \
+            MetaImGUI.app/Contents/MacOS/MetaImGUI
+        else
+          # Full signing with Developer ID
+          codesign --force --sign "$SIGN_IDENTITY" \
+            --options runtime \
+            --entitlements entitlements.plist \
+            --timestamp \
+            MetaImGUI.app/Contents/MacOS/MetaImGUI
+        fi
+        echo "✓ Signed executable"
+
+        # Sign the app bundle (don't use --deep as we've signed components individually)
+        echo "Signing app bundle with identity: $SIGN_IDENTITY"
+        if [ "$SIGN_IDENTITY" = "-" ]; then
+          # Ad-hoc signing
+          codesign --force --sign "$SIGN_IDENTITY" MetaImGUI.app
+        else
+          # Full signing with Developer ID
+          codesign --force --sign "$SIGN_IDENTITY" \
+            --options runtime \
+            --timestamp \
+            MetaImGUI.app
+        fi
+        echo "✓ Signed app bundle"
+
+        # Verify signature
+        echo "Verifying signature..."
+        if codesign --verify --deep --strict --verbose=2 MetaImGUI.app 2>&1; then
+          echo "✓ Signature verification successful"
+        else
+          echo "⚠️  Signature verification failed (but continuing)"
+        fi
+
+        # Show what was signed
+        echo "Signature details:"
+        codesign -dvvv MetaImGUI.app 2>&1 || true
+
+    - name: Create DMG
+      run: |
+        # Create a temporary directory for DMG contents
+        mkdir -p dmg_contents
+        cp -r MetaImGUI.app dmg_contents/
+
+        # Add Applications folder symlink for better UX
+        ln -s /Applications dmg_contents/Applications
+
+        # Create DMG
+        hdiutil create -volname "MetaImGUI" -srcfolder dmg_contents -ov -format UDZO MetaImGUI-${{ needs.get-version.outputs.version }}-macos-x64.dmg
+
+    - name: Generate checksum
+      run: |
+        shasum -a 256 MetaImGUI-${{ needs.get-version.outputs.version }}-macos-x64.dmg > MetaImGUI-${{ needs.get-version.outputs.version }}-macos-x64.dmg.sha256
+
+    - name: Upload Release Assets
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ needs.get-version.outputs.tag }}
+        draft: false
+        files: |
+          MetaImGUI-${{ needs.get-version.outputs.version }}-macos-x64.dmg
+          MetaImGUI-${{ needs.get-version.outputs.version }}-macos-x64.dmg.sha256
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

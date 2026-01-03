@@ -1,0 +1,100 @@
+name: metaimgui
+base: core22
+version: '1.0.0'
+summary: ImGui Application Template
+description: |
+  MetaImGUI is a professional template for creating ImGui-based desktop applications.
+  It provides complete infrastructure including cross-platform build system, CI/CD
+  automation, testing framework, and professional packaging.
+
+  Features:
+  - Modern C++20 codebase
+  - Cross-platform support (Linux, Windows, macOS)
+  - ImGui v1.92.4 integration
+  - Automated CI/CD with GitHub Actions
+  - Built-in update checking
+  - Configuration management
+  - Logging system
+  - Testing framework with Catch2
+
+grade: stable
+confinement: strict
+
+apps:
+  metaimgui:
+    command: usr/bin/MetaImGUI
+    extensions: [gnome]
+    plugs:
+      - desktop
+      - desktop-legacy
+      - wayland
+      - x11
+      - opengl
+      - network
+      - home
+
+parts:
+  metaimgui:
+    plugin: cmake
+    source: .
+    source-type: local
+    cmake-parameters:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DBUILD_TESTS=OFF
+
+    build-packages:
+      - g++
+      - cmake
+      - libglfw3-dev
+      - libgl1-mesa-dev
+      - libglu1-mesa-dev
+      - libcurl4-openssl-dev
+      - libx11-dev
+      - libxrandr-dev
+      - libxi-dev
+      - libxinerama-dev
+      - libxcursor-dev
+      - git
+
+    stage-packages:
+      - libglfw3
+      - libgl1
+      - libglu1-mesa
+      - libcurl4
+      - libx11-6
+      - libxrandr2
+      - libxi6
+      - libxinerama1
+      - libxcursor1
+
+    override-build: |
+      # Clone dependencies
+      mkdir -p external
+
+      # ImGui
+      if [ ! -d "external/imgui" ]; then
+        git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git external/imgui
+      fi
+
+      # nlohmann/json
+      if [ ! -d "external/json" ]; then
+        git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git external/json
+      fi
+
+      # Build
+      craftctl default
+
+    organize:
+      usr/bin/MetaImGUI: usr/bin/MetaImGUI
+
+    prime:
+      - usr/bin/MetaImGUI
+      - usr/lib
+      - -usr/lib/pkgconfig
+      - -usr/include
+
+layout:
+  /usr/share/glfw:
+    bind: $SNAP/usr/share/glfw
+

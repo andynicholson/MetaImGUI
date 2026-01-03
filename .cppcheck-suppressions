@@ -1,0 +1,17 @@
+# cppcheck suppressions for MetaImGUI
+# Format: [error id]:[filename]:[line]
+# Use * for wildcard matching
+
+# Suppress warnings in external dependencies
+*:external/*
+
+# Suppress system includes
+missingIncludeSystem
+
+# Suppress specific patterns
+unusedFunction
+unmatchedSuppression
+
+# ImGui-specific suppressions (if needed)
+# Add suppressions for known false positives here
+

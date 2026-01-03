@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=MetaImGUI
+Comment=ImGui Application Template
+Exec=MetaImGUI
+Icon=MetaImGUI
+Categories=Development;
+Terminal=false

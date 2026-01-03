@@ -1,0 +1,98 @@
+# clang-tidy configuration for MetaImGUI
+# Modern C++ best practices and security checks
+# Balanced config: Safety-critical checks enabled, style preferences excluded
+
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-macro-to-enum,
+  modernize-*,
+  -modernize-macro-to-enum,
+  -modernize-concat-nested-namespaces,
+  -modernize-use-using,
+  -modernize-use-trailing-return-type,
+  performance-*,
+  -performance-enum-size,
+  readability-*,
+  -readability-identifier-naming,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-convert-member-functions-to-static,
+  -readability-isolate-declaration,
+  -readability-uppercase-literal-suffix,
+  -readability-function-cognitive-complexity,
+  -readability-function-size,
+  portability-*,
+  misc-*,
+  -misc-include-cleaner,
+  hicpp-*,
+  -hicpp-signed-bitwise,
+  -hicpp-uppercase-literal-suffix,
+  -hicpp-vararg,
+  concurrency-*
+
+WarningsAsErrors: >
+  bugprone-use-after-move,
+  bugprone-dangling-handle,
+  bugprone-infinite-loop,
+  cppcoreguidelines-no-malloc,
+  cppcoreguidelines-owning-memory,
+  cppcoreguidelines-slicing,
+  modernize-use-nullptr,
+  modernize-use-override,
+  performance-move-const-arg,
+  performance-unnecessary-copy-initialization
+
+CheckOptions:
+  # Naming conventions
+  - key: readability-identifier-naming.NamespaceCase
+    value: CamelCase
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: CamelCase
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: 'm_'
+  - key: readability-identifier-naming.ProtectedMemberPrefix
+    value: 'm_'
+  - key: readability-identifier-naming.ConstantCase
+    value: UPPER_CASE
+
+  # Function size limits
+  - key: readability-function-size.LineThreshold
+    value: 150
+  - key: readability-function-size.StatementThreshold
+    value: 100
+  - key: readability-function-size.BranchThreshold
+    value: 20
+
+  # Performance tuning
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: 'std::shared_ptr;std::unique_ptr;std::function'
+
+  # Modern C++ standards
+  - key: modernize-use-auto.MinTypeNameLength
+    value: 5
+
+  # Readability
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: 1
+
+HeaderFilterRegex: '^(?!.*(build|external|_deps)).*/(include|src)/.*\.(h|hpp|hxx)$'
+
+# Note: build/, external/, _deps/ directories are excluded from analysis
+# This prevents checking generated files and third-party code
