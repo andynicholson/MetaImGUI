@@ -32,11 +32,6 @@ jobs:
           # Show details in PR comment
           warn-only: false
 
-      - name: Check Submodule Updates
-        run: |
-          echo "Checking for submodule changes..."
-          git diff --submodule=log ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
-
       - name: Security Advisory Check
         if: always()
         run: |
