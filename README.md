@@ -20,7 +20,7 @@ MetaImGUI is a project starter built for AI-assisted development. This template 
 
 ## Screenshots
 
-Ubuntu 25.10 
+Ubuntu 25.10
 
 ### Main Application Window
 ![Main Window](screenshots/main-window.png)
@@ -244,6 +244,7 @@ The recommended workflow:
 
 ```bash
 # 1. Fork this repository on GitHub (click the "Fork" button)
+# Technically, its a template, so you do "Use this template"
 
 # 2. Clone your fork (replace YOUR_USERNAME with your GitHub username)
 git clone https://github.com/YOUR_USERNAME/MetaImGUI.git MyProject
@@ -468,6 +469,20 @@ make
 ## License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+### Dual Licensing
+
+This project is dual-licensed:
+
+- **Open Source (GPLv3)**: Free to use under the terms of the GNU General Public License v3.0
+- **Commercial License**: Available for purchase for those who cannot or do not wish to comply with GPLv3 terms
+
+A commercial license removes the copyleft requirements and allows you to:
+- Use the software in proprietary applications
+- Distribute without source code disclosure
+- Avoid GPLv3 compliance requirements
+
+For commercial licensing inquiries, please contact: [intothemist@gmail.com]
 
 ## Use Cases
 
