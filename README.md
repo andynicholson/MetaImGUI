@@ -2,7 +2,6 @@
 
 [![CI Build](https://github.com/andynicholson/MetaImGUI/actions/workflows/ci.yml/badge.svg)](https://github.com/andynicholson/MetaImGUI/actions/workflows/ci.yml)
 [![Static Analysis](https://github.com/andynicholson/MetaImGUI/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/andynicholson/MetaImGUI/actions/workflows/static-analysis.yml)
-[![Release Build](https://github.com/andynicholson/MetaImGUI/actions/workflows/release.yml/badge.svg)](https://github.com/andynicholson/MetaImGUI/actions/workflows/release.yml)
 [![codecov](https://codecov.io/gh/andynicholson/MetaImGUI/branch/main/graph/badge.svg)](https://codecov.io/gh/andynicholson/MetaImGUI)
 [![Latest Release](https://img.shields.io/github/v/release/andynicholson/MetaImGUI)](https://github.com/andynicholson/MetaImGUI/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
