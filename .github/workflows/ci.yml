@@ -1,14 +1,15 @@
 name: CI
 
 on:
+  # Run on pushes to main branches
+  push:
+    branches: [ main, develop ]
+    tags:
+      - 'v*'
+
   # Run on pull requests (good for code review)
   pull_request:
     branches: [ main, develop ]
-
-  # Run on version tags (for releases)
-  push:
-    tags:
-      - 'v*'
 
   # Allow manual triggering from GitHub UI
   workflow_dispatch:
