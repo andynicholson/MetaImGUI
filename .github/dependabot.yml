@@ -16,22 +16,3 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       include: "scope"
-
-  # CMake/C++ dependencies (submodules)
-  - package-ecosystem: "gitsubmodule"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "submodules"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-
-  # Note: For external dependencies (ImGui, nlohmann/json),
-  # these are tracked as git submodules in external/
-  # Dependabot will monitor them via gitsubmodule ecosystem above
-
