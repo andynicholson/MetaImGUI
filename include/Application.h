@@ -19,6 +19,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <string>
 
 // Forward declarations
@@ -153,6 +154,10 @@ private:
 
     // Update checking
     std::unique_ptr<UpdateInfo> m_latestUpdateInfo;
+
+    // Thread-safe handoff of update results from worker thread to main thread
+    std::mutex m_updateResultMutex;
+    std::unique_ptr<UpdateInfo> m_pendingUpdateResult;
 
     // Status bar state
     std::string m_statusMessage;

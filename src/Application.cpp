@@ -29,6 +29,7 @@
 #include "version.h"
 
 #include <GLFW/glfw3.h>
+#include <curl/curl.h>
 #include <imgui.h>
 
 #include <cstdlib> // for std::getenv
@@ -73,6 +74,10 @@ bool Application::Initialize() {
 #endif
     Logger::Instance().Initialize(logPath, LogLevel::Info);
     LOG_INFO("Initializing MetaImGUI v{}", Version::VERSION);
+
+    // Initialize libcurl globally (thread-safe) before any CURL handles are created.
+    // Auto-init via curl_easy_init() is NOT thread-safe when called concurrently.
+    curl_global_init(CURL_GLOBAL_DEFAULT);
 
     // Load configuration
     m_configManager = std::make_unique<ConfigManager>();
@@ -241,6 +246,9 @@ void Application::Shutdown() {
     m_windowManager.reset();
     m_configManager.reset();
 
+    // Clean up libcurl global state (after all CURL users are destroyed)
+    curl_global_cleanup();
+
     m_initialized = false;
     LOG_INFO("Application shut down successfully");
 
@@ -261,6 +269,25 @@ void Application::ProcessInput() {
 void Application::Render() {
     if (!m_windowManager || !m_uiRenderer) {
         return;
+    }
+
+    // Consume any pending update result (thread-safe handoff from worker thread)
+    {
+        const std::lock_guard<std::mutex> lock(m_updateResultMutex);
+        if (m_pendingUpdateResult) {
+            m_updateCheckInProgress = false;
+            m_latestUpdateInfo = std::move(m_pendingUpdateResult);
+            m_showUpdateNotification = true;
+
+            if (m_latestUpdateInfo->updateAvailable) {
+                m_statusMessage = "Update available: v" + m_latestUpdateInfo->latestVersion;
+                LOG_INFO("Update available: v{} (current: v{})", m_latestUpdateInfo->latestVersion,
+                         m_latestUpdateInfo->currentVersion);
+            } else {
+                m_statusMessage = "Ready";
+                LOG_INFO("No updates available (current version: v{})", m_latestUpdateInfo->currentVersion);
+            }
+        }
     }
 
     // Get frame time for FPS calculation
@@ -323,7 +350,12 @@ void Application::Render() {
     }
 
     // Render exit confirmation dialog
+    // Consume m_showExitDialog immediately so ShowConfirmation() is called
+    // exactly once. The dialog is then managed by DialogManager internally
+    // until the user interacts with it.
     if (m_showExitDialog) {
+        m_showExitDialog = false;
+
         auto& loc = Localization::Instance();
         const std::string title = loc.Tr("exit.title");
         const std::string message = loc.Tr("exit.message");
@@ -335,7 +367,6 @@ void Application::Render() {
                 // User cancelled - make sure close flag is cleared
                 m_windowManager->CancelClose();
             }
-            m_showExitDialog = false;
         });
     }
 
@@ -453,19 +484,12 @@ void Application::CheckForUpdates() {
 }
 
 void Application::OnUpdateCheckComplete(const UpdateInfo& updateInfo) {
-    m_updateCheckInProgress = false;
-
-    // Always store the update info and show the dialog for better UX
-    m_latestUpdateInfo = std::make_unique<UpdateInfo>(updateInfo);
-    m_showUpdateNotification = true;
-
-    if (updateInfo.updateAvailable) {
-        m_statusMessage = "Update available: v" + updateInfo.latestVersion;
-        LOG_INFO("Update available: v{} (current: v{})", updateInfo.latestVersion, updateInfo.currentVersion);
-    } else {
-        m_statusMessage = "Ready";
-        LOG_INFO("No updates available (current version: v{})", updateInfo.currentVersion);
-    }
+    // Thread-safe: store result for main thread to consume in Render()
+    // This callback runs on the worker thread, so we must not write to
+    // main-thread state directly. Instead, we store the result under a
+    // mutex and let the main thread pick it up.
+    const std::lock_guard<std::mutex> lock(m_updateResultMutex);
+    m_pendingUpdateResult = std::make_unique<UpdateInfo>(updateInfo);
 }
 
 bool Application::OnContextLoss() {
