@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.1.0] - 2026-02-09
+
+### Added
+- Integrate beads issue tracking system
+
+### Fixed
+- Resolve critical data race in update checker callback (worker thread writing to main-thread state without synchronization)
+- Fix exit dialog per-frame heap allocation (~60 allocations/sec while dialog shown)
+- RAII-wrap CURL handles to prevent leaks on exceptions
+- Add curl_global_init/cleanup for thread-safe libcurl initialization
+- Fix ImPlot version mismatch in Windows dependency setup (v0.16 → v0.17)
+- Add const to RAII CURL unique_ptr to satisfy clang-tidy misc-const-correctness
+
 ## [1.0.2] - 2026-01-21
 
 ### Fixed
