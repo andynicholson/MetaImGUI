@@ -197,29 +197,28 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
 std::string ISSTracker::FetchJSON(const std::string& url) {
     std::string result;
 
-    CURL* curl = curl_easy_init();
-    if (curl == nullptr) {
+    // RAII-wrap CURL handle to prevent leaks on exceptions
+    std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
+    if (!curl) {
         LOG_ERROR("ISS Tracker: Failed to initialize CURL");
         return result;
     }
 
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "MetaImGUI-ISSTracker/1.0");
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L); // Increased to 30 seconds for slow networks
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+    curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &result);
+    curl_easy_setopt(curl.get(), CURLOPT_USERAGENT, "MetaImGUI-ISSTracker/1.0");
+    curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 30L); // Increased to 30 seconds for slow networks
+    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
+    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
 
-    const CURLcode res = curl_easy_perform(curl);
+    const CURLcode res = curl_easy_perform(curl.get());
 
     if (res != CURLE_OK) {
         LOG_ERROR("ISS Tracker: Request failed: {}", curl_easy_strerror(res));
         result.clear();
     }
-
-    curl_easy_cleanup(curl);
 
     return result;
 }

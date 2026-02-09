@@ -156,8 +156,9 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
 std::string UpdateChecker::FetchLatestReleaseInfo() {
     std::string result;
 
-    CURL* curl = curl_easy_init();
-    if (curl == nullptr) {
+    // RAII-wrap CURL handle to prevent leaks on exceptions
+    std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
+    if (!curl) {
         return result;
     }
 
@@ -165,23 +166,21 @@ std::string UpdateChecker::FetchLatestReleaseInfo() {
 
     LOG_INFO("Update Checker: Requesting URL: {}", url);
 
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "UpdateChecker/1.0");
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+    curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &result);
+    curl_easy_setopt(curl.get(), CURLOPT_USERAGENT, "UpdateChecker/1.0");
+    curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 10L);
+    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
+    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
 
-    const CURLcode res = curl_easy_perform(curl);
+    const CURLcode res = curl_easy_perform(curl.get());
 
     if (res != CURLE_OK) {
         LOG_ERROR("Update Checker: Request failed: {}", curl_easy_strerror(res));
         result.clear();
     }
-
-    curl_easy_cleanup(curl);
 
     LOG_INFO("Update Checker: Response received ({} bytes)", result.size());
 
