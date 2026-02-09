@@ -157,7 +157,7 @@ std::string UpdateChecker::FetchLatestReleaseInfo() {
     std::string result;
 
     // RAII-wrap CURL handle to prevent leaks on exceptions
-    std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
+    const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
     if (!curl) {
         return result;
     }
