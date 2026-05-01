@@ -236,7 +236,7 @@ jobs:
         fi
 
     - name: Upload Release Assets
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         tag_name: ${{ needs.get-version.outputs.tag }}
         draft: false
@@ -399,7 +399,7 @@ jobs:
       shell: pwsh
 
     - name: Upload Release Assets
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         tag_name: ${{ needs.get-version.outputs.tag }}
         draft: false
@@ -711,7 +711,7 @@ jobs:
         shasum -a 256 MetaImGUI-${{ needs.get-version.outputs.version }}-macos-x64.dmg > MetaImGUI-${{ needs.get-version.outputs.version }}-macos-x64.dmg.sha256
 
     - name: Upload Release Assets
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         tag_name: ${{ needs.get-version.outputs.tag }}
         draft: false
