@@ -59,7 +59,8 @@ jobs:
           libgl1-mesa-dev \
           libglu1-mesa-dev \
           libcurl4-openssl-dev \
-          xorg-dev
+          xorg-dev \
+          xvfb
 
     - name: Install macOS dependencies
       if: runner.os == 'macOS'
@@ -141,8 +142,12 @@ jobs:
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} --parallel
 
-    - name: Run tests
-      if: matrix.build_type == 'Debug'
+    - name: Run tests (Linux, with Xvfb for display-tagged tests)
+      if: matrix.build_type == 'Debug' && runner.os == 'Linux'
+      run: xvfb-run --auto-servernum ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }}
+
+    - name: Run tests (macOS / Windows)
+      if: matrix.build_type == 'Debug' && runner.os != 'Linux'
       run: ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }}
 
     - name: Upload build artifacts

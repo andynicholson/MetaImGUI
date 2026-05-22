@@ -354,7 +354,7 @@ if(BUILD_TESTS)
             tests/test_theme_manager.cpp
             tests/test_config_manager.cpp
             tests/test_logger.cpp
-            tests/test_window_manager.cpp
+            tests/test_window_manager_smoke.cpp
             tests/test_signal.cpp
             tests/test_coroutine_dialog.cpp
             src/UpdateChecker.cpp
@@ -397,7 +397,12 @@ if(BUILD_TESTS)
         # Register tests with CTest
         include(CTest)
         include(Catch)
-        catch_discover_tests(MetaImGUI_tests)
+        # SKIP_RETURN_CODE 4 maps Catch2's SKIP() exit status to CTest's
+        # "skipped" outcome instead of "failed". Without this, headless CI
+        # boxes that don't have GLX would mark display-tagged tests red.
+        catch_discover_tests(MetaImGUI_tests
+            PROPERTIES SKIP_RETURN_CODE 4
+        )
 
         # Add coverage target if enabled
         add_coverage_target(MetaImGUI_tests)
