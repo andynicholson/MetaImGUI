@@ -18,9 +18,11 @@
 
 #pragma once
 
+#include <coroutine>
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace MetaImGUI {
@@ -140,6 +142,71 @@ public:
      */
     void ShowConfirmation(const std::string& title, const std::string& message,
                           std::function<void(bool)> callback = nullptr);
+
+    /**
+     * @brief Awaitable variant of ShowConfirmation.
+     *
+     * Usage in a coroutine returning Task:
+     * @code
+     *   if (co_await dialog.AwaitConfirmation("Exit?", "Really quit?")) {
+     *       // user clicked Yes
+     *   }
+     * @endcode
+     *
+     * The returned awaiter is stored on the coroutine frame and stays
+     * alive until the dialog resumes us.
+     */
+    [[nodiscard]] auto AwaitConfirmation(std::string title, std::string message) {
+        struct Awaiter {
+            DialogManager* manager;
+            std::string title;
+            std::string message;
+            bool result = false;
+
+            bool await_ready() const noexcept {
+                return false;
+            }
+            void await_suspend(std::coroutine_handle<> handle) {
+                manager->ShowConfirmation(title, message, [this, handle](bool confirmed) mutable {
+                    result = confirmed;
+                    handle.resume();
+                });
+            }
+            bool await_resume() const noexcept {
+                return result;
+            }
+        };
+        return Awaiter{this, std::move(title), std::move(message)};
+    }
+
+    /**
+     * @brief Awaitable variant of ShowInputDialog.
+     *
+     * Resolves to the entered string, or empty string on cancel.
+     */
+    [[nodiscard]] auto AwaitInput(std::string title, std::string prompt, std::string defaultValue = "") {
+        struct Awaiter {
+            DialogManager* manager;
+            std::string title;
+            std::string prompt;
+            std::string defaultValue;
+            std::string result;
+
+            bool await_ready() const noexcept {
+                return false;
+            }
+            void await_suspend(std::coroutine_handle<> handle) {
+                manager->ShowInputDialog(title, prompt, defaultValue, [this, handle](const std::string& value) mutable {
+                    result = value;
+                    handle.resume();
+                });
+            }
+            std::string await_resume() {
+                return std::move(result);
+            }
+        };
+        return Awaiter{this, std::move(title), std::move(prompt), std::move(defaultValue), {}};
+    }
 
     /**
      * @brief Check if any dialog is currently open

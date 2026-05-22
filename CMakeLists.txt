@@ -356,6 +356,7 @@ if(BUILD_TESTS)
             tests/test_logger.cpp
             tests/test_window_manager.cpp
             tests/test_signal.cpp
+            tests/test_coroutine_dialog.cpp
             src/UpdateChecker.cpp
             src/ThemeManager.cpp
             src/ConfigManager.cpp

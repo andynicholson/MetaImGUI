@@ -157,7 +157,7 @@ private:
     bool m_showDemoWindow = false;
     bool m_showUpdateNotification = false;
     bool m_updateCheckInProgress = false;
-    bool m_showExitDialog = false;
+    bool m_exitDialogActive = false; // re-entry guard so spamming Esc doesn't stack dialogs
     bool m_showISSTracker = false;
 
     // Update checking
@@ -183,6 +183,10 @@ private:
 
     void CheckForUpdates();
     void OnUpdateCheckComplete(const UpdateInfo& updateInfo);
+
+    // Coroutine-driven exit confirmation flow (collapses the previous
+    // OnExit -> set flag -> render-tick -> ShowConfirmation -> callback dance).
+    void StartExitFlow();
 
     // Context recovery
     bool OnContextLoss();

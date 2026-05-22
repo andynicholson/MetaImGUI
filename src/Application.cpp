@@ -19,6 +19,7 @@
 #include "Application.h"
 
 #include "ConfigManager.h"
+#include "Coroutine.h"
 #include "DialogManager.h"
 #include "ISSTracker.h"
 #include "Localization.h"
@@ -378,25 +379,6 @@ void Application::RenderFloatingWindows() {
 }
 
 void Application::RenderDialogs() {
-    // Consume m_showExitDialog immediately so ShowConfirmation() is called
-    // exactly once. The dialog is then managed by DialogManager internally
-    // until the user interacts with it.
-    if (m_showExitDialog) {
-        m_showExitDialog = false;
-
-        auto& loc = Localization::Instance();
-        const std::string title = loc.Tr("exit.title");
-        const std::string message = loc.Tr("exit.message");
-
-        m_dialogManager->ShowConfirmation(title, message, [this](bool confirmed) {
-            if (confirmed && m_windowManager) {
-                m_windowManager->RequestClose();
-            } else if (m_windowManager) {
-                m_windowManager->CancelClose();
-            }
-        });
-    }
-
     if (m_dialogManager) {
         m_dialogManager->Render();
     }
@@ -409,12 +391,38 @@ void Application::OnWindowCloseRequested() {
     if (m_windowManager) {
         m_windowManager->CancelClose();
     }
-    m_showExitDialog = true;
+    StartExitFlow();
 }
 
 void Application::OnExitRequested() {
     // Show exit confirmation dialog instead of closing immediately
-    m_showExitDialog = true;
+    StartExitFlow();
+}
+
+void Application::StartExitFlow() {
+    if (m_exitDialogActive || !m_dialogManager) {
+        return;
+    }
+    m_exitDialogActive = true;
+
+    auto& loc = Localization::Instance();
+    std::string title = loc.Tr("exit.title");
+    std::string message = loc.Tr("exit.message");
+
+    // Fire-and-forget coroutine: awaits the user, then acts on the answer.
+    // The Task return type's `suspend_never` finals destroy the frame
+    // automatically once the lambda returns.
+    [](Application* self, std::string title, std::string message) -> Task {
+        const bool confirmed = co_await self->m_dialogManager->AwaitConfirmation(std::move(title), std::move(message));
+        self->m_exitDialogActive = false;
+        if (self->m_windowManager) {
+            if (confirmed) {
+                self->m_windowManager->RequestClose();
+            } else {
+                self->m_windowManager->CancelClose();
+            }
+        }
+    }(this, std::move(title), std::move(message));
 }
 
 void Application::OnToggleDemoWindow() {
