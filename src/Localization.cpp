@@ -57,6 +57,7 @@ Localization& Localization::Instance() {
 void Localization::SetLanguage(const std::string& languageCode) {
     if (m_translations.contains(languageCode)) {
         m_currentLanguage = languageCode;
+        m_trCache.clear(); // Stale: cached entries belong to the previous language.
         LOG_INFO("Language set to: {}", languageCode);
     } else {
         LOG_ERROR("Language not available: {}", languageCode);
@@ -77,43 +78,62 @@ std::vector<std::string> Localization::GetAvailableLanguages() const {
 }
 
 std::string Localization::Tr(const std::string& key) const {
-    // Try current language
-    auto langIt = m_translations.find(m_currentLanguage);
-    if (langIt != m_translations.end()) {
-        auto keyIt = langIt->second.find(key);
-        if (keyIt != langIt->second.end()) {
-            return keyIt->second;
-        }
+    if (auto cacheIt = m_trCache.find(key); cacheIt != m_trCache.end()) {
+        return cacheIt->second;
     }
 
-    // Fallback to English
-    if (m_currentLanguage != "en") {
-        auto enIt = m_translations.find("en");
-        if (enIt != m_translations.end()) {
-            auto keyIt = enIt->second.find(key);
-            if (keyIt != enIt->second.end()) {
+    // Cache miss — walk the lookup tiers.
+    auto resolve = [this, &key]() -> std::string {
+        if (auto langIt = m_translations.find(m_currentLanguage); langIt != m_translations.end()) {
+            if (auto keyIt = langIt->second.find(key); keyIt != langIt->second.end()) {
                 return keyIt->second;
             }
         }
-    }
+        if (m_currentLanguage != "en") {
+            if (auto enIt = m_translations.find("en"); enIt != m_translations.end()) {
+                if (auto keyIt = enIt->second.find(key); keyIt != enIt->second.end()) {
+                    return keyIt->second;
+                }
+            }
+        }
+        return key; // Key not found — surface the key name to make the gap visible.
+    };
 
-    // Return key if not found
-    return key;
+    std::string resolved = resolve();
+    // Memoize. We don't bound the cache size: the set of distinct UI keys is
+    // small (dozens) and bounded by the JSON file, not by user input.
+    m_trCache.emplace(key, resolved);
+    return resolved;
 }
 
 void Localization::AddTranslation(const std::string& languageCode, const std::string& key, const std::string& value) {
     m_translations[languageCode][key] = value;
+    // Invalidate just the affected cache entry rather than the whole cache,
+    // so a streaming load doesn't blow away the cache repeatedly.
+    if (languageCode == m_currentLanguage || languageCode == "en") {
+        m_trCache.erase(key);
+    }
 }
 
 bool Localization::LoadTranslations(const std::string& filepath) {
     try {
         std::ifstream file(filepath);
         if (!file.is_open()) {
-            LOG_ERROR("Failed to open translations file: {}", filepath);
+            // Application probes several candidate paths in order; a miss here
+            // is the expected case until the right one is found, so log at
+            // DEBUG only. The aggregated final-failure error is the caller's
+            // responsibility.
+            LOG_DEBUG("Translations file not found at: {}", filepath);
             return false;
         }
 
         json j = json::parse(file);
+
+        // Wipe any previously-loaded translations on successful re-load so a
+        // language whose key set shrank between loads doesn't leak stale
+        // entries.
+        m_translations.clear();
+        m_trCache.clear();
 
         for (const auto& [languageCode, translations] : j.items()) {
             for (const auto& [key, value] : translations.items()) {
@@ -124,7 +144,9 @@ bool Localization::LoadTranslations(const std::string& filepath) {
         LOG_INFO("Loaded translations from: {}", filepath);
         return true;
     } catch (const std::exception& e) {
-        LOG_ERROR("Failed to load translations: {}", e.what());
+        // Parse error is genuinely a problem (file existed but was malformed),
+        // so this stays ERROR.
+        LOG_ERROR("Failed to load translations from {}: {}", filepath, e.what());
         return false;
     }
 }
