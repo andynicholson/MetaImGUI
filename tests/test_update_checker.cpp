@@ -31,6 +31,36 @@ TEST_CASE("UpdateChecker version comparison", "[version]") {
         REQUIRE(UpdateChecker::CompareVersions("1.0", "1.0.0") == 0);
         REQUIRE(UpdateChecker::CompareVersions("1.0.0", "1.0") == 0);
     }
+
+    SECTION("SemVer pre-release ranks below the release") {
+        REQUIRE(UpdateChecker::CompareVersions("1.2.0-rc1", "1.2.0") < 0);
+        REQUIRE(UpdateChecker::CompareVersions("1.2.0", "1.2.0-rc1") > 0);
+        REQUIRE(UpdateChecker::CompareVersions("1.2.0-alpha", "1.2.0-beta") < 0);
+        REQUIRE(UpdateChecker::CompareVersions("1.2.0-rc.1", "1.2.0-rc.2") < 0);
+    }
+
+    SECTION("SemVer numeric identifiers compare numerically") {
+        REQUIRE(UpdateChecker::CompareVersions("1.0.0-alpha.2", "1.0.0-alpha.10") < 0);
+    }
+
+    SECTION("SemVer numeric identifiers rank below alphanumeric") {
+        REQUIRE(UpdateChecker::CompareVersions("1.0.0-1", "1.0.0-alpha") < 0);
+    }
+
+    SECTION("SemVer fewer pre-release identifiers ranks below more (when prefix matches)") {
+        REQUIRE(UpdateChecker::CompareVersions("1.0.0-alpha", "1.0.0-alpha.1") < 0);
+    }
+
+    SECTION("SemVer build metadata is ignored") {
+        REQUIRE(UpdateChecker::CompareVersions("1.2.3+build.5", "1.2.3+build.42") == 0);
+        REQUIRE(UpdateChecker::CompareVersions("1.2.3-rc1+build.5", "1.2.3-rc1+build.42") == 0);
+    }
+
+    SECTION("Cross-version SemVer ordering") {
+        REQUIRE(UpdateChecker::CompareVersions("1.2.0-rc1", "1.2.0") < 0);
+        REQUIRE(UpdateChecker::CompareVersions("1.2.0", "1.2.1-rc1") < 0);
+        REQUIRE(UpdateChecker::CompareVersions("1.2.1-rc1", "1.2.1") < 0);
+    }
 }
 
 TEST_CASE("UpdateChecker basic functionality", "[update]") {

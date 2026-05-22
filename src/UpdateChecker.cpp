@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <cctype>
 #include <sstream>
+#include <string_view>
 
 // HTTP requests using libcurl (cross-platform)
 #include <curl/curl.h>
@@ -36,28 +37,31 @@ UpdateChecker::UpdateChecker(std::string repoOwner, std::string repoName)
     : m_repoOwner(std::move(repoOwner)), m_repoName(std::move(repoName)), m_checking(false) {}
 
 UpdateChecker::~UpdateChecker() {
-    // C++20: std::jthread automatically joins on destruction
+    // C++20: std::jthread requests stop and joins automatically.
+    // Cancel() also requests stop on whatever thread is current.
     Cancel();
 }
 
 void UpdateChecker::CheckForUpdatesAsync(std::function<void(const UpdateInfo&)> callback) {
-    const std::lock_guard<std::mutex> lock(m_threadMutex);
-
-    if (m_checking) {
+    // Single-source-of-truth gate: only one check may run at a time.
+    // CAS keeps the gate honest without needing a mutex around the boolean.
+    bool expected = false;
+    if (!m_checking.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
         LOG_INFO("Update Checker: Check already in progress, skipping");
-        return; // Already checking
+        return;
     }
 
-    m_checking = true;
+    // Serialise jthread (re)creation: assigning to a running jthread joins it,
+    // and we don't want concurrent CheckForUpdatesAsync calls fighting over the slot.
+    const std::lock_guard<std::mutex> lock(m_threadMutex);
 
-    // C++20: std::jthread with stop_token for clean cancellation
-    m_stopSource = std::stop_source();
     m_checkThread = std::jthread([this, callback](const std::stop_token& stopToken) {
         const UpdateInfo info = CheckForUpdatesImpl(stopToken);
 
-        m_checking = false;
+        // Release the gate before invoking the callback so a callback that
+        // re-triggers a check (e.g. user retry) doesn't deadlock against itself.
+        m_checking.store(false, std::memory_order_release);
 
-        // Only invoke callback if not cancelled
         if (!stopToken.stop_requested() && callback) {
             try {
                 callback(info);
@@ -68,123 +72,218 @@ void UpdateChecker::CheckForUpdatesAsync(std::function<void(const UpdateInfo&)> 
             }
         }
     });
-    // C++20: jthread automatically joins on destruction, no detach() needed
 }
 
 UpdateInfo UpdateChecker::CheckForUpdates() {
-    m_checking = true;
-    // For synchronous calls, use a default stop_token that never stops
+    // Synchronous path: still respect the gate so async + sync don't run in parallel.
+    bool expected = false;
+    if (!m_checking.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+        UpdateInfo info{};
+        info.currentVersion = Version::VERSION;
+        info.status = UpdateCheckStatus::Unknown;
+        return info;
+    }
+
     UpdateInfo info = CheckForUpdatesImpl(std::stop_token{});
-    m_checking = false;
+    m_checking.store(false, std::memory_order_release);
     return info;
 }
 
 void UpdateChecker::Cancel() {
-    const std::lock_guard<std::mutex> lock(m_threadMutex);
-
-    // C++20: Request stop using stop_source
-    m_stopSource.request_stop();
-
-    // jthread automatically joins, so we just need to request stop
+    // jthread tracks its own stop_source; request_stop() is idempotent and thread-safe.
+    m_checkThread.request_stop();
     LOG_INFO("Update Checker: Cancellation requested");
 }
 
 bool UpdateChecker::IsChecking() const {
-    return m_checking;
+    return m_checking.load(std::memory_order_acquire);
 }
 
 UpdateInfo UpdateChecker::CheckForUpdatesImpl(const std::stop_token& stopToken) {
-    // C++20: Using designated initializers for clear initialization
     UpdateInfo info{.updateAvailable = false,
                     .latestVersion = "",
                     .currentVersion = Version::VERSION,
                     .releaseUrl = "",
                     .releaseNotes = "",
-                    .downloadUrl = ""};
+                    .downloadUrl = "",
+                    .status = UpdateCheckStatus::Unknown};
 
     try {
-        const std::string jsonResponse = FetchLatestReleaseInfo();
-        if (stopToken.stop_requested()) {
-            LOG_INFO("Update Checker: Check cancelled by user");
-            return info;
+        const FetchOutcome outcome = FetchLatestReleaseInfo(stopToken);
+
+        switch (outcome.result) {
+            case FetchResult::Cancelled:
+                LOG_INFO("Update Checker: Check cancelled by user");
+                info.status = UpdateCheckStatus::Cancelled;
+                return info;
+            case FetchResult::RateLimited:
+                LOG_WARNING("Update Checker: GitHub API rate limit hit");
+                info.status = UpdateCheckStatus::RateLimited;
+                return info;
+            case FetchResult::NetworkError:
+                LOG_ERROR("Update Checker: Network error fetching release info");
+                info.status = UpdateCheckStatus::NetworkError;
+                return info;
+            case FetchResult::Ok:
+                break;
         }
 
-        if (jsonResponse.empty()) {
+        if (outcome.body.empty()) {
             LOG_ERROR("Update Checker: Empty response from server");
+            info.status = UpdateCheckStatus::NetworkError;
             return info;
         }
 
-        info = ParseReleaseInfo(jsonResponse);
+        info = ParseReleaseInfo(outcome.body);
         info.currentVersion = Version::VERSION;
 
-        // Compare versions
-        if (!info.latestVersion.empty()) {
-            const int cmp = CompareVersions(info.currentVersion, info.latestVersion);
-            info.updateAvailable = (cmp < 0);
-
-            if (info.updateAvailable) {
-                LOG_INFO("Update Checker: Update available - {} -> {}", info.currentVersion, info.latestVersion);
-            } else {
-                LOG_INFO("Update Checker: No update available (current: {})", info.currentVersion);
-            }
-        } else {
+        if (info.latestVersion.empty()) {
             LOG_ERROR("Update Checker: Could not parse latest version from response");
+            info.status = UpdateCheckStatus::ParseError;
+            return info;
+        }
+
+        const int cmp = CompareVersions(info.currentVersion, info.latestVersion);
+        info.updateAvailable = (cmp < 0);
+        info.status = info.updateAvailable ? UpdateCheckStatus::UpdateFound : UpdateCheckStatus::UpToDate;
+
+        if (info.updateAvailable) {
+            LOG_INFO("Update Checker: Update available - {} -> {}", info.currentVersion, info.latestVersion);
+        } else {
+            LOG_INFO("Update Checker: No update available (current: {})", info.currentVersion);
         }
     } catch (const std::bad_alloc& e) {
         LOG_ERROR("Update Checker: Memory allocation failed: {}", e.what());
-        info.updateAvailable = false;
+        info.status = UpdateCheckStatus::NetworkError;
     } catch (const std::exception& e) {
         LOG_ERROR("Update Checker: Check failed: {}", e.what());
-        info.updateAvailable = false;
+        info.status = UpdateCheckStatus::NetworkError;
     } catch (...) {
         LOG_ERROR("Update Checker: Unknown error during update check");
-        info.updateAvailable = false;
+        info.status = UpdateCheckStatus::NetworkError;
     }
 
     return info;
 }
 
-// Unified cross-platform implementation using libcurl
-
 namespace {
+
+// libcurl write callback: appends body bytes to the std::string in userp.
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
     static_cast<std::string*>(userp)->append(static_cast<char*>(contents), size * nmemb);
     return size * nmemb;
 }
+
+// libcurl xferinfo callback: returns non-zero to abort the transfer.
+// We use this to short-circuit a slow network response when Cancel() fires,
+// rather than waiting for CURLOPT_TIMEOUT to expire.
+int XferInfoCallback(void* clientp, curl_off_t /*dltotal*/, curl_off_t /*dlnow*/, curl_off_t /*ultotal*/,
+                     curl_off_t /*ulnow*/) {
+    const auto* token = static_cast<const std::stop_token*>(clientp);
+    return (token != nullptr && token->stop_requested()) ? 1 : 0;
+}
+
+// Tracks rate-limit state via response headers without parsing the body.
+struct HeaderState {
+    bool rateLimited = false;
+};
+
+size_t HeaderCallback(char* buffer, size_t size, size_t nitems, void* userdata) {
+    const size_t total = size * nitems;
+    auto* state = static_cast<HeaderState*>(userdata);
+    const std::string_view header(buffer, total);
+
+    // GitHub returns "X-RateLimit-Remaining: 0" alongside HTTP 403 when limited.
+    constexpr std::string_view kKey = "x-ratelimit-remaining:";
+    if (header.size() >= kKey.size()) {
+        std::string lower;
+        lower.reserve(kKey.size());
+        for (size_t i = 0; i < kKey.size() && i < header.size(); ++i) {
+            lower.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(header[i]))));
+        }
+        if (lower == kKey) {
+            std::string_view value = header.substr(kKey.size());
+            // Trim leading whitespace.
+            while (!value.empty() && (value.front() == ' ' || value.front() == '\t')) {
+                value.remove_prefix(1);
+            }
+            if (!value.empty() && value.front() == '0') {
+                state->rateLimited = true;
+            }
+        }
+    }
+
+    return total;
+}
+
 } // namespace
 
-std::string UpdateChecker::FetchLatestReleaseInfo() {
-    std::string result;
+UpdateChecker::FetchOutcome UpdateChecker::FetchLatestReleaseInfo(const std::stop_token& stopToken) {
+    FetchOutcome outcome;
 
-    // RAII-wrap CURL handle to prevent leaks on exceptions
     const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
     if (!curl) {
-        return result;
+        outcome.result = FetchResult::NetworkError;
+        return outcome;
     }
 
     const std::string url = "https://api.github.com/repos/" + m_repoOwner + "/" + m_repoName + "/releases/latest";
-
     LOG_INFO("Update Checker: Requesting URL: {}", url);
+
+    HeaderState headerState;
 
     curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &result);
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &outcome.body);
+    curl_easy_setopt(curl.get(), CURLOPT_HEADERFUNCTION, HeaderCallback);
+    curl_easy_setopt(curl.get(), CURLOPT_HEADERDATA, &headerState);
     curl_easy_setopt(curl.get(), CURLOPT_USERAGENT, "UpdateChecker/1.0");
     curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 10L);
     curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
     curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
 
+    // Wire up the abort-on-stop progress callback so Cancel() actually interrupts
+    // an in-flight transfer instead of waiting up to CURLOPT_TIMEOUT.
+    curl_easy_setopt(curl.get(), CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(curl.get(), CURLOPT_XFERINFOFUNCTION, XferInfoCallback);
+    curl_easy_setopt(curl.get(), CURLOPT_XFERINFODATA, const_cast<std::stop_token*>(&stopToken));
+
     const CURLcode res = curl_easy_perform(curl.get());
+
+    if (res == CURLE_ABORTED_BY_CALLBACK) {
+        outcome.body.clear();
+        outcome.result = FetchResult::Cancelled;
+        return outcome;
+    }
+
+    long httpCode = 0;
+    curl_easy_getinfo(curl.get(), CURLINFO_RESPONSE_CODE, &httpCode);
 
     if (res != CURLE_OK) {
         LOG_ERROR("Update Checker: Request failed: {}", curl_easy_strerror(res));
-        result.clear();
+        outcome.body.clear();
+        outcome.result = FetchResult::NetworkError;
+        return outcome;
     }
 
-    LOG_INFO("Update Checker: Response received ({} bytes)", result.size());
+    // GitHub returns 403 + X-RateLimit-Remaining: 0 when the unauthenticated quota is exhausted.
+    if (httpCode == 403 && headerState.rateLimited) {
+        outcome.body.clear();
+        outcome.result = FetchResult::RateLimited;
+        return outcome;
+    }
 
-    return result;
+    if (httpCode >= 400) {
+        LOG_ERROR("Update Checker: HTTP {}", httpCode);
+        outcome.body.clear();
+        outcome.result = FetchResult::NetworkError;
+        return outcome;
+    }
+
+    LOG_INFO("Update Checker: Response received ({} bytes)", outcome.body.size());
+    outcome.result = FetchResult::Ok;
+    return outcome;
 }
 
 UpdateInfo UpdateChecker::ParseReleaseInfo(const std::string& jsonResponse) {
@@ -196,32 +295,24 @@ UpdateInfo UpdateChecker::ParseReleaseInfo(const std::string& jsonResponse) {
     }
 
     try {
-        // Parse JSON using nlohmann/json library
         auto j = nlohmann::json::parse(jsonResponse);
 
-        // Extract tag_name
         if (j.contains("tag_name") && j["tag_name"].is_string()) {
             std::string tag = j["tag_name"].get<std::string>();
-            // Remove 'v' prefix if present
             info.latestVersion = (!tag.empty() && tag[0] == 'v') ? tag.substr(1) : tag;
             LOG_INFO("Update Checker: Parsed version: {}", info.latestVersion);
         } else {
             LOG_ERROR("Update Checker: No tag_name in response");
         }
 
-        // Extract html_url
         if (j.contains("html_url") && j["html_url"].is_string()) {
             info.releaseUrl = j["html_url"].get<std::string>();
-            LOG_INFO("Update Checker: Release URL: {}", info.releaseUrl);
         }
 
-        // Extract body (release notes)
         if (j.contains("body") && j["body"].is_string()) {
             info.releaseNotes = j["body"].get<std::string>();
-            LOG_INFO("Update Checker: Release notes: {} chars", info.releaseNotes.length());
         }
 
-        // Extract download_url (if available)
         if (j.contains("assets") && j["assets"].is_array() && !j["assets"].empty()) {
             auto& firstAsset = j["assets"][0];
             if (firstAsset.contains("browser_download_url") && firstAsset["browser_download_url"].is_string()) {
@@ -240,52 +331,119 @@ UpdateInfo UpdateChecker::ParseReleaseInfo(const std::string& jsonResponse) {
     return info;
 }
 
-int UpdateChecker::CompareVersions(const std::string& v1, const std::string& v2) {
-    auto parseVersion = [](std::string version) {
-        // Remove leading 'v' or 'V' if present
-        if (!version.empty() && (version[0] == 'v' || version[0] == 'V')) {
-            version = version.substr(1);
-        }
+namespace {
 
-        std::vector<int> parts;
-        std::stringstream ss(version);
+// SemVer 2.0 ordering of pre-release identifiers (see semver.org §11):
+//  - A pre-release version has lower precedence than the release version
+//    (1.2.0-rc1 < 1.2.0).
+//  - Identifiers consisting of only digits are compared numerically;
+//    alphanumerics are compared lexically; numeric < alphanumeric.
+//  - A larger set of identifiers has higher precedence than a smaller set
+//    that matches as a prefix.
+struct ParsedVersion {
+    std::vector<int> core;                       // major.minor.patch (zero-padded to 3)
+    std::vector<std::string> preRelease;         // empty == release
+};
+
+bool IsAllDigits(const std::string& s) {
+    if (s.empty()) return false;
+    return std::all_of(s.begin(), s.end(), [](unsigned char c) { return std::isdigit(c) != 0; });
+}
+
+ParsedVersion ParseSemVer(std::string version) {
+    ParsedVersion parsed;
+
+    if (!version.empty() && (version[0] == 'v' || version[0] == 'V')) {
+        version = version.substr(1);
+    }
+
+    // Strip build metadata ("+...") — it does not participate in precedence.
+    const size_t plus = version.find('+');
+    if (plus != std::string::npos) {
+        version = version.substr(0, plus);
+    }
+
+    std::string corePart = version;
+    std::string preReleasePart;
+    const size_t dash = version.find('-');
+    if (dash != std::string::npos) {
+        corePart = version.substr(0, dash);
+        preReleasePart = version.substr(dash + 1);
+    }
+
+    {
+        std::stringstream ss(corePart);
         std::string part;
-
         while (std::getline(ss, part, '.')) {
-            // Extract numeric part only
-            std::string numStr;
+            std::string digits;
             for (const char c : part) {
-                if (std::isdigit(c) != 0) {
-                    numStr += c;
+                if (std::isdigit(static_cast<unsigned char>(c)) != 0) {
+                    digits += c;
                 } else {
                     break;
                 }
             }
-            if (!numStr.empty()) {
-                parts.push_back(std::stoi(numStr));
+            if (!digits.empty()) {
+                parsed.core.push_back(std::stoi(digits));
             }
         }
+    }
+    while (parsed.core.size() < 3) {
+        parsed.core.push_back(0);
+    }
 
-        // Ensure at least 3 parts (major.minor.patch)
-        while (parts.size() < 3) {
-            parts.push_back(0);
-        }
-
-        return parts;
-    };
-
-    auto parts1 = parseVersion(v1);
-    auto parts2 = parseVersion(v2);
-
-    for (size_t i = 0; i < (std::min)(parts1.size(), parts2.size()); ++i) {
-        if (parts1[i] < parts2[i]) {
-            return -1;
-        }
-        if (parts1[i] > parts2[i]) {
-            return 1;
+    if (!preReleasePart.empty()) {
+        std::stringstream ss(preReleasePart);
+        std::string id;
+        while (std::getline(ss, id, '.')) {
+            parsed.preRelease.push_back(id);
         }
     }
 
+    return parsed;
+}
+
+int CompareIdentifiers(const std::string& a, const std::string& b) {
+    const bool aDigits = IsAllDigits(a);
+    const bool bDigits = IsAllDigits(b);
+    if (aDigits && bDigits) {
+        const int ai = std::stoi(a);
+        const int bi = std::stoi(b);
+        if (ai < bi) return -1;
+        if (ai > bi) return 1;
+        return 0;
+    }
+    // Numeric identifiers always have lower precedence than alphanumerics.
+    if (aDigits && !bDigits) return -1;
+    if (!aDigits && bDigits) return 1;
+    return a.compare(b);
+}
+
+} // namespace
+
+int UpdateChecker::CompareVersions(const std::string& v1, const std::string& v2) {
+    const ParsedVersion p1 = ParseSemVer(v1);
+    const ParsedVersion p2 = ParseSemVer(v2);
+
+    for (size_t i = 0; i < std::min(p1.core.size(), p2.core.size()); ++i) {
+        if (p1.core[i] < p2.core[i]) return -1;
+        if (p1.core[i] > p2.core[i]) return 1;
+    }
+
+    // Cores equal — pre-release ranks below release.
+    const bool p1Pre = !p1.preRelease.empty();
+    const bool p2Pre = !p2.preRelease.empty();
+    if (!p1Pre && !p2Pre) return 0;
+    if (p1Pre && !p2Pre) return -1;
+    if (!p1Pre && p2Pre) return 1;
+
+    const size_t n = std::min(p1.preRelease.size(), p2.preRelease.size());
+    for (size_t i = 0; i < n; ++i) {
+        const int c = CompareIdentifiers(p1.preRelease[i], p2.preRelease[i]);
+        if (c != 0) return c;
+    }
+    if (p1.preRelease.size() < p2.preRelease.size()) return -1;
+    if (p1.preRelease.size() > p2.preRelease.size()) return 1;
     return 0;
 }
 

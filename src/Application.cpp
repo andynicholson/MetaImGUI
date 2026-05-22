@@ -277,15 +277,35 @@ void Application::Render() {
         if (m_pendingUpdateResult) {
             m_updateCheckInProgress = false;
             m_latestUpdateInfo = std::move(m_pendingUpdateResult);
-            m_showUpdateNotification = true;
 
-            if (m_latestUpdateInfo->updateAvailable) {
-                m_statusMessage = "Update available: v" + m_latestUpdateInfo->latestVersion;
-                LOG_INFO("Update available: v{} (current: v{})", m_latestUpdateInfo->latestVersion,
-                         m_latestUpdateInfo->currentVersion);
-            } else {
-                m_statusMessage = "Ready";
-                LOG_INFO("No updates available (current version: v{})", m_latestUpdateInfo->currentVersion);
+            // Only surface the notification window when there's something
+            // actionable; rate-limit / network issues only update the status bar.
+            switch (m_latestUpdateInfo->status) {
+                case UpdateCheckStatus::UpdateFound:
+                    m_showUpdateNotification = true;
+                    m_statusMessage = "Update available: v" + m_latestUpdateInfo->latestVersion;
+                    LOG_INFO("Update available: v{} (current: v{})", m_latestUpdateInfo->latestVersion,
+                             m_latestUpdateInfo->currentVersion);
+                    break;
+                case UpdateCheckStatus::UpToDate:
+                    m_statusMessage = "Ready";
+                    LOG_INFO("No updates available (current version: v{})", m_latestUpdateInfo->currentVersion);
+                    break;
+                case UpdateCheckStatus::RateLimited:
+                    m_statusMessage = "Update check rate-limited; retry later";
+                    break;
+                case UpdateCheckStatus::NetworkError:
+                    m_statusMessage = "Update check failed (network)";
+                    break;
+                case UpdateCheckStatus::ParseError:
+                    m_statusMessage = "Update check failed (response)";
+                    break;
+                case UpdateCheckStatus::Cancelled:
+                    m_statusMessage = "Update check cancelled";
+                    break;
+                case UpdateCheckStatus::Unknown:
+                    m_statusMessage = "Ready";
+                    break;
             }
         }
     }
