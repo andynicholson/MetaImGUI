@@ -471,7 +471,7 @@ jobs:
     - name: Build
       run: |
         cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3
         cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
 
     - name: Import Code-Signing Certificates

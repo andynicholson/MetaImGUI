@@ -145,7 +145,8 @@ HttpResponse HttpClient::PerformOnce(const HttpRequest& request, const std::stop
     // interrupts an in-flight transfer instead of waiting on CURLOPT_TIMEOUT.
     curl_easy_setopt(curl.get(), CURLOPT_NOPROGRESS, 0L);
     curl_easy_setopt(curl.get(), CURLOPT_XFERINFOFUNCTION, XferInfoCallback);
-    curl_easy_setopt(curl.get(), CURLOPT_XFERINFODATA, const_cast<std::stop_token*>(&stopToken));
+    const std::stop_token xferStop = stopToken;
+    curl_easy_setopt(curl.get(), CURLOPT_XFERINFODATA, &xferStop);
 
     const CURLcode res = curl_easy_perform(curl.get());
 

@@ -33,11 +33,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Export compile commands for IDEs and linters
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Set macOS deployment target for backward compatibility
+# Set macOS deployment target (13.3+ required for std::format with Homebrew LLVM)
 if(APPLE)
     if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment version" FORCE)
-        message(STATUS "Setting macOS deployment target to 11.0 for backward compatibility")
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "Minimum macOS deployment version" FORCE)
+        message(STATUS "Setting macOS deployment target to 13.3 (required for std::format via Homebrew LLVM)")
     endif()
     # Note: Use Xcode's system clang compiler (not Homebrew LLVM) for maximum compatibility
     # The system C++ standard library is available on all macOS systems

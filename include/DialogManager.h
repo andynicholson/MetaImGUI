@@ -158,12 +158,17 @@ public:
      */
     [[nodiscard]] auto AwaitConfirmation(std::string title, std::string message) {
         struct Awaiter {
+        private:
             DialogManager* manager;
             std::string title;
             std::string message;
             bool result = false;
 
-            bool await_ready() const noexcept {
+        public:
+            Awaiter(DialogManager* mgr, std::string dialogTitle, std::string dialogMessage)
+                : manager(mgr), title(std::move(dialogTitle)), message(std::move(dialogMessage)) {}
+
+            [[nodiscard]] bool await_ready() const noexcept {
                 return false;
             }
             void await_suspend(std::coroutine_handle<> handle) {
@@ -172,7 +177,7 @@ public:
                     handle.resume();
                 });
             }
-            bool await_resume() const noexcept {
+            [[nodiscard]] bool await_resume() const noexcept {
                 return result;
             }
         };
@@ -186,13 +191,19 @@ public:
      */
     [[nodiscard]] auto AwaitInput(std::string title, std::string prompt, std::string defaultValue = "") {
         struct Awaiter {
+        private:
             DialogManager* manager;
             std::string title;
             std::string prompt;
             std::string defaultValue;
             std::string result;
 
-            bool await_ready() const noexcept {
+        public:
+            Awaiter(DialogManager* mgr, std::string dialogTitle, std::string dialogPrompt, std::string dialogDefault)
+                : manager(mgr), title(std::move(dialogTitle)), prompt(std::move(dialogPrompt)),
+                  defaultValue(std::move(dialogDefault)) {}
+
+            [[nodiscard]] bool await_ready() const noexcept {
                 return false;
             }
             void await_suspend(std::coroutine_handle<> handle) {
@@ -201,11 +212,11 @@ public:
                     handle.resume();
                 });
             }
-            std::string await_resume() {
+            [[nodiscard]] std::string await_resume() {
                 return std::move(result);
             }
         };
-        return Awaiter{this, std::move(title), std::move(prompt), std::move(defaultValue), {}};
+        return Awaiter{this, std::move(title), std::move(prompt), std::move(defaultValue)};
     }
 
     /**

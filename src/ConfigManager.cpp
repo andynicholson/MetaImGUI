@@ -46,6 +46,9 @@ namespace MetaImGUI {
 // shared_mutex chosen over plain mutex because reads (Get*) far outnumber
 // writes (Set*/Load/Save/Reset) at runtime — most frames only read.
 struct ConfigManager::Impl {
+    friend class ConfigManager;
+
+private:
     json config;
     std::filesystem::path configPath;
     size_t maxRecentFiles = 10;

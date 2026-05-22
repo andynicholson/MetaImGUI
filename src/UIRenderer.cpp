@@ -43,8 +43,6 @@ namespace UILayout {
 // Margins and spacing
 constexpr float LEFT_MARGIN = 50.0f;
 constexpr float TOP_MARGIN = 100.0f;
-constexpr float LINE_SPACING = 30.0f;
-constexpr float BUTTON_SPACING = 40.0f;
 constexpr float STATUS_BAR_HEIGHT = 28.0f;
 
 // Window sizes

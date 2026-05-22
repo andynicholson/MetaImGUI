@@ -124,7 +124,7 @@ jobs:
           cmake -B build \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DCMAKE_INSTALL_PREFIX=install \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 \
             -DMETAIMGUI_WARNINGS_AS_ERRORS=ON
         else
           cmake -B build \

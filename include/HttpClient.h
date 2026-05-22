@@ -80,13 +80,13 @@ public:
      * and rate-limit responses are returned immediately without retry —
      * those aren't transient.
      */
-    HttpResponse Get(const HttpRequest& request, const std::stop_token& stopToken) const;
+    [[nodiscard]] HttpResponse Get(const HttpRequest& request, const std::stop_token& stopToken) const;
 
     /// Convenience overload for the common no-cancel case.
-    HttpResponse Get(const HttpRequest& request) const;
+    [[nodiscard]] HttpResponse Get(const HttpRequest& request) const;
 
 private:
-    HttpResponse PerformOnce(const HttpRequest& request, const std::stop_token& stopToken) const;
+    [[nodiscard]] HttpResponse PerformOnce(const HttpRequest& request, const std::stop_token& stopToken) const;
 };
 
 } // namespace MetaImGUI

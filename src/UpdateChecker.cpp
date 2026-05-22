@@ -233,8 +233,9 @@ struct ParsedVersion {
 };
 
 bool IsAllDigits(const std::string& s) {
-    if (s.empty())
+    if (s.empty()) {
         return false;
+    }
     return std::all_of(s.begin(), s.end(), [](unsigned char c) { return std::isdigit(c) != 0; });
 }
 
@@ -297,17 +298,21 @@ int CompareIdentifiers(const std::string& a, const std::string& b) {
     if (aDigits && bDigits) {
         const int ai = std::stoi(a);
         const int bi = std::stoi(b);
-        if (ai < bi)
+        if (ai < bi) {
             return -1;
-        if (ai > bi)
+        }
+        if (ai > bi) {
             return 1;
+        }
         return 0;
     }
     // Numeric identifiers always have lower precedence than alphanumerics.
-    if (aDigits && !bDigits)
+    if (aDigits && !bDigits) {
         return -1;
-    if (!aDigits && bDigits)
+    }
+    if (!aDigits && bDigits) {
         return 1;
+    }
     return a.compare(b);
 }
 
@@ -318,32 +323,40 @@ int UpdateChecker::CompareVersions(const std::string& v1, const std::string& v2)
     const ParsedVersion p2 = ParseSemVer(v2);
 
     for (size_t i = 0; i < std::min(p1.core.size(), p2.core.size()); ++i) {
-        if (p1.core[i] < p2.core[i])
+        if (p1.core[i] < p2.core[i]) {
             return -1;
-        if (p1.core[i] > p2.core[i])
+        }
+        if (p1.core[i] > p2.core[i]) {
             return 1;
+        }
     }
 
     // Cores equal — pre-release ranks below release.
     const bool p1Pre = !p1.preRelease.empty();
     const bool p2Pre = !p2.preRelease.empty();
-    if (!p1Pre && !p2Pre)
+    if (!p1Pre && !p2Pre) {
         return 0;
-    if (p1Pre && !p2Pre)
+    }
+    if (p1Pre && !p2Pre) {
         return -1;
-    if (!p1Pre && p2Pre)
+    }
+    if (!p1Pre && p2Pre) {
         return 1;
+    }
 
     const size_t n = std::min(p1.preRelease.size(), p2.preRelease.size());
     for (size_t i = 0; i < n; ++i) {
         const int c = CompareIdentifiers(p1.preRelease[i], p2.preRelease[i]);
-        if (c != 0)
+        if (c != 0) {
             return c;
+        }
     }
-    if (p1.preRelease.size() < p2.preRelease.size())
+    if (p1.preRelease.size() < p2.preRelease.size()) {
         return -1;
-    if (p1.preRelease.size() > p2.preRelease.size())
+    }
+    if (p1.preRelease.size() > p2.preRelease.size()) {
         return 1;
+    }
     return 0;
 }
 

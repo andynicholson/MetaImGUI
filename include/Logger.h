@@ -23,7 +23,6 @@
 #include <format>
 #include <memory>
 #include <string_view>
-#include <utility>
 
 // Heavy I/O and synchronisation headers (<fstream>, <sstream>, <mutex>) live
 // behind the pimpl in the .cpp so they don't leak into every TU that logs.
@@ -82,35 +81,35 @@ public:
     [[nodiscard]] std::filesystem::path GetLogFilePath() const;
 
     template <typename... Args>
-    void Debug(std::format_string<Args...> fmt, Args&&... args) {
+    void Debug(std::format_string<Args...> fmt, Args... args) {
         if (LogLevel::Debug >= GetLevel()) {
             LogVFormat(LogLevel::Debug, fmt.get(), std::make_format_args(args...));
         }
     }
 
     template <typename... Args>
-    void Info(std::format_string<Args...> fmt, Args&&... args) {
+    void Info(std::format_string<Args...> fmt, Args... args) {
         if (LogLevel::Info >= GetLevel()) {
             LogVFormat(LogLevel::Info, fmt.get(), std::make_format_args(args...));
         }
     }
 
     template <typename... Args>
-    void Warning(std::format_string<Args...> fmt, Args&&... args) {
+    void Warning(std::format_string<Args...> fmt, Args... args) {
         if (LogLevel::Warning >= GetLevel()) {
             LogVFormat(LogLevel::Warning, fmt.get(), std::make_format_args(args...));
         }
     }
 
     template <typename... Args>
-    void Error(std::format_string<Args...> fmt, Args&&... args) {
+    void Error(std::format_string<Args...> fmt, Args... args) {
         if (LogLevel::Error >= GetLevel()) {
             LogVFormat(LogLevel::Error, fmt.get(), std::make_format_args(args...));
         }
     }
 
     template <typename... Args>
-    void Fatal(std::format_string<Args...> fmt, Args&&... args) {
+    void Fatal(std::format_string<Args...> fmt, Args... args) {
         if (LogLevel::Fatal >= GetLevel()) {
             LogVFormat(LogLevel::Fatal, fmt.get(), std::make_format_args(args...));
         }

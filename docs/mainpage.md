@@ -165,7 +165,7 @@ cd build && make coverage
 
 - **Linux** - Ubuntu 20.04+, Fedora 33+, Arch, Debian
 - **Windows** - Windows 10/11 with MSVC 2019+
-- **macOS** - macOS 11+ with Apple Clang
+- **macOS** - macOS 13.3+ (Ventura) with Apple Clang or Homebrew LLVM
 
 ## Additional Resources
 

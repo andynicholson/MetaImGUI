@@ -453,7 +453,7 @@ doxygen Doxyfile
 
 - 🐧 Linux — built and tested on `ubuntu-latest` (currently 24.04). Older distros work if you can get GCC 13+ or Clang 16+ on them.
 - 🪟 Windows 10/11 with MSVC 2022 (`windows-latest`)
-- 🍎 macOS — built on `macos-latest` (Apple Silicon). Deployment target is 11.0; CI uses Homebrew LLVM for `std::format` support.
+- 🍎 macOS — built on `macos-latest` (Apple Silicon). Deployment target is 13.3 (Ventura+); CI uses Homebrew LLVM for `std::format` support.
 
 Tested on every push via GitHub Actions (Debug + Release on all three OSes).
 
