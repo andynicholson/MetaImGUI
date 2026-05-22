@@ -163,6 +163,7 @@ if(APPLE)
         src/DialogManager.cpp
         src/Localization.cpp
         src/ISSTracker.cpp
+        src/HttpClient.cpp
     )
 
     # Set bundle properties
@@ -187,6 +188,7 @@ else()
         src/DialogManager.cpp
         src/Localization.cpp
         src/ISSTracker.cpp
+        src/HttpClient.cpp
     )
 endif()
 
@@ -332,6 +334,7 @@ if(BUILD_TESTS)
             src/ConfigManager.cpp
             src/Logger.cpp
             src/WindowManager.cpp
+            src/HttpClient.cpp
         )
 
         target_include_directories(MetaImGUI_tests PRIVATE

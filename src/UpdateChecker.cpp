@@ -18,6 +18,7 @@
 
 #include "UpdateChecker.h"
 
+#include "HttpClient.h"
 #include "Logger.h"
 #include "version.h"
 
@@ -27,9 +28,6 @@
 #include <cctype>
 #include <sstream>
 #include <string_view>
-
-// HTTP requests using libcurl (cross-platform)
-#include <curl/curl.h>
 
 namespace MetaImGUI {
 
@@ -109,32 +107,41 @@ UpdateInfo UpdateChecker::CheckForUpdatesImpl(const std::stop_token& stopToken) 
                     .status = UpdateCheckStatus::Unknown};
 
     try {
-        const FetchOutcome outcome = FetchLatestReleaseInfo(stopToken);
+        const HttpClient http;
+        const std::string url = "https://api.github.com/repos/" + m_repoOwner + "/" + m_repoName + "/releases/latest";
+        LOG_INFO("Update Checker: Requesting URL: {}", url);
 
-        switch (outcome.result) {
-            case FetchResult::Cancelled:
+        // Two retries on transient network failure — GitHub occasionally
+        // closes connections under load. Rate-limit and cancellation skip retry.
+        const HttpRequest request{
+            .url = url, .userAgent = "UpdateChecker/1.0", .timeout = std::chrono::seconds{10}, .maxRetries = 2};
+        const HttpResponse response = http.Get(request, stopToken);
+
+        switch (response.status) {
+            case HttpStatus::Cancelled:
                 LOG_INFO("Update Checker: Check cancelled by user");
                 info.status = UpdateCheckStatus::Cancelled;
                 return info;
-            case FetchResult::RateLimited:
+            case HttpStatus::RateLimited:
                 LOG_WARNING("Update Checker: GitHub API rate limit hit");
                 info.status = UpdateCheckStatus::RateLimited;
                 return info;
-            case FetchResult::NetworkError:
+            case HttpStatus::NetworkError:
                 LOG_ERROR("Update Checker: Network error fetching release info");
                 info.status = UpdateCheckStatus::NetworkError;
                 return info;
-            case FetchResult::Ok:
+            case HttpStatus::Ok:
                 break;
         }
 
-        if (outcome.body.empty()) {
+        if (response.body.empty()) {
             LOG_ERROR("Update Checker: Empty response from server");
             info.status = UpdateCheckStatus::NetworkError;
             return info;
         }
 
-        info = ParseReleaseInfo(outcome.body);
+        LOG_INFO("Update Checker: Response received ({} bytes)", response.body.size());
+        info = ParseReleaseInfo(response.body);
         info.currentVersion = Version::VERSION;
 
         if (info.latestVersion.empty()) {
@@ -164,126 +171,6 @@ UpdateInfo UpdateChecker::CheckForUpdatesImpl(const std::stop_token& stopToken) 
     }
 
     return info;
-}
-
-namespace {
-
-// libcurl write callback: appends body bytes to the std::string in userp.
-size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
-    static_cast<std::string*>(userp)->append(static_cast<char*>(contents), size * nmemb);
-    return size * nmemb;
-}
-
-// libcurl xferinfo callback: returns non-zero to abort the transfer.
-// We use this to short-circuit a slow network response when Cancel() fires,
-// rather than waiting for CURLOPT_TIMEOUT to expire.
-int XferInfoCallback(void* clientp, curl_off_t /*dltotal*/, curl_off_t /*dlnow*/, curl_off_t /*ultotal*/,
-                     curl_off_t /*ulnow*/) {
-    const auto* token = static_cast<const std::stop_token*>(clientp);
-    return (token != nullptr && token->stop_requested()) ? 1 : 0;
-}
-
-// Tracks rate-limit state via response headers without parsing the body.
-struct HeaderState {
-    bool rateLimited = false;
-};
-
-size_t HeaderCallback(char* buffer, size_t size, size_t nitems, void* userdata) {
-    const size_t total = size * nitems;
-    auto* state = static_cast<HeaderState*>(userdata);
-    const std::string_view header(buffer, total);
-
-    // GitHub returns "X-RateLimit-Remaining: 0" alongside HTTP 403 when limited.
-    constexpr std::string_view kKey = "x-ratelimit-remaining:";
-    if (header.size() >= kKey.size()) {
-        std::string lower;
-        lower.reserve(kKey.size());
-        for (size_t i = 0; i < kKey.size() && i < header.size(); ++i) {
-            lower.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(header[i]))));
-        }
-        if (lower == kKey) {
-            std::string_view value = header.substr(kKey.size());
-            // Trim leading whitespace.
-            while (!value.empty() && (value.front() == ' ' || value.front() == '\t')) {
-                value.remove_prefix(1);
-            }
-            if (!value.empty() && value.front() == '0') {
-                state->rateLimited = true;
-            }
-        }
-    }
-
-    return total;
-}
-
-} // namespace
-
-UpdateChecker::FetchOutcome UpdateChecker::FetchLatestReleaseInfo(const std::stop_token& stopToken) {
-    FetchOutcome outcome;
-
-    const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
-    if (!curl) {
-        outcome.result = FetchResult::NetworkError;
-        return outcome;
-    }
-
-    const std::string url = "https://api.github.com/repos/" + m_repoOwner + "/" + m_repoName + "/releases/latest";
-    LOG_INFO("Update Checker: Requesting URL: {}", url);
-
-    HeaderState headerState;
-
-    curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &outcome.body);
-    curl_easy_setopt(curl.get(), CURLOPT_HEADERFUNCTION, HeaderCallback);
-    curl_easy_setopt(curl.get(), CURLOPT_HEADERDATA, &headerState);
-    curl_easy_setopt(curl.get(), CURLOPT_USERAGENT, "UpdateChecker/1.0");
-    curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 10L);
-    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
-
-    // Wire up the abort-on-stop progress callback so Cancel() actually interrupts
-    // an in-flight transfer instead of waiting up to CURLOPT_TIMEOUT.
-    curl_easy_setopt(curl.get(), CURLOPT_NOPROGRESS, 0L);
-    curl_easy_setopt(curl.get(), CURLOPT_XFERINFOFUNCTION, XferInfoCallback);
-    curl_easy_setopt(curl.get(), CURLOPT_XFERINFODATA, const_cast<std::stop_token*>(&stopToken));
-
-    const CURLcode res = curl_easy_perform(curl.get());
-
-    if (res == CURLE_ABORTED_BY_CALLBACK) {
-        outcome.body.clear();
-        outcome.result = FetchResult::Cancelled;
-        return outcome;
-    }
-
-    long httpCode = 0;
-    curl_easy_getinfo(curl.get(), CURLINFO_RESPONSE_CODE, &httpCode);
-
-    if (res != CURLE_OK) {
-        LOG_ERROR("Update Checker: Request failed: {}", curl_easy_strerror(res));
-        outcome.body.clear();
-        outcome.result = FetchResult::NetworkError;
-        return outcome;
-    }
-
-    // GitHub returns 403 + X-RateLimit-Remaining: 0 when the unauthenticated quota is exhausted.
-    if (httpCode == 403 && headerState.rateLimited) {
-        outcome.body.clear();
-        outcome.result = FetchResult::RateLimited;
-        return outcome;
-    }
-
-    if (httpCode >= 400) {
-        LOG_ERROR("Update Checker: HTTP {}", httpCode);
-        outcome.body.clear();
-        outcome.result = FetchResult::NetworkError;
-        return outcome;
-    }
-
-    LOG_INFO("Update Checker: Response received ({} bytes)", outcome.body.size());
-    outcome.result = FetchResult::Ok;
-    return outcome;
 }
 
 UpdateInfo UpdateChecker::ParseReleaseInfo(const std::string& jsonResponse) {

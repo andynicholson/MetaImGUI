@@ -87,23 +87,8 @@ private:
     std::jthread m_checkThread;
     std::mutex m_threadMutex; // Serialises thread (re)creation against itself
 
-    // Outcome of the most recent FetchLatestReleaseInfo call. Lets the caller
-    // distinguish "rate limited" from "network failure" from "empty response".
-    enum class FetchResult {
-        Ok,
-        RateLimited,
-        NetworkError,
-        Cancelled
-    };
-
-    struct FetchOutcome {
-        FetchResult result = FetchResult::NetworkError;
-        std::string body;
-    };
-
     // Internal implementation
     UpdateInfo CheckForUpdatesImpl(const std::stop_token& stopToken);
-    FetchOutcome FetchLatestReleaseInfo(const std::stop_token& stopToken);
     UpdateInfo ParseReleaseInfo(const std::string& jsonResponse);
 };
 

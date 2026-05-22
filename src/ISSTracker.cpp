@@ -18,6 +18,7 @@
 
 #include "ISSTracker.h"
 
+#include "HttpClient.h"
 #include "Logger.h"
 
 #include <nlohmann/json.hpp>
@@ -25,9 +26,6 @@
 #include <chrono>
 #include <stop_token>
 #include <thread>
-
-// HTTP requests using libcurl (cross-platform)
-#include <curl/curl.h>
 
 namespace MetaImGUI {
 
@@ -100,13 +98,13 @@ void ISSTracker::GetPositionHistory(std::vector<double>& latitudes, std::vector<
 }
 
 ISSPosition ISSTracker::FetchPositionSync() {
-    return FetchPositionImpl();
+    return FetchPositionImpl(std::stop_token{});
 }
 
 void ISSTracker::TrackingLoop(const std::stop_token& stopToken) {
     while (!stopToken.stop_requested()) {
         try {
-            const ISSPosition position = FetchPositionImpl();
+            const ISSPosition position = FetchPositionImpl(stopToken);
 
             // Check if stop was requested after fetch (important for slow networks)
             if (stopToken.stop_requested()) {
@@ -163,18 +161,34 @@ void ISSTracker::TrackingLoop(const std::stop_token& stopToken) {
     LOG_INFO("ISS Tracker: Tracking loop exited");
 }
 
-ISSPosition ISSTracker::FetchPositionImpl() {
+ISSPosition ISSTracker::FetchPositionImpl(const std::stop_token& stopToken) {
     ISSPosition position;
     position.valid = false;
 
     try {
-        const std::string jsonResponse = FetchJSON(ISS_API_URL);
-        if (jsonResponse.empty()) {
+        const HttpClient http;
+        // 30s timeout, two retries to ride out flaky mobile networks. The
+        // wheretheiss.at endpoint is public and unauthenticated.
+        const HttpRequest request{.url = ISS_API_URL,
+                                  .userAgent = "MetaImGUI-ISSTracker/1.0",
+                                  .timeout = std::chrono::seconds{30},
+                                  .maxRetries = 2};
+        const HttpResponse response = http.Get(request, stopToken);
+
+        if (response.status == HttpStatus::Cancelled) {
+            return position; // Caller checks stop_token after we return.
+        }
+        if (response.status != HttpStatus::Ok) {
+            LOG_ERROR("ISS Tracker: HTTP fetch failed (status={})",
+                      static_cast<int>(response.status));
+            return position;
+        }
+        if (response.body.empty()) {
             LOG_ERROR("ISS Tracker: Empty response from server");
             return position;
         }
 
-        position = ParseJSON(jsonResponse);
+        position = ParseJSON(response.body);
     } catch (const std::bad_alloc& e) {
         LOG_ERROR("ISS Tracker: Memory allocation failed: {}", e.what());
     } catch (const std::exception& e) {
@@ -184,43 +198,6 @@ ISSPosition ISSTracker::FetchPositionImpl() {
     }
 
     return position;
-}
-
-namespace {
-// Callback for libcurl to write response data
-size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
-    static_cast<std::string*>(userp)->append(static_cast<char*>(contents), size * nmemb);
-    return size * nmemb;
-}
-} // namespace
-
-std::string ISSTracker::FetchJSON(const std::string& url) {
-    std::string result;
-
-    // RAII-wrap CURL handle to prevent leaks on exceptions
-    const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
-    if (!curl) {
-        LOG_ERROR("ISS Tracker: Failed to initialize CURL");
-        return result;
-    }
-
-    curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &result);
-    curl_easy_setopt(curl.get(), CURLOPT_USERAGENT, "MetaImGUI-ISSTracker/1.0");
-    curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 30L); // Increased to 30 seconds for slow networks
-    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
-
-    const CURLcode res = curl_easy_perform(curl.get());
-
-    if (res != CURLE_OK) {
-        LOG_ERROR("ISS Tracker: Request failed: {}", curl_easy_strerror(res));
-        result.clear();
-    }
-
-    return result;
 }
 
 ISSPosition ISSTracker::ParseJSON(const std::string& jsonResponse) {
