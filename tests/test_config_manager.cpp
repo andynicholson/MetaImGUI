@@ -3,7 +3,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <atomic>
 #include <filesystem>
+#include <thread>
+#include <vector>
 
 using namespace MetaImGUI;
 using Catch::Matchers::WithinAbs;
@@ -223,6 +226,59 @@ TEST_CASE("ConfigManager persistence", "[config]") {
         REQUIRE(config1.GetTheme() == "Modern");
         REQUIRE(config1.GetRecentFiles().empty());
     }
+}
+
+TEST_CASE("ConfigManager concurrent access is data-race free", "[config][threading]") {
+    // This test exists to be exercised under TSan. Without locking, concurrent
+    // mutation of the underlying nlohmann::json would race; with the
+    // shared_mutex protection it should be quiet.
+    ConfigManager config;
+
+    constexpr int kWriters = 4;
+    constexpr int kReaders = 4;
+    constexpr int kIterations = 200;
+
+    std::atomic<bool> go{false};
+    std::vector<std::thread> threads;
+    threads.reserve(kWriters + kReaders);
+
+    for (int t = 0; t < kWriters; ++t) {
+        threads.emplace_back([&config, &go, t]() {
+            while (!go.load(std::memory_order_acquire)) { /* spin until released */
+            }
+            for (int i = 0; i < kIterations; ++i) {
+                const std::string key = "writer" + std::to_string(t) + "_" + std::to_string(i % 8);
+                config.SetInt(key, i);
+                config.SetString(key + "_s", "value");
+                config.SetWindowSize(800 + (i % 100), 600 + (i % 100));
+            }
+        });
+    }
+
+    for (int t = 0; t < kReaders; ++t) {
+        threads.emplace_back([&config, &go]() {
+            while (!go.load(std::memory_order_acquire)) { /* spin until released */
+            }
+            for (int i = 0; i < kIterations; ++i) {
+                (void)config.GetWindowSize();
+                (void)config.GetTheme();
+                (void)config.GetAllKeys();
+                (void)config.HasKey("writer0_0");
+            }
+        });
+    }
+
+    go.store(true, std::memory_order_release);
+    for (auto& th : threads) {
+        th.join();
+    }
+
+    // After the dust settles the config still has a valid window size
+    // (one of the writers wrote a sane pair).
+    auto size = config.GetWindowSize();
+    REQUIRE(size.has_value());
+    REQUIRE(size->first >= 800);
+    REQUIRE(size->second >= 600);
 }
 
 TEST_CASE("ConfigManager key enumeration", "[config]") {
