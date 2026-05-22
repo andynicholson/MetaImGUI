@@ -29,6 +29,16 @@
 namespace MetaImGUI {
 
 // C++20: Using designated initializers for clear, safe initialization
+enum class UpdateCheckStatus {
+    Unknown,      ///< No check has run, or result not yet available
+    UpToDate,     ///< Current version is the latest
+    UpdateFound,  ///< A newer release is available
+    RateLimited,  ///< GitHub API rate limit hit (HTTP 403)
+    NetworkError, ///< Network/HTTP failure
+    ParseError,   ///< Response did not contain a parseable version
+    Cancelled     ///< Stop requested before the check completed
+};
+
 struct UpdateInfo {
     bool updateAvailable = false;
     std::string latestVersion;
@@ -36,6 +46,7 @@ struct UpdateInfo {
     std::string releaseUrl;
     std::string releaseNotes;
     std::string downloadUrl;
+    UpdateCheckStatus status = UpdateCheckStatus::Unknown;
 };
 
 class UpdateChecker {
@@ -67,16 +78,17 @@ public:
 private:
     std::string m_repoOwner;
     std::string m_repoName;
+
+    // m_checking is the single source of truth for "a check is running".
+    // Atomic compare_exchange on this guards entry; the worker resets it on exit.
     std::atomic<bool> m_checking;
 
     // C++20: Using std::jthread for automatic thread management
     std::jthread m_checkThread;
-    std::stop_source m_stopSource;
-    std::mutex m_threadMutex; // Protects thread operations
+    std::mutex m_threadMutex; // Serialises thread (re)creation against itself
 
     // Internal implementation
     UpdateInfo CheckForUpdatesImpl(const std::stop_token& stopToken);
-    std::string FetchLatestReleaseInfo();
     UpdateInfo ParseReleaseInfo(const std::string& jsonResponse);
 };
 

@@ -122,8 +122,7 @@ private:
 
     // Internal methods
     void TrackingLoop(const std::stop_token& stopToken);
-    ISSPosition FetchPositionImpl();
-    std::string FetchJSON(const std::string& url);
+    ISSPosition FetchPositionImpl(const std::stop_token& stopToken);
     ISSPosition ParseJSON(const std::string& jsonResponse);
     void AddToHistory(const ISSPosition& position);
 };

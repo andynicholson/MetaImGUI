@@ -11,6 +11,8 @@
 
 A C++20 template for ImGui desktop applications. Includes build system, CI/CD, and basic application structure.
 
+The codebase uses C++20 throughout: `std::jthread` and `std::stop_token` for cancellable workers, `std::format` for type-safe logging, `std::shared_mutex`/`std::shared_lock` for read-heavy config access, designated initializers, and `[[nodiscard]]` / `[[maybe_unused]]` attributes. This raises the compiler floor — see [Prerequisites](#prerequisites).
+
 ## Overview
 
 **Skip the setup. Start building.**
@@ -106,6 +108,7 @@ MetaImGUI/
 │   ├── Logger.cpp             # Logging system
 │   ├── DialogManager.cpp      # Dialog system
 │   ├── Localization.cpp       # Localization/translations
+│   ├── HttpClient.cpp         # libcurl wrapper (retry, backoff, cancel)
 │   └── ISSTracker.cpp         # ISS position tracking
 │
 ├── include/                    # Header files
@@ -118,6 +121,7 @@ MetaImGUI/
 │   ├── Logger.h               # Logger header
 │   ├── DialogManager.h        # Dialog manager header
 │   ├── Localization.h         # Localization header
+│   ├── HttpClient.h           # HTTP client header
 │   ├── ISSTracker.h           # ISS tracker header
 │   └── version.h.in           # Version template
 │
@@ -275,8 +279,13 @@ cursor .
 
 **All Platforms:**
 - 🔨 CMake 3.16 or higher
-- ⚙️ C++20 compatible compiler (GCC 10+, Clang 10+, MSVC 2019 16.11+)
+- ⚙️ C++20 compiler with `std::format` and `std::jthread` support:
+  - GCC 13+ (Ubuntu 24.04 ships GCC 13; older distros need a backport)
+  - Clang 16+ with libc++ 17+ (or use the system GCC libstdc++ on Linux)
+  - MSVC 2022 (Visual Studio 17.0+)
 - 🌿 Git (for downloading dependencies)
+
+> The CI matrix runs `ubuntu-latest`, `macos-latest`, and `windows-latest`. Earlier C++20 toolchains (GCC 10–12, Clang 10–15) lack `std::format` and will fail to build.
 
 **Platform-Specific:**
 - 🐧 **Linux**: `libcurl4-openssl-dev`, `libglfw3-dev`, `libgl1-mesa-dev`, `libglu1-mesa-dev`, `xorg-dev`
@@ -334,16 +343,17 @@ The script automatically updates all project files, namespaces, and configuratio
 
 Modular structure:
 
-- **Application** - Lifecycle and coordination
-- **WindowManager** - GLFW window wrapper
-- **ThemeManager** - UI theming (4 themes: Dark, Light, Classic, Modern)
-- **UIRenderer** - ImGui rendering
-- **UpdateChecker** - Update notifications via GitHub API
-- **ConfigManager** - JSON settings (window state, preferences)
-- **Logger** - Thread-safe logging (file and console)
-- **DialogManager** - Reusable dialogs (message boxes, input, progress, lists)
-- **Localization** - Runtime language switching
-- **ISSTracker** - Real-time ISS position tracking and plotting
+- **Application** — lifecycle and coordination; `Render()` is decomposed into `PollAsyncResults` / `RenderMainViewport` / `RenderFloatingWindows` / `RenderDialogs`
+- **WindowManager** — GLFW window wrapper
+- **ThemeManager** — UI theming (4 themes: Dark, Light, Classic, Modern)
+- **UIRenderer** — ImGui rendering (uses ImGui flow layout, not pixel-positioned cursors)
+- **HttpClient** — stateless libcurl wrapper with retry/exponential backoff, `stop_token` cancellation, and GitHub rate-limit detection. Used by `UpdateChecker` and `ISSTracker`
+- **UpdateChecker** — async update notifications via GitHub API (`std::jthread` + `stop_token`)
+- **ConfigManager** — JSON settings; pimpl + `std::shared_mutex` for read-heavy concurrent access
+- **Logger** — thread-safe logging (file and console) using `std::format`
+- **DialogManager** — reusable dialogs (message boxes, input, progress, lists)
+- **Localization** — runtime language switching with a `Tr()` lookup cache invalidated per-entry on add and fully cleared on language change
+- **ISSTracker** — real-time ISS position tracking and plotting (HttpClient + ImPlot, cancellable via `stop_token`)
 
 ### Adding New Features
 
@@ -437,15 +447,15 @@ doxygen Doxyfile
 ### Build & Development
 - 🔨 CMake 3.16+
 - ✅ Catch2 v3.4.0
-- 🛠️ C++20 compiler (GCC 10+, Clang 10+, MSVC 2019 16.11+)
+- 🛠️ C++20 compiler with `std::format` + `std::jthread` (GCC 13+, Clang 16+/libc++ 17+, or MSVC 2022)
 
 ## Platform Support
 
-- 🐧 Linux (Ubuntu 20.04+, Fedora 33+)
-- 🪟 Windows (10/11 with MSVC)
-- 🍎 macOS (15+)
+- 🐧 Linux — built and tested on `ubuntu-latest` (currently 24.04). Older distros work if you can get GCC 13+ or Clang 16+ on them.
+- 🪟 Windows 10/11 with MSVC 2022 (`windows-latest`)
+- 🍎 macOS — built on `macos-latest` (Apple Silicon). Deployment target is 13.3 (Ventura+); CI uses Homebrew LLVM for `std::format` support.
 
-Tested via GitHub Actions.
+Tested on every push via GitHub Actions (Debug + Release on all three OSes).
 
 ## Troubleshooting
 

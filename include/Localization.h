@@ -20,6 +20,7 @@
 
 #include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace MetaImGUI {
@@ -90,6 +91,15 @@ private:
 
     std::string m_currentLanguage;
     std::map<std::string, std::map<std::string, std::string>> m_translations; // [language][key] = value
+
+    // Tr() is on the hot path — every menu item, button and tooltip looks up
+    // the same handful of keys per frame. The cache resolves a key to a
+    // ready-made std::string, avoiding the two-tier map lookup + English
+    // fallback dance on every call. Invalidated on SetLanguage / load.
+    //
+    // Mutable because Tr() is logically const but caches the result of an
+    // expensive lookup. Single-threaded UI usage, no synchronisation needed.
+    mutable std::unordered_map<std::string, std::string> m_trCache;
 };
 
 } // namespace MetaImGUI

@@ -14,13 +14,20 @@ This checklist must be completed before every release to ensure security standar
 
 ### Dependency Audit
 
-- [ ] **External Dependencies**: All external dependencies are up-to-date
-  - [ ] ImGui version checked and updated if needed
-  - [ ] nlohmann/json version checked and updated if needed
-  - [ ] GLFW version compatible and secure
+- [ ] **External Dependencies**: pinned to commit SHAs in
+      `setup_dependencies.sh` and `.github/workflows/ci.yml`. To bump:
+  - [ ] Resolve the new tag → SHA, update both files in lockstep
+  - [ ] ImGui (currently v1.92.4)
+  - [ ] nlohmann/json (currently v3.11.3)
+  - [ ] ImPlot (currently v0.17)
+  - [ ] Catch2 (currently v3.4.0)
+  - [ ] GLFW comes from system packages (apt / Homebrew / vcpkg) — confirm
+        a supported version on each runner image
 - [ ] **License Compliance**: All dependencies have compatible licenses
 - [ ] **CVE Check**: No known CVEs in dependency versions
-- [ ] **Submodule Verification**: All git submodules point to trusted commits
+- [ ] **Pin Discipline**: Every third-party clone uses `--detach <sha>`,
+      never a bare tag/branch (verifiable via `grep -r "branch v" .github/`
+      and `setup_dependencies.sh` — should return zero hits)
 
 ### Code Review
 
@@ -32,22 +39,30 @@ This checklist must be completed before every release to ensure security standar
 
 ### Build & Deployment
 
-- [ ] **Compiler Flags**: Release builds use security-hardening flags
-  - [ ] `-D_FORTIFY_SOURCE=2` enabled
-  - [ ] `-fstack-protector-strong` enabled
-  - [ ] `-fPIE -pie` for position-independent executables
-- [ ] **Binary Hardening**: Release binaries are hardened
-  - [ ] ASLR enabled
-  - [ ] NX bit set
-  - [ ] RELRO enabled
+> The hardening flags below are **not** wired into CMakeLists.txt yet — they
+> are aspirational items, kept in this list so we don't lose track. Treat
+> them as "must add before claiming hardened builds", not "tick off and ship."
+
+- [ ] **Compiler Flags**: Release builds should use security-hardening flags
+  - [ ] `-D_FORTIFY_SOURCE=2` (NOT YET WIRED — add to CMake Release config)
+  - [ ] `-fstack-protector-strong` (NOT YET WIRED)
+  - [ ] `-fPIE -pie` for PIE executables (NOT YET WIRED)
+  - [ ] `-Wl,-z,relro,-z,now` for full RELRO (NOT YET WIRED)
+- [ ] **Binary Hardening**: verify on the produced artifact
+  - [ ] ASLR (PIE) — `checksec --file=build/MetaImGUI`
+  - [ ] NX / DEP — usually default; verify with checksec
+  - [ ] RELRO — verify with checksec
 - [ ] **Signing**: Release artifacts are signed (if applicable)
 
 ### Testing
 
-- [ ] **Security Tests**: All security-focused tests pass
-- [ ] **Fuzzing**: Fuzz tests run without crashes (if implemented)
-- [ ] **Integration Tests**: All integration tests pass
-- [ ] **Stress Tests**: Long-running stress tests complete successfully
+- [ ] **Existing Tests**: `ctest` passes (Catch2 suite, with display tests
+      under `xvfb-run` on Linux CI)
+- [ ] **Sanitizer Builds**: `.github/workflows/sanitizers.yml` is green
+      (ASan / UBSan / TSan)
+- [ ] **Fuzzing**: NOT IMPLEMENTED — no fuzz harnesses exist yet
+- [ ] **Stress Tests**: NOT IMPLEMENTED — only the ConfigManager threading
+      test exercises concurrent access
 
 ### Documentation
 

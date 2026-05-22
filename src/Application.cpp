@@ -19,6 +19,7 @@
 #include "Application.h"
 
 #include "ConfigManager.h"
+#include "Coroutine.h"
 #include "DialogManager.h"
 #include "ISSTracker.h"
 #include "Localization.h"
@@ -196,6 +197,16 @@ bool Application::Initialize() {
     m_issTracker = std::make_unique<ISSTracker>();
     LOG_INFO("ISS tracker initialized");
 
+    // Wire UI events to handlers. Connection lifetimes are owned by
+    // m_uiConnections, so they auto-disconnect when Application is destroyed.
+    m_uiConnections.push_back(m_uiEvents.exitRequested.Connect([this]() { OnExitRequested(); }));
+    m_uiConnections.push_back(m_uiEvents.toggleDemoWindow.Connect([this]() { OnToggleDemoWindow(); }));
+    m_uiConnections.push_back(m_uiEvents.showDemoWindow.Connect([this]() { m_showDemoWindow = true; }));
+    m_uiConnections.push_back(m_uiEvents.checkUpdatesRequested.Connect([this]() { OnCheckUpdatesRequested(); }));
+    m_uiConnections.push_back(m_uiEvents.showAboutRequested.Connect([this]() { OnShowAboutRequested(); }));
+    m_uiConnections.push_back(m_uiEvents.showInputDialogRequested.Connect([this]() { OnShowInputDialogRequested(); }));
+    m_uiConnections.push_back(m_uiEvents.toggleISSTracker.Connect([this]() { OnToggleISSTracker(); }));
+
     // Check for updates asynchronously
     CheckForUpdates();
 
@@ -271,115 +282,106 @@ void Application::Render() {
         return;
     }
 
-    // Consume any pending update result (thread-safe handoff from worker thread)
-    {
-        const std::lock_guard<std::mutex> lock(m_updateResultMutex);
-        if (m_pendingUpdateResult) {
-            m_updateCheckInProgress = false;
-            m_latestUpdateInfo = std::move(m_pendingUpdateResult);
-            m_showUpdateNotification = true;
+    PollAsyncResults();
 
-            if (m_latestUpdateInfo->updateAvailable) {
-                m_statusMessage = "Update available: v" + m_latestUpdateInfo->latestVersion;
-                LOG_INFO("Update available: v{} (current: v{})", m_latestUpdateInfo->latestVersion,
-                         m_latestUpdateInfo->currentVersion);
-            } else {
-                m_statusMessage = "Ready";
-                LOG_INFO("No updates available (current version: v{})", m_latestUpdateInfo->currentVersion);
-            }
-        }
-    }
+    // Frame time for FPS readout in the status bar.
+    m_lastFrameTime = ImGui::GetIO().Framerate;
 
-    // Get frame time for FPS calculation
-    const ImGuiIO& io = ImGui::GetIO();
-    m_lastFrameTime = io.Framerate;
-
-    // Prepare window for rendering
     m_windowManager->BeginFrame();
-
-    // Start ImGui frame
     m_uiRenderer->BeginFrame();
 
-    // Create full-screen main window
+    RenderMainViewport();
+    RenderFloatingWindows();
+    RenderDialogs();
+
+    m_uiRenderer->EndFrame();
+    m_windowManager->EndFrame();
+}
+
+void Application::PollAsyncResults() {
+    // Thread-safe handoff: the update worker thread parks its result behind
+    // the mutex and we consume it on the UI thread.
+    const std::lock_guard<std::mutex> lock(m_updateResultMutex);
+    if (!m_pendingUpdateResult) {
+        return;
+    }
+
+    m_updateCheckInProgress = false;
+    m_latestUpdateInfo = std::move(m_pendingUpdateResult);
+
+    // Only surface the notification window when there's something
+    // actionable; rate-limit / network issues only update the status bar.
+    switch (m_latestUpdateInfo->status) {
+        case UpdateCheckStatus::UpdateFound:
+            m_showUpdateNotification = true;
+            m_statusMessage = "Update available: v" + m_latestUpdateInfo->latestVersion;
+            LOG_INFO("Update available: v{} (current: v{})", m_latestUpdateInfo->latestVersion,
+                     m_latestUpdateInfo->currentVersion);
+            break;
+        case UpdateCheckStatus::UpToDate:
+            m_statusMessage = "Ready";
+            LOG_INFO("No updates available (current version: v{})", m_latestUpdateInfo->currentVersion);
+            break;
+        case UpdateCheckStatus::RateLimited:
+            m_statusMessage = "Update check rate-limited; retry later";
+            break;
+        case UpdateCheckStatus::NetworkError:
+            m_statusMessage = "Update check failed (network)";
+            break;
+        case UpdateCheckStatus::ParseError:
+            m_statusMessage = "Update check failed (response)";
+            break;
+        case UpdateCheckStatus::Cancelled:
+            m_statusMessage = "Update check cancelled";
+            break;
+        case UpdateCheckStatus::Unknown:
+            m_statusMessage = "Ready";
+            break;
+    }
+}
+
+void Application::RenderMainViewport() {
     ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->Pos);
     ImGui::SetNextWindowSize(viewport->Size);
 
-    const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                                          ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
-                                          ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
+    constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+                                              ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
+                                              ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
     if (ImGui::Begin("MetaImGUI Main", nullptr, window_flags)) {
-        // Render menu bar
-        m_uiRenderer->RenderMenuBar([this]() { this->OnExitRequested(); }, [this]() { this->OnToggleDemoWindow(); },
-                                    [this]() { this->OnCheckUpdatesRequested(); },
-                                    [this]() { this->OnShowAboutRequested(); }, m_showDemoWindow,
-                                    [this]() { this->OnToggleISSTracker(); }, m_showISSTracker);
-
-        // Render main window content
-        m_uiRenderer->RenderMainWindow([this]() { this->OnShowAboutRequested(); },
-                                       [this]() { m_showDemoWindow = true; },
-                                       [this]() { this->OnShowInputDialogRequested(); });
-
-        // Render status bar
+        m_uiRenderer->RenderMenuBar(m_uiEvents, m_showDemoWindow, m_showISSTracker);
+        m_uiRenderer->RenderMainWindow(m_uiEvents);
         m_uiRenderer->RenderStatusBar(m_statusMessage, m_lastFrameTime, Version::VERSION, m_updateCheckInProgress);
     }
     ImGui::End();
 
     ImGui::PopStyleVar(3);
+}
 
-    // Render additional windows
+void Application::RenderFloatingWindows() {
     if (m_showAboutWindow) {
         m_uiRenderer->RenderAboutWindow(m_showAboutWindow);
     }
-
     if (m_showDemoWindow) {
         m_uiRenderer->ShowDemoWindow(m_showDemoWindow);
     }
-
     if (m_showUpdateNotification) {
         m_uiRenderer->RenderUpdateNotification(m_showUpdateNotification, m_latestUpdateInfo.get());
     }
-
     if (m_showISSTracker) {
         m_uiRenderer->RenderISSTrackerWindow(m_showISSTracker, m_issTracker.get());
     }
+}
 
-    // Render exit confirmation dialog
-    // Consume m_showExitDialog immediately so ShowConfirmation() is called
-    // exactly once. The dialog is then managed by DialogManager internally
-    // until the user interacts with it.
-    if (m_showExitDialog) {
-        m_showExitDialog = false;
-
-        auto& loc = Localization::Instance();
-        const std::string title = loc.Tr("exit.title");
-        const std::string message = loc.Tr("exit.message");
-
-        m_dialogManager->ShowConfirmation(title, message, [this](bool confirmed) {
-            if (confirmed && m_windowManager) {
-                m_windowManager->RequestClose();
-            } else if (m_windowManager) {
-                // User cancelled - make sure close flag is cleared
-                m_windowManager->CancelClose();
-            }
-        });
-    }
-
-    // Render dialogs
+void Application::RenderDialogs() {
     if (m_dialogManager) {
         m_dialogManager->Render();
     }
-
-    // End ImGui frame and render
-    m_uiRenderer->EndFrame();
-
-    // Present the frame
-    m_windowManager->EndFrame();
 }
 
 // Event Handlers
@@ -389,12 +391,38 @@ void Application::OnWindowCloseRequested() {
     if (m_windowManager) {
         m_windowManager->CancelClose();
     }
-    m_showExitDialog = true;
+    StartExitFlow();
 }
 
 void Application::OnExitRequested() {
     // Show exit confirmation dialog instead of closing immediately
-    m_showExitDialog = true;
+    StartExitFlow();
+}
+
+void Application::StartExitFlow() {
+    if (m_exitDialogActive || !m_dialogManager) {
+        return;
+    }
+    m_exitDialogActive = true;
+
+    auto& loc = Localization::Instance();
+    std::string title = loc.Tr("exit.title");
+    std::string message = loc.Tr("exit.message");
+
+    // Fire-and-forget coroutine: awaits the user, then acts on the answer.
+    // The Task return type's `suspend_never` finals destroy the frame
+    // automatically once the lambda returns.
+    [](Application* self, std::string title, std::string message) -> Task {
+        const bool confirmed = co_await self->m_dialogManager->AwaitConfirmation(std::move(title), std::move(message));
+        self->m_exitDialogActive = false;
+        if (self->m_windowManager) {
+            if (confirmed) {
+                self->m_windowManager->RequestClose();
+            } else {
+                self->m_windowManager->CancelClose();
+            }
+        }
+    }(this, std::move(title), std::move(message));
 }
 
 void Application::OnToggleDemoWindow() {
@@ -431,16 +459,12 @@ void Application::OnToggleISSTracker() {
 
 // Input Callbacks
 
-void Application::OnFramebufferSizeChanged(int width, int height) {
-    // Handle framebuffer size changes if needed
-    // Currently handled automatically by WindowManager
-    (void)width;
-    (void)height;
+void Application::OnFramebufferSizeChanged([[maybe_unused]] int width, [[maybe_unused]] int height) {
+    // WindowManager handles the actual viewport resize; this hook exists
+    // for app-level reactions like camera adjustments.
 }
 
-void Application::OnKeyPressed(int key, int scancode, int action, int mods) {
-    (void)scancode; // Unused parameter
-
+void Application::OnKeyPressed(int key, [[maybe_unused]] int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {
         switch (key) {
             case GLFW_KEY_ESCAPE:

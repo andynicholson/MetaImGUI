@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -29,6 +28,7 @@ namespace MetaImGUI {
 
 // Forward declarations
 struct UpdateInfo;
+struct UIEvents;
 class ISSTracker;
 
 /**
@@ -72,26 +72,17 @@ public:
 
     /**
      * @brief Render the main application window
-     * @param onShowAbout Callback when "Show About" is clicked
-     * @param onShowDemo Callback when "Show Demo" is clicked
-     * @param onShowInputDialog Callback when "Show Input Dialog" is clicked
+     * @param events UI event bus — Show About / Show Demo / Show Input fire signals here
      */
-    void RenderMainWindow(std::function<void()> onShowAbout, std::function<void()> onShowDemo,
-                          std::function<void()> onShowInputDialog = nullptr);
+    void RenderMainWindow(UIEvents& events);
 
     /**
      * @brief Render the menu bar
-     * @param onExit Callback when exit is requested
-     * @param onToggleDemo Callback when demo window is toggled
-     * @param onCheckUpdates Callback when update check is requested
-     * @param onShowAbout Callback when about is requested
-     * @param showDemoWindow Current state of demo window visibility
-     * @param onToggleISSTracker Callback when ISS tracker is toggled
-     * @param showISSTracker Current state of ISS tracker window visibility
+     * @param events UI event bus — menu items fire signals on this object
+     * @param showDemoWindow Current state of demo window visibility (for tick mark)
+     * @param showISSTracker Current state of ISS tracker window visibility (for tick mark)
      */
-    void RenderMenuBar(std::function<void()> onExit, std::function<void()> onToggleDemo,
-                       std::function<void()> onCheckUpdates, std::function<void()> onShowAbout, bool showDemoWindow,
-                       std::function<void()> onToggleISSTracker = nullptr, bool showISSTracker = false);
+    void RenderMenuBar(UIEvents& events, bool showDemoWindow, bool showISSTracker);
 
     /**
      * @brief Render the status bar

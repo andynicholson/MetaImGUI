@@ -18,9 +18,13 @@
 
 #pragma once
 
+#include "Signal.h"
+#include "UIEvents.h"
+
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 // Forward declarations
 namespace MetaImGUI {
@@ -143,13 +147,17 @@ private:
     std::unique_ptr<DialogManager> m_dialogManager;
     std::unique_ptr<ISSTracker> m_issTracker;
 
+    // UI event bus: UIRenderer fires, Application reacts via slots in m_uiConnections.
+    UIEvents m_uiEvents;
+    std::vector<Connection> m_uiConnections;
+
     // Application state
     bool m_initialized = false;
     bool m_showAboutWindow = false;
     bool m_showDemoWindow = false;
     bool m_showUpdateNotification = false;
     bool m_updateCheckInProgress = false;
-    bool m_showExitDialog = false;
+    bool m_exitDialogActive = false; // re-entry guard so spamming Esc doesn't stack dialogs
     bool m_showISSTracker = false;
 
     // Update checking
@@ -166,8 +174,19 @@ private:
     // Private methods
     void ProcessInput();
     void Render();
+
+    // Render() helpers — split out so each concern fits on a screen.
+    void PollAsyncResults();
+    void RenderMainViewport();
+    void RenderFloatingWindows();
+    void RenderDialogs();
+
     void CheckForUpdates();
     void OnUpdateCheckComplete(const UpdateInfo& updateInfo);
+
+    // Coroutine-driven exit confirmation flow (collapses the previous
+    // OnExit -> set flag -> render-tick -> ShowConfirmation -> callback dance).
+    void StartExitFlow();
 
     // Context recovery
     bool OnContextLoss();

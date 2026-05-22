@@ -41,6 +41,8 @@ namespace MetaImGUI {
 class ConfigManager {
 public:
     ConfigManager();
+    // Out-of-line: pimpl member holds an incomplete type here, so unique_ptr's
+    // deleter can't be instantiated until Impl is complete in the .cpp.
     ~ConfigManager();
 
     // Prevent copying but allow moving

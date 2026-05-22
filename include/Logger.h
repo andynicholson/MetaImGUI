@@ -18,13 +18,16 @@
 
 #pragma once
 
+#include <atomic>
 #include <filesystem>
-#include <fstream>
+#include <format>
 #include <memory>
-#include <mutex>
-#include <sstream>
-#include <string>
 #include <string_view>
+
+// Heavy I/O and synchronisation headers (<fstream>, <sstream>, <mutex>) live
+// behind the pimpl in the .cpp so they don't leak into every TU that logs.
+// <filesystem> stays here because std::filesystem::path is part of the public API
+// and isn't reliably forward-declarable across libstdc++/libc++/MSVC STL.
 
 namespace MetaImGUI {
 
@@ -40,175 +43,120 @@ enum class LogLevel {
 };
 
 /**
- * @brief Simple logging system with file and console output
+ * @brief Thread-safe logger with file and console output.
  *
- * Logger provides thread-safe logging with configurable severity levels,
- * timestamps, and output to both console and file.
+ * Templated entry points format with std::vformat (C++20). The minimum-level
+ * filter is checked through an atomic so the early-out path is lock-free.
  *
  * Usage:
  * @code
- * Logger::Instance().Info("Application started");
- * Logger::Instance().Error("Failed to load file: {}", filename);
- * LOG_DEBUG("Debug message");
- * LOG_INFO("Info message");
- * LOG_WARNING("Warning message");
- * LOG_ERROR("Error message");
+ * LOG_INFO("Application started");
+ * LOG_ERROR("Failed to load file: {}", filename);
  * @endcode
  */
 class Logger {
 public:
-    /**
-     * @brief Get singleton instance
-     */
     static Logger& Instance();
 
-    // Delete copy and move
     Logger(const Logger&) = delete;
     Logger& operator=(const Logger&) = delete;
     Logger(Logger&&) = delete;
     Logger& operator=(Logger&&) = delete;
 
-    /**
-     * @brief Initialize logger with optional log file
-     * @param logFilePath Path to log file (empty to disable file logging)
-     * @param minLevel Minimum log level to output
-     */
-    void Initialize(const std::filesystem::path& logFilePath = "", LogLevel minLevel = LogLevel::Info);
-
-    /**
-     * @brief Shutdown logger and flush buffers
-     */
+    void Initialize(const std::filesystem::path& logFilePath, LogLevel minLevel = LogLevel::Info);
     void Shutdown();
 
-    /**
-     * @brief Set minimum log level
-     */
-    void SetLevel(LogLevel level);
+    void SetLevel(LogLevel level) noexcept {
+        m_minLevel.store(level, std::memory_order_release);
+    }
 
-    /**
-     * @brief Get current log level
-     */
-    LogLevel GetLevel() const;
+    [[nodiscard]] LogLevel GetLevel() const noexcept {
+        return m_minLevel.load(std::memory_order_acquire);
+    }
 
-    /**
-     * @brief Enable/disable console output
-     */
     void SetConsoleOutput(bool enable);
-
-    /**
-     * @brief Enable/disable file output
-     */
     void SetFileOutput(bool enable);
-
-    /**
-     * @brief Flush log buffers
-     */
     void Flush();
 
-    /**
-     * @brief Get log file path
-     */
-    std::filesystem::path GetLogFilePath() const;
+    [[nodiscard]] std::filesystem::path GetLogFilePath() const;
 
-    // Logging methods
     template <typename... Args>
-    void Debug(std::string_view format, Args&&... args) {
-        Log(LogLevel::Debug, format, std::forward<Args>(args)...);
+    void Debug(std::format_string<Args...> fmt, Args... args) {
+        if (LogLevel::Debug >= GetLevel()) {
+            LogVFormat(LogLevel::Debug, fmt.get(), std::make_format_args(args...));
+        }
     }
 
     template <typename... Args>
-    void Info(std::string_view format, Args&&... args) {
-        Log(LogLevel::Info, format, std::forward<Args>(args)...);
+    void Info(std::format_string<Args...> fmt, Args... args) {
+        if (LogLevel::Info >= GetLevel()) {
+            LogVFormat(LogLevel::Info, fmt.get(), std::make_format_args(args...));
+        }
     }
 
     template <typename... Args>
-    void Warning(std::string_view format, Args&&... args) {
-        Log(LogLevel::Warning, format, std::forward<Args>(args)...);
+    void Warning(std::format_string<Args...> fmt, Args... args) {
+        if (LogLevel::Warning >= GetLevel()) {
+            LogVFormat(LogLevel::Warning, fmt.get(), std::make_format_args(args...));
+        }
     }
 
     template <typename... Args>
-    void Error(std::string_view format, Args&&... args) {
-        Log(LogLevel::Error, format, std::forward<Args>(args)...);
+    void Error(std::format_string<Args...> fmt, Args... args) {
+        if (LogLevel::Error >= GetLevel()) {
+            LogVFormat(LogLevel::Error, fmt.get(), std::make_format_args(args...));
+        }
     }
 
     template <typename... Args>
-    void Fatal(std::string_view format, Args&&... args) {
-        Log(LogLevel::Fatal, format, std::forward<Args>(args)...);
+    void Fatal(std::format_string<Args...> fmt, Args... args) {
+        if (LogLevel::Fatal >= GetLevel()) {
+            LogVFormat(LogLevel::Fatal, fmt.get(), std::make_format_args(args...));
+        }
     }
 
-    // Simple overloads for no-argument messages
+    // Overloads for plain string messages — skip vformat entirely.
     void Debug(std::string_view message) {
-        Log(LogLevel::Debug, message);
+        if (LogLevel::Debug >= GetLevel()) {
+            LogPlain(LogLevel::Debug, message);
+        }
     }
     void Info(std::string_view message) {
-        Log(LogLevel::Info, message);
+        if (LogLevel::Info >= GetLevel()) {
+            LogPlain(LogLevel::Info, message);
+        }
     }
     void Warning(std::string_view message) {
-        Log(LogLevel::Warning, message);
+        if (LogLevel::Warning >= GetLevel()) {
+            LogPlain(LogLevel::Warning, message);
+        }
     }
     void Error(std::string_view message) {
-        Log(LogLevel::Error, message);
+        if (LogLevel::Error >= GetLevel()) {
+            LogPlain(LogLevel::Error, message);
+        }
     }
     void Fatal(std::string_view message) {
-        Log(LogLevel::Fatal, message);
+        if (LogLevel::Fatal >= GetLevel()) {
+            LogPlain(LogLevel::Fatal, message);
+        }
     }
 
 private:
     Logger();
     ~Logger();
 
-    template <typename... Args>
-    void Log(LogLevel level, std::string_view format, Args&&... args) {
-        if (level < m_minLevel) {
-            return;
-        }
+    // Pimpl holds <fstream>/<filesystem>/<mutex> so they don't leak into TUs.
+    // The destructor is defined in the .cpp so unique_ptr<Impl> can hold an
+    // incomplete type here.
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
 
-        const std::string message = Format(format, std::forward<Args>(args)...);
-        LogMessage(level, message);
-    }
+    // Hot-path: read by every Debug/Info/... template before any locking.
+    std::atomic<LogLevel> m_minLevel{LogLevel::Info};
 
-    void Log(LogLevel level, std::string_view message) {
-        if (level < m_minLevel) {
-            return;
-        }
-        LogMessage(level, std::string(message));
-    }
-
-    void LogMessage(LogLevel level, const std::string& message);
-
-    // Simple format function (basic placeholder replacement)
-    template <typename... Args>
-    std::string Format(std::string_view format, Args&&... args) {
-        std::ostringstream oss;
-        FormatImpl(oss, format, std::forward<Args>(args)...);
-        return oss.str();
-    }
-
-    template <typename T, typename... Args>
-    void FormatImpl(std::ostringstream& oss, std::string_view format, T&& first, Args&&... rest) {
-        const size_t pos = format.find("{}");
-        if (pos != std::string_view::npos) {
-            oss << format.substr(0, pos) << std::forward<T>(first);
-            FormatImpl(oss, format.substr(pos + 2), std::forward<Args>(rest)...);
-        } else {
-            oss << format;
-        }
-    }
-
-    void FormatImpl(std::ostringstream& oss, std::string_view format) {
-        oss << format;
-    }
-
-    std::string GetTimestamp() const;
-    std::string LevelToString(LogLevel level) const;
-    const char* LevelToColor(LogLevel level) const;
-
-    LogLevel m_minLevel = LogLevel::Info;
-    bool m_consoleOutput = true;
-    bool m_fileOutput = false;
-    std::filesystem::path m_logFilePath;
-    std::ofstream m_logFile;
-    mutable std::mutex m_mutex;
+    void LogVFormat(LogLevel level, std::string_view fmt, std::format_args args);
+    void LogPlain(LogLevel level, std::string_view message);
 };
 
 } // namespace MetaImGUI
