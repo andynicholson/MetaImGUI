@@ -119,11 +119,13 @@ jobs:
           cmake -B build \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DCMAKE_INSTALL_PREFIX=install \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            -DMETAIMGUI_WARNINGS_AS_ERRORS=ON
         else
           cmake -B build \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -DCMAKE_INSTALL_PREFIX=install
+            -DCMAKE_INSTALL_PREFIX=install \
+            -DMETAIMGUI_WARNINGS_AS_ERRORS=ON
         fi
 
     - name: Configure CMake (Windows)
@@ -132,7 +134,8 @@ jobs:
         cmake -B build `
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
           -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
-          -DCMAKE_INSTALL_PREFIX=install
+          -DCMAKE_INSTALL_PREFIX=install `
+          -DMETAIMGUI_WARNINGS_AS_ERRORS=ON
       shell: pwsh
 
     - name: Build

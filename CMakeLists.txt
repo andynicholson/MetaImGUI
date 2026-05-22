@@ -44,9 +44,15 @@ if(APPLE)
     # Avoid bundling custom libc++ and libunwind dependencies
 endif()
 
-# Platform-specific compiler settings
+# Compiler warnings and errors-as-warnings policy.
+# We always want warnings on, but treating warnings as errors via -Werror/-WX
+# makes it almost impossible for downstream packagers (distros, ports, CI on a
+# new compiler version) to build the project — a single new diagnostic in a
+# newer compiler breaks the build. Default OFF; CI flips it ON.
+option(METAIMGUI_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+
+# Platform-wide build hygiene that is *not* tied to a target.
 if(MSVC)
-    add_compile_options(/W4 /WX)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
     # Prevent Windows.h from defining min/max macros that conflict with std::min/max
     add_compile_definitions(NOMINMAX)
@@ -56,11 +62,27 @@ if(MSVC)
     add_compile_options(/MP)
 
     # Use static runtime library to avoid redistributable dependencies
-    # This eliminates the need for MSVCP140.dll, VCRUNTIME140.dll, etc.
+    # (no MSVCP140.dll / VCRUNTIME140.dll runtime). NOTE: every static lib
+    # we link must use the same runtime — third-party libs built with the
+    # default DLL runtime will fail to link.
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-else()
-    add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
+
+# Helper applied per-target instead of project-wide. Keeps strict warnings
+# on our code without poisoning third-party code (imgui, implot, catch2).
+function(metaimgui_apply_warnings tgt)
+    if(MSVC)
+        target_compile_options(${tgt} PRIVATE /W4)
+        if(METAIMGUI_WARNINGS_AS_ERRORS)
+            target_compile_options(${tgt} PRIVATE /WX)
+        endif()
+    else()
+        target_compile_options(${tgt} PRIVATE -Wall -Wextra -Wpedantic)
+        if(METAIMGUI_WARNINGS_AS_ERRORS)
+            target_compile_options(${tgt} PRIVATE -Werror)
+        endif()
+    endif()
+endfunction()
 
 # Find OpenGL
 find_package(OpenGL REQUIRED)
@@ -197,6 +219,10 @@ target_include_directories(MetaImGUI PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}/include
     ${JSON_DIR}/include
 )
+
+# Strict warnings only on our own target — third-party imgui/implot/catch2
+# are linked elsewhere and shouldn't be subjected to our policy.
+metaimgui_apply_warnings(MetaImGUI)
 
 # Link libraries
 target_link_libraries(MetaImGUI PRIVATE
@@ -347,6 +373,8 @@ if(BUILD_TESTS)
             Catch2::Catch2
             imgui
         )
+
+        metaimgui_apply_warnings(MetaImGUI_tests)
 
         # Platform-specific linking for tests
         if(WIN32)
