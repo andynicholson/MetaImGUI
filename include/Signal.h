@@ -27,7 +27,8 @@
 
 namespace MetaImGUI {
 
-template <typename... Args> class Signal;
+template <typename... Args>
+class Signal;
 
 /**
  * @brief RAII handle that owns a single subscription to a Signal.
@@ -77,7 +78,8 @@ public:
     }
 
 private:
-    template <typename... Args> friend class Signal;
+    template <typename... Args>
+    friend class Signal;
     explicit Connection(std::function<void()> disconnect) : m_disconnect(std::move(disconnect)) {}
 
     std::function<void()> m_disconnect;
@@ -94,7 +96,8 @@ private:
  * thread (the UI thread, in this codebase). Cross-thread fan-out is the
  * caller's job (see the m_pendingUpdateResult mutex hand-off in Application).
  */
-template <typename... Args> class Signal {
+template <typename... Args>
+class Signal {
 public:
     using SlotId = std::size_t;
     using Slot = std::function<void(Args...)>;

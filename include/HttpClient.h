@@ -31,10 +31,10 @@ namespace MetaImGUI {
  * (see UpdateChecker), promoted to a shared vocabulary.
  */
 enum class HttpStatus {
-    Ok,            ///< 2xx response, body populated
-    RateLimited,   ///< 403 with X-RateLimit-Remaining: 0 (GitHub-style)
-    NetworkError,  ///< curl/transport failure, or non-2xx that isn't rate-limit
-    Cancelled      ///< stop_token::stop_requested() fired during transfer
+    Ok,           ///< 2xx response, body populated
+    RateLimited,  ///< 403 with X-RateLimit-Remaining: 0 (GitHub-style)
+    NetworkError, ///< curl/transport failure, or non-2xx that isn't rate-limit
+    Cancelled     ///< stop_token::stop_requested() fired during transfer
 };
 
 struct HttpResponse {

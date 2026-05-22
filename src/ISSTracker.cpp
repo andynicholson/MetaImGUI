@@ -179,8 +179,7 @@ ISSPosition ISSTracker::FetchPositionImpl(const std::stop_token& stopToken) {
             return position; // Caller checks stop_token after we return.
         }
         if (response.status != HttpStatus::Ok) {
-            LOG_ERROR("ISS Tracker: HTTP fetch failed (status={})",
-                      static_cast<int>(response.status));
+            LOG_ERROR("ISS Tracker: HTTP fetch failed (status={})", static_cast<int>(response.status));
             return position;
         }
         if (response.body.empty()) {

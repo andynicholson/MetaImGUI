@@ -30,13 +30,13 @@ namespace MetaImGUI {
 
 // C++20: Using designated initializers for clear, safe initialization
 enum class UpdateCheckStatus {
-    Unknown,       ///< No check has run, or result not yet available
-    UpToDate,      ///< Current version is the latest
-    UpdateFound,   ///< A newer release is available
-    RateLimited,   ///< GitHub API rate limit hit (HTTP 403)
-    NetworkError,  ///< Network/HTTP failure
-    ParseError,    ///< Response did not contain a parseable version
-    Cancelled      ///< Stop requested before the check completed
+    Unknown,      ///< No check has run, or result not yet available
+    UpToDate,     ///< Current version is the latest
+    UpdateFound,  ///< A newer release is available
+    RateLimited,  ///< GitHub API rate limit hit (HTTP 403)
+    NetworkError, ///< Network/HTTP failure
+    ParseError,   ///< Response did not contain a parseable version
+    Cancelled     ///< Stop requested before the check completed
 };
 
 struct UpdateInfo {
