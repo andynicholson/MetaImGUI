@@ -22,6 +22,7 @@
 #include "Localization.h"
 #include "Logger.h"
 #include "ThemeManager.h"
+#include "UIEvents.h"
 #include "UpdateChecker.h"
 #include "version.h"
 
@@ -125,8 +126,7 @@ void UIRenderer::EndFrame() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::function<void()> onShowDemo,
-                                  std::function<void()> onShowInputDialog) {
+void UIRenderer::RenderMainWindow(UIEvents& events) {
     auto& loc = Localization::Instance();
 
     const float contentHeight = ImGui::GetContentRegionAvail().y - UILayout::STATUS_BAR_HEIGHT;
@@ -147,14 +147,14 @@ void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::functi
         // Visual gap between text and button column.
         ImGui::Dummy(ImVec2(0, UILayout::VERTICAL_SPACING_SMALL));
 
-        if (ImGui::Button(loc.Tr("button.show_about").c_str()) && onShowAbout) {
-            onShowAbout();
+        if (ImGui::Button(loc.Tr("button.show_about").c_str())) {
+            events.showAboutRequested.Emit();
         }
-        if (ImGui::Button(loc.Tr("button.show_demo").c_str()) && onShowDemo) {
-            onShowDemo();
+        if (ImGui::Button(loc.Tr("button.show_demo").c_str())) {
+            events.showDemoWindow.Emit();
         }
-        if (ImGui::Button(loc.Tr("button.show_input").c_str()) && onShowInputDialog) {
-            onShowInputDialog();
+        if (ImGui::Button(loc.Tr("button.show_input").c_str())) {
+            events.showInputDialogRequested.Emit();
         }
     }
     ImGui::EndChild();
@@ -162,32 +162,24 @@ void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::functi
     ImGui::PopStyleVar(2);
 }
 
-void UIRenderer::RenderMenuBar(std::function<void()> onExit, std::function<void()> onToggleDemo,
-                               std::function<void()> onCheckUpdates, std::function<void()> onShowAbout,
-                               bool showDemoWindow, std::function<void()> onToggleISSTracker, bool showISSTracker) {
+void UIRenderer::RenderMenuBar(UIEvents& events, bool showDemoWindow, bool showISSTracker) {
     auto& loc = Localization::Instance();
 
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu(loc.Tr("menu.file").c_str())) {
             if (ImGui::MenuItem(loc.Tr("menu.exit").c_str(), "Alt+F4")) {
-                if (onExit) {
-                    onExit();
-                }
+                events.exitRequested.Emit();
             }
             ImGui::EndMenu();
         }
 
         if (ImGui::BeginMenu(loc.Tr("menu.view").c_str())) {
             if (ImGui::MenuItem(loc.Tr("menu.demo_window").c_str(), nullptr, showDemoWindow)) {
-                if (onToggleDemo) {
-                    onToggleDemo();
-                }
+                events.toggleDemoWindow.Emit();
             }
 
             if (ImGui::MenuItem("ISS Tracker", nullptr, showISSTracker)) {
-                if (onToggleISSTracker) {
-                    onToggleISSTracker();
-                }
+                events.toggleISSTracker.Emit();
             }
 
             ImGui::Separator();
@@ -230,15 +222,11 @@ void UIRenderer::RenderMenuBar(std::function<void()> onExit, std::function<void(
 
         if (ImGui::BeginMenu(loc.Tr("menu.help").c_str())) {
             if (ImGui::MenuItem(loc.Tr("menu.check_updates").c_str())) {
-                if (onCheckUpdates) {
-                    onCheckUpdates();
-                }
+                events.checkUpdatesRequested.Emit();
             }
             ImGui::Separator();
             if (ImGui::MenuItem(loc.Tr("menu.about").c_str(), "Ctrl+A")) {
-                if (onShowAbout) {
-                    onShowAbout();
-                }
+                events.showAboutRequested.Emit();
             }
             ImGui::EndMenu();
         }

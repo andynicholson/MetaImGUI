@@ -196,6 +196,16 @@ bool Application::Initialize() {
     m_issTracker = std::make_unique<ISSTracker>();
     LOG_INFO("ISS tracker initialized");
 
+    // Wire UI events to handlers. Connection lifetimes are owned by
+    // m_uiConnections, so they auto-disconnect when Application is destroyed.
+    m_uiConnections.push_back(m_uiEvents.exitRequested.Connect([this]() { OnExitRequested(); }));
+    m_uiConnections.push_back(m_uiEvents.toggleDemoWindow.Connect([this]() { OnToggleDemoWindow(); }));
+    m_uiConnections.push_back(m_uiEvents.showDemoWindow.Connect([this]() { m_showDemoWindow = true; }));
+    m_uiConnections.push_back(m_uiEvents.checkUpdatesRequested.Connect([this]() { OnCheckUpdatesRequested(); }));
+    m_uiConnections.push_back(m_uiEvents.showAboutRequested.Connect([this]() { OnShowAboutRequested(); }));
+    m_uiConnections.push_back(m_uiEvents.showInputDialogRequested.Connect([this]() { OnShowInputDialogRequested(); }));
+    m_uiConnections.push_back(m_uiEvents.toggleISSTracker.Connect([this]() { OnToggleISSTracker(); }));
+
     // Check for updates asynchronously
     CheckForUpdates();
 
@@ -343,15 +353,8 @@ void Application::RenderMainViewport() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
     if (ImGui::Begin("MetaImGUI Main", nullptr, window_flags)) {
-        m_uiRenderer->RenderMenuBar([this]() { this->OnExitRequested(); }, [this]() { this->OnToggleDemoWindow(); },
-                                    [this]() { this->OnCheckUpdatesRequested(); },
-                                    [this]() { this->OnShowAboutRequested(); }, m_showDemoWindow,
-                                    [this]() { this->OnToggleISSTracker(); }, m_showISSTracker);
-
-        m_uiRenderer->RenderMainWindow([this]() { this->OnShowAboutRequested(); },
-                                       [this]() { m_showDemoWindow = true; },
-                                       [this]() { this->OnShowInputDialogRequested(); });
-
+        m_uiRenderer->RenderMenuBar(m_uiEvents, m_showDemoWindow, m_showISSTracker);
+        m_uiRenderer->RenderMainWindow(m_uiEvents);
         m_uiRenderer->RenderStatusBar(m_statusMessage, m_lastFrameTime, Version::VERSION, m_updateCheckInProgress);
     }
     ImGui::End();

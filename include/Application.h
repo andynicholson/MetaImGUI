@@ -18,9 +18,13 @@
 
 #pragma once
 
+#include "Signal.h"
+#include "UIEvents.h"
+
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 // Forward declarations
 namespace MetaImGUI {
@@ -142,6 +146,10 @@ private:
     std::unique_ptr<ConfigManager> m_configManager;
     std::unique_ptr<DialogManager> m_dialogManager;
     std::unique_ptr<ISSTracker> m_issTracker;
+
+    // UI event bus: UIRenderer fires, Application reacts via slots in m_uiConnections.
+    UIEvents m_uiEvents;
+    std::vector<Connection> m_uiConnections;
 
     // Application state
     bool m_initialized = false;
