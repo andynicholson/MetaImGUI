@@ -51,7 +51,7 @@ jobs:
         if [ ! -d "external/imgui" ]; then
           mkdir -p external
           cd external
-          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+          git clone https://github.com/ocornut/imgui.git && git -C imgui checkout --detach 9a5d5c45f54b1301ea471622eddede70384243af   # v1.92.4
           cd ..
         fi
 
@@ -59,7 +59,7 @@ jobs:
         if [ ! -d "external/json" ]; then
           mkdir -p external
           cd external
-          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+          git clone https://github.com/nlohmann/json.git && git -C json checkout --detach 9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03    # v3.11.3
           cd ..
         fi
 
@@ -67,7 +67,7 @@ jobs:
         if [ ! -d "external/implot" ]; then
           mkdir -p external
           cd external
-          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
+          git clone https://github.com/epezent/implot.git && git -C implot checkout --detach 4707b245fbcd69075b1a8a74fa8d2435561b3134  # v0.17
           cd ..
         fi
 
@@ -75,7 +75,7 @@ jobs:
         if [ ! -d "external/catch2" ]; then
           mkdir -p external
           cd external
-          git clone --branch v3.4.0 --depth 1 https://github.com/catchorg/Catch2.git catch2
+          git clone https://github.com/catchorg/Catch2.git catch2 && git -C catch2 checkout --detach f90e8f50a6e76e3492ee9aadfe1014677c4807d2  # v3.4.0
           cd ..
         fi
 
@@ -139,7 +139,7 @@ jobs:
         if [ ! -d "external/imgui" ]; then
           mkdir -p external
           cd external
-          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+          git clone https://github.com/ocornut/imgui.git && git -C imgui checkout --detach 9a5d5c45f54b1301ea471622eddede70384243af   # v1.92.4
           cd ..
         fi
 
@@ -147,7 +147,7 @@ jobs:
         if [ ! -d "external/json" ]; then
           mkdir -p external
           cd external
-          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+          git clone https://github.com/nlohmann/json.git && git -C json checkout --detach 9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03    # v3.11.3
           cd ..
         fi
 
@@ -155,7 +155,7 @@ jobs:
         if [ ! -d "external/implot" ]; then
           mkdir -p external
           cd external
-          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
+          git clone https://github.com/epezent/implot.git && git -C implot checkout --detach 4707b245fbcd69075b1a8a74fa8d2435561b3134  # v0.17
           cd ..
         fi
 
@@ -163,7 +163,7 @@ jobs:
         if [ ! -d "external/catch2" ]; then
           mkdir -p external
           cd external
-          git clone --branch v3.4.0 --depth 1 https://github.com/catchorg/Catch2.git catch2
+          git clone https://github.com/catchorg/Catch2.git catch2 && git -C catch2 checkout --detach f90e8f50a6e76e3492ee9aadfe1014677c4807d2  # v3.4.0
           cd ..
         fi
 
@@ -227,7 +227,7 @@ jobs:
         if [ ! -d "external/imgui" ]; then
           mkdir -p external
           cd external
-          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+          git clone https://github.com/ocornut/imgui.git && git -C imgui checkout --detach 9a5d5c45f54b1301ea471622eddede70384243af   # v1.92.4
           cd ..
         fi
 
@@ -235,7 +235,7 @@ jobs:
         if [ ! -d "external/json" ]; then
           mkdir -p external
           cd external
-          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+          git clone https://github.com/nlohmann/json.git && git -C json checkout --detach 9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03    # v3.11.3
           cd ..
         fi
 
@@ -243,7 +243,7 @@ jobs:
         if [ ! -d "external/implot" ]; then
           mkdir -p external
           cd external
-          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
+          git clone https://github.com/epezent/implot.git && git -C implot checkout --detach 4707b245fbcd69075b1a8a74fa8d2435561b3134  # v0.17
           cd ..
         fi
 
@@ -251,7 +251,7 @@ jobs:
         if [ ! -d "external/catch2" ]; then
           mkdir -p external
           cd external
-          git clone --branch v3.4.0 --depth 1 https://github.com/catchorg/Catch2.git catch2
+          git clone https://github.com/catchorg/Catch2.git catch2 && git -C catch2 checkout --detach f90e8f50a6e76e3492ee9aadfe1014677c4807d2  # v3.4.0
           cd ..
         fi
 

@@ -86,12 +86,16 @@ jobs:
         vcpkg install glfw3:x64-windows curl:x64-windows
       shell: bash
 
+    # Third-party deps are pinned to commit SHAs rather than tags, because
+    # tags can be re-pointed. The release tag each SHA corresponds to is in
+    # the comment for human readability. Keep these in sync with
+    # setup_dependencies.sh.
     - name: Setup ImGui
       run: |
         if [ ! -d "external/imgui" ]; then
           mkdir -p external
-          cd external
-          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
+          git clone https://github.com/ocornut/imgui.git external/imgui
+          git -C external/imgui checkout --detach 9a5d5c45f54b1301ea471622eddede70384243af   # v1.92.4
         fi
       shell: bash
 
@@ -99,8 +103,8 @@ jobs:
       run: |
         if [ ! -d "external/json" ]; then
           mkdir -p external
-          cd external
-          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
+          git clone https://github.com/nlohmann/json.git external/json
+          git -C external/json checkout --detach 9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03    # v3.11.3
         fi
       shell: bash
 
@@ -108,8 +112,8 @@ jobs:
       run: |
         if [ ! -d "external/implot" ]; then
           mkdir -p external
-          cd external
-          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
+          git clone https://github.com/epezent/implot.git external/implot
+          git -C external/implot checkout --detach 4707b245fbcd69075b1a8a74fa8d2435561b3134  # v0.17
         fi
       shell: bash
 
@@ -187,28 +191,23 @@ jobs:
 
     - name: Setup dependencies
       run: |
-        # Setup ImGui
+        # SHAs match setup_dependencies.sh — see that file for the rotation policy.
         if [ ! -d "external/imgui" ]; then
           mkdir -p external
-          cd external
-          git clone --branch v1.92.4 --depth 1 https://github.com/ocornut/imgui.git
-          cd ..
+          git clone https://github.com/ocornut/imgui.git external/imgui
+          git -C external/imgui checkout --detach 9a5d5c45f54b1301ea471622eddede70384243af   # v1.92.4
         fi
 
-        # Setup nlohmann/json
         if [ ! -d "external/json" ]; then
           mkdir -p external
-          cd external
-          git clone --branch v3.11.3 --depth 1 https://github.com/nlohmann/json.git
-          cd ..
+          git clone https://github.com/nlohmann/json.git external/json
+          git -C external/json checkout --detach 9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03    # v3.11.3
         fi
 
-        # Setup ImPlot
         if [ ! -d "external/implot" ]; then
           mkdir -p external
-          cd external
-          git clone --branch v0.17 --depth 1 https://github.com/epezent/implot.git
-          cd ..
+          git clone https://github.com/epezent/implot.git external/implot
+          git -C external/implot checkout --detach 4707b245fbcd69075b1a8a74fa8d2435561b3134  # v0.17
         fi
 
     - name: Configure CMake for clang-tidy
