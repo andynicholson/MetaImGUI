@@ -129,45 +129,37 @@ void UIRenderer::RenderMainWindow(std::function<void()> onShowAbout, std::functi
                                   std::function<void()> onShowInputDialog) {
     auto& loc = Localization::Instance();
 
-    // Calculate heights
     const float contentHeight = ImGui::GetContentRegionAvail().y - UILayout::STATUS_BAR_HEIGHT;
 
-    // Main content area
+    // Use natural ImGui flow layout instead of pixel-positioned cursor moves.
+    // WindowPadding gives the left/top margin; ItemSpacing handles vertical
+    // gaps between widgets. This adapts cleanly to font scaling, DPI changes,
+    // and translated button labels of varying widths.
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(UILayout::LEFT_MARGIN, UILayout::TOP_MARGIN));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
+                        ImVec2(ImGui::GetStyle().ItemSpacing.x, UILayout::VERTICAL_SPACING_SMALL));
+
     if (ImGui::BeginChild("MainContent", ImVec2(0, contentHeight), ImGuiChildFlags_None, ImGuiWindowFlags_None)) {
-        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN, UILayout::TOP_MARGIN));
-        ImGui::Text("Welcome to MetaImGUI!");
+        ImGui::TextUnformatted("Welcome to MetaImGUI!");
+        ImGui::TextUnformatted("This is a template for creating ImGui-based applications.");
+        ImGui::TextUnformatted("Use the menu bar above to access the About dialog.");
 
-        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN, UILayout::TOP_MARGIN + UILayout::LINE_SPACING));
-        ImGui::Text("This is a template for creating ImGui-based applications.");
+        // Visual gap between text and button column.
+        ImGui::Dummy(ImVec2(0, UILayout::VERTICAL_SPACING_SMALL));
 
-        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN, UILayout::TOP_MARGIN + (UILayout::LINE_SPACING * 2)));
-        ImGui::Text("Use the menu bar above to access the About dialog.");
-
-        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN,
-                                   UILayout::TOP_MARGIN + (UILayout::LINE_SPACING * 2) + UILayout::BUTTON_SPACING));
-        if (ImGui::Button(loc.Tr("button.show_about").c_str())) {
-            if (onShowAbout) {
-                onShowAbout();
-            }
+        if (ImGui::Button(loc.Tr("button.show_about").c_str()) && onShowAbout) {
+            onShowAbout();
         }
-
-        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN, UILayout::TOP_MARGIN + (UILayout::LINE_SPACING * 2) +
-                                                              (UILayout::BUTTON_SPACING * 2)));
-        if (ImGui::Button(loc.Tr("button.show_demo").c_str())) {
-            if (onShowDemo) {
-                onShowDemo();
-            }
+        if (ImGui::Button(loc.Tr("button.show_demo").c_str()) && onShowDemo) {
+            onShowDemo();
         }
-
-        ImGui::SetCursorPos(ImVec2(UILayout::LEFT_MARGIN, UILayout::TOP_MARGIN + (UILayout::LINE_SPACING * 2) +
-                                                              (UILayout::BUTTON_SPACING * 3)));
-        if (ImGui::Button(loc.Tr("button.show_input").c_str())) {
-            if (onShowInputDialog) {
-                onShowInputDialog();
-            }
+        if (ImGui::Button(loc.Tr("button.show_input").c_str()) && onShowInputDialog) {
+            onShowInputDialog();
         }
     }
     ImGui::EndChild();
+
+    ImGui::PopStyleVar(2);
 }
 
 void UIRenderer::RenderMenuBar(std::function<void()> onExit, std::function<void()> onToggleDemo,

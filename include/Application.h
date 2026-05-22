@@ -166,6 +166,13 @@ private:
     // Private methods
     void ProcessInput();
     void Render();
+
+    // Render() helpers — split out so each concern fits on a screen.
+    void PollAsyncResults();
+    void RenderMainViewport();
+    void RenderFloatingWindows();
+    void RenderDialogs();
+
     void CheckForUpdates();
     void OnUpdateCheckComplete(const UpdateInfo& updateInfo);
 
